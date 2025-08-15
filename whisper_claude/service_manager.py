@@ -7,11 +7,11 @@ lifecycle management and coordination between components.
 import logging
 from typing import Optional
 
-from .config import Config
 from .audio_recorder import AudioRecorder
-from .transcription_client import TranscriptionClient
+from .config import Config
 from .key_monitor import KeyMonitor
 from .text_inserter import TextInserter
+from .transcription_client import TranscriptionClient
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,9 @@ class ServiceManager:
         self._text_inserter: Optional[TextInserter] = None
         self._running = False
 
-        logger.info("Service manager placeholder initialized (Step 4 implementation pending)")
+        logger.info(
+            "Service manager placeholder initialized (Step 4 implementation pending)"
+        )
 
     def start_service(self) -> None:
         """Start the service with all components (placeholder)."""

@@ -85,7 +85,9 @@ The service is designed with these key components:
 - Prefer composition over inheritance
 - Keep functions focused and single-purpose
 - Use descriptive variable and function names
-- Follow PEP 8 style guidelines
+- Follow PEP 8 style guidelines (enforced by ruff)
+- Code formatting handled by ruff formatter
+- Import sorting handled by ruff (isort rules)
 
 ### Error Handling
 - Catch specific exceptions rather than broad except clauses
@@ -147,25 +149,28 @@ whisper-claude/
 ## Common Commands
 
 ### Development
+
+**Recommended workflow using Makefile:**
 ```bash
-# Install dependencies
-uv sync
+# Complete development pipeline
+make all          # Install, check quality, run tests
 
-# Run service
-uv run whisper-claude
+# Individual steps
+make install      # Install dependencies
+make check        # Run formatter, linter, type checker
+make test         # Run all tests with coverage
+make coverage     # Detailed coverage report
 
-# Run tests with coverage
-uv run pytest --cov=whisper_claude --cov-report=html --cov-report=term
-
-# Code formatting
-uv run black .
-
-# Linting
-uv run flake8 .
-
-# Type checking
-uv run mypy .
+# Manual commands (if needed)
+uv run whisper-claude                    # Run service
+uv run ruff format . && uv run ruff check . --fix  # Format & lint
+uv run mypy whisper_claude/              # Type checking
 ```
+
+**API Key Setup:**
+- The OpenAI API key should be in `.openai-api.key` file
+- Alternatively, set `OPENAI_API_KEY` environment variable
+- Or create `.env` file with the key
 
 ### Docker
 ```bash

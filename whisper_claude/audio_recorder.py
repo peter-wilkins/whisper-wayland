@@ -9,7 +9,7 @@ import logging
 import threading
 import time
 import wave
-from typing import Optional, BinaryIO
+from typing import Any, Optional
 
 import pyaudio
 
@@ -157,7 +157,9 @@ class AudioRecorder:
                 self._recording_thread = None
 
                 if audio_data:
-                    logger.info(f"Audio recording stopped, captured {len(audio_data)} bytes")
+                    logger.info(
+                        f"Audio recording stopped, captured {len(audio_data)} bytes"
+                    )
                 else:
                     logger.warning("No audio data captured")
 
@@ -174,6 +176,9 @@ class AudioRecorder:
         max_duration = self.config.max_recording_duration
 
         try:
+            if not self._audio:
+                logger.error("Audio system not initialized")
+                return
             self._stream = self._audio.open(
                 format=pyaudio.paInt16,
                 channels=1,
@@ -237,6 +242,9 @@ class AudioRecorder:
         wav_buffer = io.BytesIO()
 
         try:
+            if not self._audio:
+                logger.error("Audio system not initialized")
+                return b""
             with wave.open(wav_buffer, "wb") as wav_file:
                 wav_file.setnchannels(1)  # Mono
                 wav_file.setsampwidth(self._audio.get_sample_size(pyaudio.paInt16))
@@ -265,7 +273,7 @@ class AudioRecorder:
         Returns:
             List of dictionaries containing device information
         """
-        devices = []
+        devices: list[dict[str, Any]] = []
         if not self._audio:
             return devices
 

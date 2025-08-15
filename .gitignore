@@ -166,3 +166,4 @@ cython_debug/
 transcription.txt
 *.log
 .claude/
+.env

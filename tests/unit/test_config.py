@@ -2,10 +2,11 @@
 
 import os
 import tempfile
-import pytest
 from unittest.mock import patch
 
-from whisper_claude.config import Config, get_config, ConfigError
+import pytest
+
+from whisper_claude.config import Config, ConfigError, get_config
 
 
 class TestConfig:
@@ -15,7 +16,7 @@ class TestConfig:
         """Test config initialization with default values."""
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             config = Config()
-            
+
             assert config.openai_api_key == "sk-test123"
             assert config.whisper_model == "base"
             assert config.audio_sample_rate == 16000
@@ -47,10 +48,10 @@ class TestConfig:
             "LOG_LEVEL": "DEBUG",
             "HOTKEY": "alt+space",
         }
-        
+
         with patch.dict(os.environ, env_vars):
             config = Config()
-            
+
             assert config.openai_api_key == "sk-custom123"
             assert config.whisper_model == "large"
             assert config.audio_sample_rate == 44100
@@ -84,10 +85,9 @@ class TestConfig:
 
     def test_config_invalid_log_level(self):
         """Test config handles invalid log levels gracefully."""
-        with patch.dict(os.environ, {
-            "OPENAI_API_KEY": "sk-test123",
-            "LOG_LEVEL": "INVALID_LEVEL"
-        }):
+        with patch.dict(
+            os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "INVALID_LEVEL"}
+        ):
             config = Config()
             assert config.log_level == "INFO"  # Should fallback to default
 
@@ -132,15 +132,18 @@ class TestConfig:
 
     def test_config_service_properties(self):
         """Test service-related configuration properties."""
-        with patch.dict(os.environ, {
-            "OPENAI_API_KEY": "sk-test123",
-            "SERVICE_NAME": "test-service",
-            "SERVICE_DESCRIPTION": "Test service description",
-            "DOCKER_AUDIO_DEVICE": "/dev/audio",
-            "DOCKER_DISPLAY_VAR": "WAYLAND_DISPLAY",
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "SERVICE_NAME": "test-service",
+                "SERVICE_DESCRIPTION": "Test service description",
+                "DOCKER_AUDIO_DEVICE": "/dev/audio",
+                "DOCKER_DISPLAY_VAR": "WAYLAND_DISPLAY",
+            },
+        ):
             config = Config()
-            
+
             assert config.service_name == "test-service"
             assert config.service_description == "Test service description"
             assert config.docker_audio_device == "/dev/audio"
@@ -148,7 +151,7 @@ class TestConfig:
 
     def test_config_load_env_file(self):
         """Test loading configuration from .env file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("OPENAI_API_KEY=sk-envfile123\n")
             f.write("WHISPER_MODEL=small\n")
             f.write("LOG_LEVEL=DEBUG\n")
@@ -174,7 +177,7 @@ class TestConfig:
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-sensitive123"}):
             config = Config()
             summary = config._get_safe_config_summary()
-            
+
             assert summary["openai_api_key"] == "***"
             assert summary["whisper_model"] == "base"
             assert "sk-sensitive123" not in str(summary)
@@ -188,7 +191,7 @@ class TestConfig:
 
     def test_get_config_with_file(self):
         """Test get_config with environment file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("OPENAI_API_KEY=sk-filetest123\n")
             env_file_path = f.name
 

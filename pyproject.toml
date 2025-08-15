@@ -39,8 +39,7 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
-    "flake8>=6.0.0",
+    "ruff>=0.1.0",
     "mypy>=1.0.0",
     "types-requests>=2.28.0",
 ]
@@ -92,26 +91,39 @@ exclude_lines = [
     "@(abc\\.)?abstractmethod",
 ]
 
-[tool.black]
+[tool.ruff]
 line-length = 88
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings  
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "PL",  # pylint
+]
+ignore = [
+    "E501",    # line too long (handled by formatter)
+    "PLR0913", # too many arguments
+    "PLR0915", # too many statements
+    "PLW2901", # redefined loop variable
+    "PLR2004", # magic value used in comparison (acceptable in tests)
+    "PLC0415", # import should be at top level (acceptable in test fixtures)
+    "B904",    # raise within except (acceptable for our error handling pattern)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -132,30 +144,9 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.flake8]
-max-line-length = 88
-extend-ignore = [
-    "E203",  # whitespace before ':'
-    "W503",  # line break before binary operator
-    "E501",  # line too long (handled by black)
-]
-exclude = [
-    ".git",
-    "__pycache__",
-    "build",
-    "dist",
-    ".eggs",
-    "*.egg-info",
-    ".tox",
-    ".venv",
-    "env",
-    "venv",
-]
-
 [dependency-groups]
 dev = [
-    "black>=24.8.0",
-    "flake8>=7.1.2",
+    "ruff>=0.8.0",
     "mypy>=1.14.1",
     "pytest>=8.3.5",
     "pytest-asyncio>=0.24.0",

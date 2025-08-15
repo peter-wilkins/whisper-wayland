@@ -1,8 +1,9 @@
 """Pytest configuration and fixtures."""
 
 import os
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 
 def pytest_configure(config):
@@ -17,7 +18,7 @@ def clean_environment():
     """Clean environment for each test."""
     # Store original environment
     original_env = dict(os.environ)
-    
+
     # Ensure clean test environment
     test_env_vars = [
         "OPENAI_API_KEY",
@@ -34,9 +35,9 @@ def clean_environment():
         "TEXT_INSERTION_DELAY",
         "TEXT_INSERTION_METHOD",
     ]
-    
+
     yield
-    
+
     # Restore original environment
     for key in test_env_vars:
         if key in os.environ:
@@ -59,12 +60,12 @@ def mock_api_key():
 def temp_transcription_file():
     """Create temporary transcription file for tests."""
     import tempfile
-    
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
         temp_file = f.name
-    
+
     yield temp_file
-    
+
     # Cleanup
     try:
         os.unlink(temp_file)

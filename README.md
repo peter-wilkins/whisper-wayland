@@ -57,11 +57,13 @@ All configuration is handled through environment variables:
 
 1. **Set up environment**:
    ```bash
-   # Copy environment template
+   # Option 1: Copy environment template
    cp .env.example .env
-   
    # Edit with your OpenAI API key
    nano .env
+   
+   # Option 2: API key in separate file (already configured)
+   # If you have .openai-api.key file, it will be automatically loaded
    ```
 
 2. **Install and run**:
@@ -134,15 +136,37 @@ uv run pytest tests/integration/
 
 ### Code Quality
 
+The project uses a comprehensive quality pipeline with Makefile automation:
+
 ```bash
-# Format code
-uv run black .
+# Complete development workflow
+make all          # Install deps, run quality checks, and test
 
-# Lint code
-uv run flake8 .
+# Individual steps
+make install      # Install dependencies
+make format       # Format code with ruff
+make lint         # Lint code with ruff (PEP8 compliance)
+make typecheck    # Run type checking with mypy
+make check        # Run all quality checks together
 
-# Type checking
-uv run mypy .
+# Testing
+make test         # Run all tests (after quality checks)
+make test-unit    # Run only unit tests
+make coverage     # Run tests with detailed coverage report
+
+# Utilities
+make clean        # Clean up generated files
+make help         # Show all available commands
+```
+
+**Manual commands** (if needed):
+```bash
+# Format and lint with ruff
+uv run ruff format .
+uv run ruff check . --fix
+
+# Type checking with mypy
+uv run mypy whisper_claude/
 ```
 
 ## Architecture

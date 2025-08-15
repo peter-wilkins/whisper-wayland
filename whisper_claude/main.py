@@ -1,24 +1,25 @@
 """Main entry point for Whisper Claude service.
 
-Provides the main application logic for Step 1: basic audio recording
-and transcription to file with Ctrl+Space hotkey functionality.
+Provides the main application logic for Step 2: real-time global hotkey
+detection with push-to-talk recording and transcription to file output.
 """
 
 import logging
 import os
 import signal
 import sys
+import threading
 import time
-from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-from .config import Config, get_config, ConfigError
+from .audio_recorder import AudioRecorder, AudioRecordingError, create_audio_recorder
+from .config import Config, ConfigError, get_config
+from .key_monitor import KeyMonitor, KeyMonitorError, create_key_monitor
 from .logging_config import setup_logging
-from .audio_recorder import AudioRecorder, create_audio_recorder, AudioRecordingError
 from .transcription_client import (
     TranscriptionClient,
-    create_transcription_client,
     TranscriptionError,
+    create_transcription_client,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,8 +28,8 @@ logger = logging.getLogger(__name__)
 class WhisperClaudeApp:
     """Main application class for Whisper Claude service.
 
-    Handles the Step 1 functionality: audio recording with Ctrl+Space
-    and transcription to file output.
+    Handles Step 2 functionality: real-time global hotkey detection with
+    push-to-talk audio recording and transcription to file output.
     """
 
     def __init__(self, config_file: Optional[str] = None) -> None:
@@ -40,8 +41,10 @@ class WhisperClaudeApp:
         self.config: Optional[Config] = None
         self.audio_recorder: Optional[AudioRecorder] = None
         self.transcription_client: Optional[TranscriptionClient] = None
+        self.key_monitor: Optional[KeyMonitor] = None
         self._running = False
         self._transcription_file = "transcription.txt"
+        self._recording_active = False
 
         try:
             self._initialize(config_file)
@@ -68,28 +71,34 @@ class WhisperClaudeApp:
         # Initialize transcription client
         self.transcription_client = create_transcription_client(self.config)
 
+        # Initialize key monitor
+        self.key_monitor = create_key_monitor(self.config)
+
         # Test API connection
         logger.info("Testing OpenAI API connection...")
         if not self.transcription_client.test_connection():
             logger.warning("OpenAI API connection test failed, but continuing...")
 
     def run(self) -> None:
-        """Run the main application loop for Step 1.
+        """Run the main application loop for Step 2.
 
-        Provides simple Ctrl+Space recording functionality with file output.
+        Provides real-time global hotkey detection with push-to-talk recording
+        and transcription to file output.
         """
         if not self._validate_components():
             logger.error("Cannot start application - component validation failed")
             return
 
-        logger.info("Starting Whisper Claude service (Step 1: Basic transcription)")
+        logger.info("Starting Whisper Claude service (Step 2: Push-to-talk hotkey)")
         logger.info("Usage:")
-        logger.info("  - Press and hold Ctrl+Space to record audio")
+        if self.config:
+            logger.info(f"  - Press and hold {self.config.hotkey} to record audio")
         logger.info("  - Release to stop recording and transcribe")
         logger.info("  - Transcribed text will be saved to transcription.txt")
         logger.info("  - Press Ctrl+C to exit")
 
         self._setup_signal_handlers()
+        self._setup_hotkey_callbacks()
         self._running = True
 
         try:
@@ -119,51 +128,115 @@ class WhisperClaudeApp:
             logger.error("Transcription client not initialized")
             return False
 
+        if not self.key_monitor:
+            logger.error("Key monitor not initialized")
+            return False
+
         return True
 
     def _setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown."""
-        
-        def signal_handler(signum: int, frame) -> None:
+
+        def signal_handler(signum: int, frame: Any) -> None:
             logger.info(f"Received signal {signum}, initiating shutdown...")
             self._running = False
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-    def _main_loop(self) -> None:
-        """Main application loop for Step 1 functionality."""
-        logger.info("Application ready - waiting for Ctrl+Space...")
+    def _setup_hotkey_callbacks(self) -> None:
+        """Setup hotkey press and release callbacks."""
+        if not self.key_monitor:
+            logger.error("Key monitor not available for callback setup")
+            return
 
-        while self._running:
-            try:
-                # Simple implementation for Step 1: wait for user input
-                # In Step 2, this will be replaced with proper hotkey detection
-                self._wait_for_recording_trigger()
+        # Set callback for hotkey press (start recording)
+        self.key_monitor.set_callback(self._on_hotkey_press)
 
-                if not self._running:
-                    break
+        # Set callback for hotkey release (stop recording)
+        self.key_monitor.set_release_callback(self._on_hotkey_release)
 
-                # Record audio
-                audio_data = self._record_audio_session()
+        logger.debug("Hotkey callbacks configured")
+
+    def _on_hotkey_press(self) -> None:
+        """Handle hotkey press event - start recording."""
+        if self._recording_active:
+            logger.debug("Recording already active, ignoring hotkey press")
+            return
+
+        logger.info("Hotkey pressed - starting recording")
+        self._recording_active = True
+
+        try:
+            if self.audio_recorder:
+                self.audio_recorder.start_recording()
+        except AudioRecordingError as e:
+            logger.error(f"Failed to start recording: {e}")
+            self._recording_active = False
+
+    def _on_hotkey_release(self) -> None:
+        """Handle hotkey release event - stop recording and transcribe."""
+        if not self._recording_active:
+            logger.debug("Recording not active, ignoring hotkey release")
+            return
+
+        logger.info("Hotkey released - stopping recording")
+        self._recording_active = False
+
+        try:
+            if self.audio_recorder:
+                audio_data = self.audio_recorder.stop_recording()
 
                 if audio_data:
-                    # Transcribe audio
-                    transcribed_text = self._transcribe_audio(audio_data)
-
-                    if transcribed_text:
-                        # Save to file
-                        self._save_transcription(transcribed_text)
-                    else:
-                        logger.warning("No transcription result received")
+                    # Process transcription in background
+                    threading.Thread(
+                        target=self._process_transcription,
+                        args=(audio_data,),
+                        daemon=True,
+                    ).start()
                 else:
-                    logger.warning("No audio data recorded")
+                    logger.warning("No audio data captured")
+        except AudioRecordingError as e:
+            logger.error(f"Failed to stop recording: {e}")
 
-                logger.info("Ready for next recording (Ctrl+Space)...")
+    def _process_transcription(self, audio_data: bytes) -> None:
+        """Process transcription in background thread.
 
-            except Exception as e:
-                logger.error(f"Error in main loop: {e}")
-                time.sleep(1)  # Brief pause before continuing
+        Args:
+            audio_data: Audio data to transcribe
+        """
+        try:
+            transcribed_text = self._transcribe_audio(audio_data)
+
+            if transcribed_text:
+                self._save_transcription(transcribed_text)
+            else:
+                logger.info("No transcription result")
+        except Exception as e:
+            logger.error(f"Error processing transcription: {e}")
+
+    def _main_loop(self) -> None:
+        """Main application loop for Step 2 functionality."""
+        if self.config:
+            logger.info(f"Application ready - waiting for {self.config.hotkey}...")
+        else:
+            logger.info("Application ready - waiting for hotkey...")
+
+        # Start key monitoring
+        try:
+            if self.key_monitor:
+                self.key_monitor.start_monitoring()
+                logger.info("Global hotkey monitoring active")
+        except KeyMonitorError as e:
+            logger.error(f"Failed to start key monitoring: {e}")
+            return
+
+        # Keep application running while monitoring hotkeys
+        try:
+            while self._running:
+                time.sleep(0.1)  # Small sleep to prevent busy waiting
+        except Exception as e:
+            logger.error(f"Error in main loop: {e}")
 
     def _wait_for_recording_trigger(self) -> None:
         """Wait for recording trigger (Step 1: simple implementation).
@@ -172,7 +245,9 @@ class WhisperClaudeApp:
         In Step 2, this will be replaced with proper hotkey detection.
         """
         # Simple Step 1 implementation: wait for Enter key
-        print("\nPress Enter to simulate Ctrl+Space recording trigger (or Ctrl+C to exit)...")
+        print(
+            "\nPress Enter to simulate Ctrl+Space recording trigger (or Ctrl+C to exit)..."
+        )
         try:
             input()
         except (EOFError, KeyboardInterrupt):
@@ -234,7 +309,9 @@ class WhisperClaudeApp:
             transcribed_text = self.transcription_client.transcribe_audio(audio_data)
 
             if transcribed_text:
-                logger.info(f"Transcription completed: '{transcribed_text[:100]}{'...' if len(transcribed_text) > 100 else ''}'")
+                logger.info(
+                    f"Transcription completed: '{transcribed_text[:100]}{'...' if len(transcribed_text) > 100 else ''}'"
+                )
             else:
                 logger.warning("Transcription returned empty result")
 
@@ -255,7 +332,7 @@ class WhisperClaudeApp:
         """
         try:
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-            
+
             # Append to transcription file
             with open(self._transcription_file, "a", encoding="utf-8") as f:
                 f.write(f"[{timestamp}] {text}\n")
@@ -274,6 +351,9 @@ class WhisperClaudeApp:
         logger.info("Cleaning up application resources...")
 
         try:
+            if self.key_monitor:
+                self.key_monitor.close()
+
             if self.audio_recorder:
                 self.audio_recorder.close()
 

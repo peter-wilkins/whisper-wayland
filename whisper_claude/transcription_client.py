@@ -7,7 +7,7 @@ error handling and retry logic.
 import io
 import logging
 import time
-from typing import Optional, BinaryIO
+from typing import Optional
 
 import openai
 from openai import OpenAI
@@ -127,7 +127,9 @@ class TranscriptionClient:
                     )
                     time.sleep(retry_delay)
                 else:
-                    logger.error(f"Transcription failed after {max_retries + 1} attempts: {e}")
+                    logger.error(
+                        f"Transcription failed after {max_retries + 1} attempts: {e}"
+                    )
                     raise TranscriptionError(f"Transcription failed: {e}")
 
         return None
@@ -161,18 +163,16 @@ class TranscriptionClient:
                 response_format="text",
             )
 
-            # Extract text from response
-            if isinstance(response, str):
-                transcribed_text = response.strip()
-            else:
-                # Handle other response formats if needed
-                transcribed_text = str(response).strip()
+            # Extract text from response (should always be string with response_format="text")
+            transcribed_text = response.strip()
 
             if not transcribed_text:
                 logger.warning("Empty transcription result received")
                 return ""
 
-            logger.info(f"Transcription successful: '{transcribed_text[:50]}{'...' if len(transcribed_text) > 50 else ''}'")
+            logger.info(
+                f"Transcription successful: '{transcribed_text[:50]}{'...' if len(transcribed_text) > 50 else ''}'"
+            )
             logger.debug(f"Full transcription: '{transcribed_text}'")
 
             return transcribed_text

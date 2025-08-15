@@ -4,9 +4,10 @@ Handles environment variable loading and validation with comprehensive
 error handling and logging.
 """
 
-import os
 import logging
-from typing import Optional, Union
+import os
+from typing import Optional
+
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,9 @@ class Config:
                 missing_vars.append(var)
 
         if missing_vars:
-            error_msg = f"Missing required environment variables: {', '.join(missing_vars)}"
+            error_msg = (
+                f"Missing required environment variables: {', '.join(missing_vars)}"
+            )
             logger.error(error_msg)
             raise ConfigError(error_msg)
 
@@ -155,7 +158,7 @@ class Config:
     @property
     def hotkey(self) -> str:
         """Push-to-talk key combination."""
-        return os.getenv("HOTKEY", "ctrl+space").strip().lower()
+        return os.getenv("HOTKEY", "ctrl+alt+space").strip().lower()
 
     # Service Configuration (for future steps)
     @property

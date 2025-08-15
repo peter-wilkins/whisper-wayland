@@ -5,7 +5,6 @@ at cursor position using wtype for Wayland compatibility.
 """
 
 import logging
-from typing import Optional
 
 from .config import Config
 
@@ -32,7 +31,9 @@ class TextInserter:
             config: Configuration instance
         """
         self.config = config
-        logger.info("Text inserter placeholder initialized (Step 3 implementation pending)")
+        logger.info(
+            "Text inserter placeholder initialized (Step 3 implementation pending)"
+        )
 
     def insert_text(self, text: str) -> bool:
         """Insert text at current cursor position (placeholder).
@@ -47,7 +48,9 @@ class TextInserter:
             logger.warning("No text provided for insertion")
             return False
 
-        logger.info(f"Would insert text at cursor: '{text[:50]}{'...' if len(text) > 50 else ''}'")
+        logger.info(
+            f"Would insert text at cursor: '{text[:50]}{'...' if len(text) > 50 else ''}'"
+        )
         logger.debug("Text insertion would happen here (Step 3 implementation)")
         return False
 
