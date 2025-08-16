@@ -173,12 +173,24 @@ class TestConfig:
             f.write("LOG_LEVEL=DEBUG\n")
             env_file_path = f.name
 
+        # Temporarily remove environment variables that would override .env file
+        old_api_key = os.environ.pop("OPENAI_API_KEY", None)
+        old_model = os.environ.pop("WHISPER_MODEL", None)
+        old_log_level = os.environ.pop("LOG_LEVEL", None)
+        
         try:
             config = Config(env_file_path)
             assert config.openai_api_key == "sk-envfile123"
             assert config.whisper_model == "small"
             assert config.log_level == "DEBUG"
         finally:
+            # Restore environment variables
+            if old_api_key:
+                os.environ["OPENAI_API_KEY"] = old_api_key
+            if old_model:
+                os.environ["WHISPER_MODEL"] = old_model
+            if old_log_level:
+                os.environ["LOG_LEVEL"] = old_log_level
             os.unlink(env_file_path)
 
     def test_config_load_nonexistent_env_file(self):
