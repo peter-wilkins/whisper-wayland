@@ -5,10 +5,9 @@ Supports configurable key combinations and full Wayland compatibility.
 """
 
 import logging
-import threading
 import select
-import time
-from typing import Callable, Optional, Set, Dict, List
+import threading
+from typing import Callable, Dict, List, Optional, Set
 
 try:
     import evdev

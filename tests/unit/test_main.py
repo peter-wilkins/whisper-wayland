@@ -18,6 +18,7 @@ class TestWhisperClaudeApp:
         """Create test configuration."""
         return Config()
 
+    @patch("whisper_claude.main.create_text_inserter")
     @patch("whisper_claude.main.create_key_monitor")
     @patch("whisper_claude.main.create_transcription_client")
     @patch("whisper_claude.main.create_audio_recorder")
@@ -30,6 +31,7 @@ class TestWhisperClaudeApp:
         mock_create_recorder,
         mock_create_client,
         mock_create_key_monitor,
+        mock_create_text_inserter,
         config,
     ):
         """Test successful app initialization."""
@@ -37,10 +39,13 @@ class TestWhisperClaudeApp:
         mock_recorder = Mock()
         mock_client = Mock()
         mock_key_monitor = Mock()
+        mock_text_inserter = Mock()
         mock_client.test_connection.return_value = True
+        mock_text_inserter.test_insertion.return_value = True
         mock_create_recorder.return_value = mock_recorder
         mock_create_client.return_value = mock_client
         mock_create_key_monitor.return_value = mock_key_monitor
+        mock_create_text_inserter.return_value = mock_text_inserter
 
         app = WhisperClaudeApp()
 
@@ -48,8 +53,10 @@ class TestWhisperClaudeApp:
         assert app.audio_recorder == mock_recorder
         assert app.transcription_client == mock_client
         assert app.key_monitor == mock_key_monitor
+        assert app.text_inserter == mock_text_inserter
         mock_setup_logging.assert_called_once_with(config)
         mock_client.test_connection.assert_called_once()
+        mock_text_inserter.test_insertion.assert_called_once()
 
     @patch("whisper_claude.main.get_config")
     def test_app_initialization_config_error(self, mock_get_config):
@@ -59,6 +66,7 @@ class TestWhisperClaudeApp:
         with pytest.raises(ConfigError):
             WhisperClaudeApp()
 
+    @patch("whisper_claude.main.create_text_inserter")
     @patch("whisper_claude.main.create_key_monitor")
     @patch("whisper_claude.main.create_transcription_client")
     @patch("whisper_claude.main.create_audio_recorder")
@@ -71,20 +79,26 @@ class TestWhisperClaudeApp:
         mock_create_recorder,
         mock_create_client,
         mock_create_key_monitor,
+        mock_create_text_inserter,
         config,
     ):
         """Test app initialization with custom config file."""
         mock_get_config.return_value = config
         mock_client = Mock()
         mock_client.test_connection.return_value = True
+        mock_text_inserter = Mock()
+        mock_text_inserter.test_insertion.return_value = True
         mock_create_client.return_value = mock_client
         mock_create_recorder.return_value = Mock()
         mock_create_key_monitor.return_value = Mock()
+        mock_create_text_inserter.return_value = mock_text_inserter
 
         WhisperClaudeApp("/path/to/config.env")
 
         mock_get_config.assert_called_once_with("/path/to/config.env")
 
+    @patch("whisper_claude.main.create_text_inserter")
+    @patch("whisper_claude.main.create_key_monitor")
     @patch("whisper_claude.main.create_transcription_client")
     @patch("whisper_claude.main.create_audio_recorder")
     @patch("whisper_claude.main.setup_logging")
@@ -95,18 +109,26 @@ class TestWhisperClaudeApp:
         mock_setup_logging,
         mock_create_recorder,
         mock_create_client,
+        mock_create_key_monitor,
+        mock_create_text_inserter,
         config,
     ):
         """Test successful component validation."""
         mock_get_config.return_value = config
         mock_client = Mock()
         mock_client.test_connection.return_value = True
+        mock_text_inserter = Mock()
+        mock_text_inserter.test_insertion.return_value = True
         mock_create_client.return_value = mock_client
         mock_create_recorder.return_value = Mock()
+        mock_create_key_monitor.return_value = Mock()
+        mock_create_text_inserter.return_value = mock_text_inserter
 
         app = WhisperClaudeApp()
         assert app._validate_components() is True
 
+    @patch("whisper_claude.main.create_text_inserter")
+    @patch("whisper_claude.main.create_key_monitor")
     @patch("whisper_claude.main.create_transcription_client")
     @patch("whisper_claude.main.create_audio_recorder")
     @patch("whisper_claude.main.setup_logging")
@@ -117,14 +139,20 @@ class TestWhisperClaudeApp:
         mock_setup_logging,
         mock_create_recorder,
         mock_create_client,
+        mock_create_key_monitor,
+        mock_create_text_inserter,
         config,
     ):
         """Test component validation with missing config."""
         mock_get_config.return_value = config
         mock_client = Mock()
         mock_client.test_connection.return_value = True
+        mock_text_inserter = Mock()
+        mock_text_inserter.test_insertion.return_value = True
         mock_create_client.return_value = mock_client
         mock_create_recorder.return_value = Mock()
+        mock_create_key_monitor.return_value = Mock()
+        mock_create_text_inserter.return_value = mock_text_inserter
 
         app = WhisperClaudeApp()
         app.config = None
@@ -240,47 +268,45 @@ class TestWhisperClaudeApp:
         result = app._transcribe_audio(b"fake_audio_data")
         assert result is None
 
+    @patch("whisper_claude.main.create_text_inserter")
+    @patch("whisper_claude.main.create_key_monitor")
     @patch("whisper_claude.main.create_transcription_client")
     @patch("whisper_claude.main.create_audio_recorder")
     @patch("whisper_claude.main.setup_logging")
     @patch("whisper_claude.main.get_config")
-    @patch("time.strftime")
-    def test_save_transcription(
+    def test_insert_text(
         self,
-        mock_strftime,
         mock_get_config,
         mock_setup_logging,
         mock_create_recorder,
         mock_create_client,
+        mock_create_key_monitor,
+        mock_create_text_inserter,
         config,
     ):
-        """Test saving transcription to file."""
+        """Test text insertion functionality."""
         mock_get_config.return_value = config
         mock_create_recorder.return_value = Mock()
 
         mock_client = Mock()
         mock_client.test_connection.return_value = True
         mock_create_client.return_value = mock_client
-
-        mock_strftime.return_value = "2024-01-01 12:00:00"
+        mock_create_key_monitor.return_value = Mock()
+        
+        mock_text_inserter = Mock()
+        mock_text_inserter.test_insertion.return_value = True
+        mock_text_inserter.insert_text.return_value = True
+        mock_create_text_inserter.return_value = mock_text_inserter
 
         app = WhisperClaudeApp()
 
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            app._transcription_file = temp_file.name
+        with patch("builtins.print"):
+            app._insert_text("Test transcription")
 
-            with patch("builtins.print"):
-                app._save_transcription("Test transcription")
+        mock_text_inserter.insert_text.assert_called_once_with("Test transcription")
 
-            # Read the file content
-            with open(temp_file.name) as f:
-                content = f.read()
-
-            assert "[2024-01-01 12:00:00] Test transcription\n" in content
-
-            # Cleanup
-            os.unlink(temp_file.name)
-
+    @patch("whisper_claude.main.create_text_inserter")
+    @patch("whisper_claude.main.create_key_monitor")
     @patch("whisper_claude.main.create_transcription_client")
     @patch("whisper_claude.main.create_audio_recorder")
     @patch("whisper_claude.main.setup_logging")
@@ -291,6 +317,8 @@ class TestWhisperClaudeApp:
         mock_setup_logging,
         mock_create_recorder,
         mock_create_client,
+        mock_create_key_monitor,
+        mock_create_text_inserter,
         config,
     ):
         """Test application cleanup."""
@@ -301,12 +329,18 @@ class TestWhisperClaudeApp:
         mock_client = Mock()
         mock_client.test_connection.return_value = True
         mock_create_client.return_value = mock_client
+        mock_create_key_monitor.return_value = Mock()
+        
+        mock_text_inserter = Mock()
+        mock_text_inserter.test_insertion.return_value = True
+        mock_create_text_inserter.return_value = mock_text_inserter
 
         app = WhisperClaudeApp()
         app.cleanup()
 
         mock_recorder.close.assert_called_once()
         mock_client.close.assert_called_once()
+        mock_text_inserter.close.assert_called_once()
 
     @patch("whisper_claude.main.create_transcription_client")
     @patch("whisper_claude.main.create_audio_recorder")

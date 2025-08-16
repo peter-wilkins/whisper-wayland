@@ -200,14 +200,14 @@ class Config:
     @property
     def text_insertion_method(self) -> str:
         """Text insertion method to use."""
-        method = os.getenv("TEXT_INSERTION_METHOD", "wtype").strip().lower()
-        valid_methods = ["wtype", "xdotool", "clipboard"]
+        method = os.getenv("TEXT_INSERTION_METHOD", "ydotool").strip().lower()
+        valid_methods = ["wtype", "ydotool", "xdotool", "clipboard"]
         if method not in valid_methods:
             logger.warning(
-                f"Invalid TEXT_INSERTION_METHOD '{method}', using wtype. "
+                f"Invalid TEXT_INSERTION_METHOD '{method}', using ydotool. "
                 f"Valid methods: {valid_methods}"
             )
-            return "wtype"
+            return "ydotool"
         return method
 
 
