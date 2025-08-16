@@ -14,16 +14,23 @@ class TestConfig:
 
     def test_config_initialization_with_defaults(self):
         """Test config initialization with default values."""
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-            config = Config()
+        # Temporarily remove LOG_LEVEL to test default
+        old_log_level = os.environ.pop("LOG_LEVEL", None)
+        try:
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+                config = Config()
 
-            assert config.openai_api_key == "sk-test123"
-            assert config.whisper_model == "base"
-            assert config.audio_sample_rate == 16000
-            assert config.audio_chunk_size == 1024
-            assert config.max_recording_duration == 30
-            assert config.log_level == "INFO"
-            assert config.hotkey == "compose"
+                assert config.openai_api_key == "sk-test123"
+                assert config.whisper_model == "base"
+                assert config.audio_sample_rate == 16000
+                assert config.audio_chunk_size == 1024
+                assert config.max_recording_duration == 30
+                assert config.log_level == "INFO"
+                assert config.hotkey == "compose"
+        finally:
+            # Restore LOG_LEVEL if it existed
+            if old_log_level:
+                os.environ["LOG_LEVEL"] = old_log_level
 
     def test_config_missing_required_api_key(self):
         """Test config fails when required API key is missing."""

@@ -145,12 +145,19 @@ class TestAudioRecorder:
 
         with patch("time.time") as mock_time:
             # Simulate time progression to trigger max duration
+            # Add more mock time values to handle all time.time() calls
             mock_time.side_effect = [
-                0,
-                0,
-                0.5,
-                1.5,
-            ]  # Start time, then progress past max duration
+                0,      # Start time
+                0,      # Recording loop initial check
+                0.5,    # Recording loop progress
+                1.5,    # Recording loop - exceeds max duration
+                2.0,    # Stop recording
+                2.0,    # Logger warning call
+                2.1,    # Logger error call if needed
+                2.2,    # Additional calls
+                2.3,    # Additional calls
+                2.4,    # Additional calls
+            ]
 
             recorder.start_recording()
             time.sleep(0.1)  # Brief pause for thread to start
