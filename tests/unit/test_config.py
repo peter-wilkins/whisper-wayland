@@ -122,20 +122,29 @@ class TestConfig:
 
     def test_config_text_insertion_method(self):
         """Test text insertion method configuration."""
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-            # Default value
-            config = Config()
-            assert config.text_insertion_method == "wtype"
-
-            # Valid custom value
-            with patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "xdotool"}):
+        # Temporarily remove TEXT_INSERTION_METHOD to test default
+        old_method = os.environ.pop("TEXT_INSERTION_METHOD", None)
+        try:
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+                # Default value (per config.py line 203)
                 config = Config()
-                assert config.text_insertion_method == "xdotool"
+                assert config.text_insertion_method == "ydotool"
 
+                # Valid custom value
+                with patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "xdotool"}):
+                    config = Config()
+                    assert config.text_insertion_method == "xdotool"
+        finally:
+            # Restore TEXT_INSERTION_METHOD if it existed
+            if old_method:
+                os.environ["TEXT_INSERTION_METHOD"] = old_method
+
+        # Test after restoring to ensure proper cleanup
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             # Invalid value (should fallback to default)
             with patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "invalid_method"}):
                 config = Config()
-                assert config.text_insertion_method == "wtype"
+                assert config.text_insertion_method == "ydotool"  # Fallback per config.py line 210
 
     def test_config_service_properties(self):
         """Test service-related configuration properties."""
