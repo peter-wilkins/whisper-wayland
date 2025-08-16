@@ -185,8 +185,10 @@ class KeyMonitor:
         try:
             key_name = self._normalize_key(key)
             if key_name:
+                logger.debug(f"Key pressed: {key_name}")
                 with self._lock:
                     self._pressed_keys.add(key_name)
+                    logger.debug(f"Currently pressed keys: {self._pressed_keys}")
                     self._check_hotkey_state()
         except Exception as e:
             logger.debug(f"Error processing key press: {e}")
@@ -200,8 +202,10 @@ class KeyMonitor:
         try:
             key_name = self._normalize_key(key)
             if key_name:
+                logger.debug(f"Key released: {key_name}")
                 with self._lock:
                     self._pressed_keys.discard(key_name)
+                    logger.debug(f"Currently pressed keys: {self._pressed_keys}")
                     self._check_hotkey_state()
         except Exception as e:
             logger.debug(f"Error processing key release: {e}")

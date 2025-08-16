@@ -9,7 +9,7 @@ This file contains important context for Claude when working on this project.
 ## Key Requirements
 
 ### Functional Requirements
-- **Push-to-talk hotkey**: Ctrl+Alt+Space to activate recording
+- **Push-to-talk hotkey**: Ctrl+Alt+Shift to activate recording
 - **Universal text insertion**: Works with any application that accepts text input
 - **Wayland compatibility**: Must work on Wayland without root privileges
 - **OpenAI Whisper integration**: Uses OpenAI API for transcription (tiny/base models initially)
@@ -76,7 +76,7 @@ The service is designed with these key components:
 | `AUDIO_CHUNK_SIZE` | Audio buffer size | `1024` | Performance tuning |
 | `MAX_RECORDING_DURATION` | Max recording time | `30` | Seconds |
 | `LOG_LEVEL` | Logging verbosity | `INFO` | DEBUG, INFO, WARNING, ERROR |
-| `HOTKEY` | Push-to-talk combination | `ctrl+alt+space` | Key binding |
+| `HOTKEY` | Push-to-talk combination | `ctrl+alt+shift` | Key binding |
 
 ## Development Guidelines
 
