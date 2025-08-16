@@ -1,5 +1,8 @@
 # Whisper Claude - Voice-to-Text Service
 
+[![Tests](https://github.com/whisper-claude/whisper-claude/actions/workflows/test.yml/badge.svg)](https://github.com/whisper-claude/whisper-claude/actions/workflows/test.yml)
+[![CI](https://github.com/whisper-claude/whisper-claude/actions/workflows/ci.yml/badge.svg)](https://github.com/whisper-claude/whisper-claude/actions/workflows/ci.yml)
+
 A push-to-talk voice transcription service that converts speech to text and inserts it at the cursor position in any application. Built for Ubuntu/Wayland without requiring root access.
 
 ## Features
@@ -133,6 +136,18 @@ uv run pytest tests/unit/
 # Run integration tests (requires OPENAI_API_KEY)
 uv run pytest tests/integration/
 ```
+
+### Continuous Integration
+
+The project uses GitHub Actions for automated testing and quality checks:
+
+- **Tests**: Run on every push to trunk with Python 3.11, 3.12, and 3.13
+- **Linting**: Automated code formatting and style checking with ruff
+- **Type Checking**: Static type analysis with mypy
+- **Security Scanning**: Vulnerability detection with bandit
+- **Coverage Reports**: Automatic coverage reporting and artifact uploads
+
+All CI workflows run in Ubuntu environments with proper system dependencies installed.
 
 ### Code Quality
 
