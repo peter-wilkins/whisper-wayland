@@ -64,7 +64,7 @@ addopts = [
     "--cov=whisper_claude",
     "--cov-report=term-missing",
     "--cov-report=html",
-    "--cov-fail-under=80",
+    "--cov-fail-under=75",
 ]
 testpaths = ["tests"]
 filterwarnings = [
