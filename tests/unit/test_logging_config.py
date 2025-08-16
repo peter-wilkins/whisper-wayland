@@ -25,7 +25,10 @@ class TestLoggingConfig:
 
     def test_setup_logging_info_level(self, mock_api_key):
         """Test logging setup with INFO level."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "INFO"}):
+        # Clear LOG_LEVEL and set to INFO for this test
+        with patch.dict(os.environ, {"LOG_LEVEL": "INFO"}, clear=False):
+            # Ensure LOG_LEVEL is set to INFO by overriding directly
+            os.environ["LOG_LEVEL"] = "INFO"
             test_config = Config()
 
             with patch("logging.getLogger") as mock_get_logger:
