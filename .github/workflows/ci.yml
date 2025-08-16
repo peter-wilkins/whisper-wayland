@@ -56,9 +56,6 @@ jobs:
     - name: Set up Python ${{ matrix.python-version }}
       run: uv python install ${{ matrix.python-version }}
       
-    - name: Install dependencies
-      run: uv sync
-      
     - name: Install system dependencies
       run: |
         sudo apt-get update
@@ -71,6 +68,9 @@ jobs:
           ydotool \
           wl-clipboard \
           xclip
+      
+    - name: Install dependencies
+      run: uv sync
       
     - name: Run unit tests
       run: |
@@ -114,9 +114,6 @@ jobs:
     - name: Set up Python
       run: uv python install 3.13
       
-    - name: Install dependencies
-      run: uv sync
-      
     - name: Install system dependencies
       run: |
         sudo apt-get update
@@ -127,6 +124,9 @@ jobs:
           ydotool \
           wl-clipboard \
           xclip
+      
+    - name: Install dependencies
+      run: uv sync
       
     - name: Run tests with coverage
       run: |
