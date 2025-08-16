@@ -223,8 +223,14 @@ class TestConfig:
             f.write("OPENAI_API_KEY=sk-filetest123\n")
             env_file_path = f.name
 
+        # Temporarily remove environment variable to test .env file loading
+        old_api_key = os.environ.pop("OPENAI_API_KEY", None)
+        
         try:
             config = get_config(env_file_path)
             assert config.openai_api_key == "sk-filetest123"
         finally:
+            # Restore environment variable
+            if old_api_key:
+                os.environ["OPENAI_API_KEY"] = old_api_key
             os.unlink(env_file_path)
