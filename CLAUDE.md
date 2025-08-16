@@ -9,7 +9,7 @@ This file contains important context for Claude when working on this project.
 ## Key Requirements
 
 ### Functional Requirements
-- **Push-to-talk hotkey**: Ctrl+Alt+Shift to activate recording
+- **Push-to-talk hotkey**: Compose key to activate recording
 - **Universal text insertion**: Works with any application that accepts text input
 - **Wayland compatibility**: Must work on Wayland without root privileges
 - **OpenAI Whisper integration**: Uses OpenAI API for transcription (tiny/base models initially)
@@ -28,7 +28,7 @@ This file contains important context for Claude when working on this project.
 
 ### System Dependencies
 - **Audio**: PyAudio for recording (works with Wayland)
-- **Key capture**: pynput for global hotkeys (Wayland compatible)
+- **Key capture**: evdev for global hotkeys (full Wayland/X11 compatibility)
 - **Text insertion**: wtype for Wayland text insertion
 - **Container support**: Docker-ready with proper audio/display access
 
@@ -42,8 +42,8 @@ The service is designed with these key components:
    - Buffer management and audio format handling
 
 2. **Key Monitor** (`key_monitor.py`)
-   - Global hotkey detection using pynput
-   - Wayland-compatible without root access
+   - Global hotkey detection using evdev
+   - Full Wayland/X11 compatibility (may require input group membership)
    - Configurable key combinations
 
 3. **Transcription Client** (`transcription_client.py`)
@@ -76,7 +76,7 @@ The service is designed with these key components:
 | `AUDIO_CHUNK_SIZE` | Audio buffer size | `1024` | Performance tuning |
 | `MAX_RECORDING_DURATION` | Max recording time | `30` | Seconds |
 | `LOG_LEVEL` | Logging verbosity | `INFO` | DEBUG, INFO, WARNING, ERROR |
-| `HOTKEY` | Push-to-talk combination | `ctrl+alt+shift` | Key binding |
+| `HOTKEY` | Push-to-talk combination | `compose` | Key binding |
 
 ## Development Guidelines
 
@@ -233,3 +233,7 @@ journalctl -u whisper-claude -f
 - No sensitive data logging
 - Audio data should not be persisted unnecessarily
 - Service runs with minimal privileges
+
+## Development Practices
+
+- All temporary files that should be created (for trouble-shooting, etc) should be created in /tmp (just to make sure we are not commiting these by accident)

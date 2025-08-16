@@ -4,7 +4,7 @@ A push-to-talk voice transcription service that converts speech to text and inse
 
 ## Features
 
-- **Push-to-Talk**: Hold Ctrl+Alt+Shift to record, release to transcribe and insert
+- **Push-to-Talk**: Hold Compose key to record, release to transcribe and insert
 - **Universal Text Insertion**: Works with any application that accepts text input
 - **Wayland Support**: Native support for Wayland without root privileges
 - **OpenAI Whisper Integration**: Uses OpenAI's Whisper API for accurate transcription
@@ -49,7 +49,7 @@ All configuration is handled through environment variables:
 | `AUDIO_CHUNK_SIZE` | Audio buffer chunk size | `1024` | No |
 | `MAX_RECORDING_DURATION` | Maximum recording duration in seconds | `30` | No |
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
-| `HOTKEY` | Push-to-talk key combination | `ctrl+alt+shift` | No |
+| `HOTKEY` | Push-to-talk key combination | `compose` | No |
 
 ## Installation & Usage
 
@@ -115,7 +115,7 @@ All configuration is handled through environment variables:
 ## Usage
 
 1. **Start the service** using one of the installation methods above
-2. **Press and hold Ctrl+Alt+Shift** in any application where you want to insert text
+2. **Press and hold Compose key** in any application where you want to insert text
 3. **Speak clearly** while holding the key combination
 4. **Release the keys** - the transcribed text will be inserted at cursor position
 
@@ -174,7 +174,7 @@ uv run mypy whisper_claude/
 The service consists of several key components:
 
 - **Audio Recorder**: Captures audio using PyAudio with configurable quality settings
-- **Key Monitor**: Global hotkey detection using pynput (Wayland compatible)
+- **Key Monitor**: Global hotkey detection using evdev (full Wayland/X11 compatibility)
 - **Transcription Client**: OpenAI Whisper API integration with error handling
 - **Text Inserter**: Cross-platform text insertion using wtype for Wayland
 - **Service Manager**: Coordinates all components with comprehensive error handling
@@ -185,7 +185,7 @@ The service consists of several key components:
 
 1. **Audio not recording**: Ensure your user is in the `audio` group
 2. **Text not inserting**: Verify `wtype` is installed and accessible
-3. **Hotkey not working**: Check if another application is using Ctrl+Alt+Shift
+3. **Hotkey not working**: Check if another application is using Compose key
 4. **Docker audio issues**: Ensure proper device mounting and permissions
 
 ### Debug Logging

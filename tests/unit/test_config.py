@@ -23,7 +23,7 @@ class TestConfig:
             assert config.audio_chunk_size == 1024
             assert config.max_recording_duration == 30
             assert config.log_level == "INFO"
-            assert config.hotkey == "ctrl+alt+shift"
+            assert config.hotkey == "compose"
 
     def test_config_missing_required_api_key(self):
         """Test config fails when required API key is missing."""
