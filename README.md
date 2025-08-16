@@ -1,6 +1,5 @@
 # Whisper Claude - Voice-to-Text Service
 
-[![Tests](https://github.com/whisper-claude/whisper-claude/actions/workflows/test.yml/badge.svg)](https://github.com/whisper-claude/whisper-claude/actions/workflows/test.yml)
 [![CI](https://github.com/whisper-claude/whisper-claude/actions/workflows/ci.yml/badge.svg)](https://github.com/whisper-claude/whisper-claude/actions/workflows/ci.yml)
 
 A push-to-talk voice transcription service that converts speech to text and inserts it at the cursor position in any application. Built for Ubuntu/Wayland without requiring root access.
