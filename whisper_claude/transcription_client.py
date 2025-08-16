@@ -180,6 +180,15 @@ class TranscriptionClient:
         except openai.RateLimitError as e:
             logger.error(f"OpenAI API rate limit exceeded: {e}")
             raise TranscriptionError(f"API rate limit exceeded: {e}")
+        except openai.BadRequestError as e:
+            # Handle bad request errors (like invalid file format) as expected failures
+            error_msg = str(e)
+            if "Invalid file format" in error_msg or "Supported formats" in error_msg:
+                logger.warning(f"Invalid audio format provided: {e}")
+                return ""  # Return empty string for invalid audio format
+            else:
+                logger.error(f"OpenAI API bad request error: {e}")
+                raise TranscriptionError(f"API bad request error: {e}")
         except openai.APIError as e:
             logger.error(f"OpenAI API error: {e}")
             raise TranscriptionError(f"API error: {e}")

@@ -153,6 +153,9 @@ class TestConfigurationIntegration:
             f.write("LOG_LEVEL=DEBUG\n")
             env_file_path = f.name
 
+        # Temporarily remove LOG_LEVEL to test .env file loading
+        old_log_level = os.environ.pop("LOG_LEVEL", None)
+        
         try:
             # Load config from env file
             config = Config(env_file_path)
@@ -163,6 +166,9 @@ class TestConfigurationIntegration:
             assert config.log_level == "DEBUG"
 
         finally:
+            # Restore LOG_LEVEL if it existed
+            if old_log_level:
+                os.environ["LOG_LEVEL"] = old_log_level
             os.unlink(env_file_path)
 
     def test_config_validation_with_invalid_api_key(self):
