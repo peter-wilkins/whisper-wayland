@@ -100,7 +100,9 @@ class WhisperClaudeApp:
             logger.error("Cannot start application - component validation failed")
             return
 
-        logger.info("Starting Whisper Claude service (Step 3: Text insertion at cursor)")
+        logger.info(
+            "Starting Whisper Claude service (Step 3: Text insertion at cursor)"
+        )
         logger.info("Usage:")
         if self.config:
             logger.info(f"  - Press and hold {self.config.hotkey} to record audio")
@@ -359,7 +361,9 @@ class WhisperClaudeApp:
             return
 
         try:
-            logger.info(f"Inserting transcribed text: '{text[:50]}{'...' if len(text) > 50 else ''}'")
+            logger.info(
+                f"Inserting transcribed text: '{text[:50]}{'...' if len(text) > 50 else ''}'"
+            )
             success = self.text_inserter.insert_text(text)
 
             if success:

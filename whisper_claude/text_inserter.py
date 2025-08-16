@@ -19,10 +19,11 @@ logger = logging.getLogger(__name__)
 
 class TextInsertionMethod(Enum):
     """Available text insertion methods."""
-    WTYPE = "wtype"         # Wayland text insertion (preferred)
-    YDOTOOL = "ydotool"     # Universal tool for Wayland/X11
-    XDOTOOL = "xdotool"     # X11 text insertion
-    CLIPBOARD = "clipboard" # Clipboard + paste (fallback)
+
+    WTYPE = "wtype"  # Wayland text insertion (preferred)
+    YDOTOOL = "ydotool"  # Universal tool for Wayland/X11
+    XDOTOOL = "xdotool"  # X11 text insertion
+    CLIPBOARD = "clipboard"  # Clipboard + paste (fallback)
 
 
 class TextInsertionError(Exception):
@@ -62,7 +63,9 @@ class TextInserter:
             raise TextInsertionError("No text insertion methods available")
 
         logger.info(f"Text inserter initialized with method: {self._preferred_method}")
-        logger.debug(f"Available methods: {[m.value for m, available in self._available_methods.items() if available]}")
+        logger.debug(
+            f"Available methods: {[m.value for m, available in self._available_methods.items() if available]}"
+        )
 
     def _detect_available_methods(self) -> None:
         """Detect which text insertion methods are available."""
@@ -95,18 +98,19 @@ class TextInserter:
 
         # Try to use configured method first
         for method in TextInsertionMethod:
-            if (method.value == configured_method and
-                self._available_methods.get(method, False)):
+            if method.value == configured_method and self._available_methods.get(
+                method, False
+            ):
                 self._preferred_method = method
                 logger.debug(f"Using configured method: {method.value}")
                 return
 
         # Auto-select best available method
         preference_order = [
-            TextInsertionMethod.WTYPE,     # Best for Wayland
-            TextInsertionMethod.YDOTOOL,   # Universal
-            TextInsertionMethod.XDOTOOL,   # Good for X11
-            TextInsertionMethod.CLIPBOARD, # Fallback
+            TextInsertionMethod.WTYPE,  # Best for Wayland
+            TextInsertionMethod.YDOTOOL,  # Universal
+            TextInsertionMethod.XDOTOOL,  # Good for X11
+            TextInsertionMethod.CLIPBOARD,  # Fallback
         ]
 
         for method in preference_order:
@@ -140,11 +144,15 @@ class TextInserter:
             logger.warning("Text became empty after cleaning")
             return False
 
-        logger.info(f"Inserting text using {self._preferred_method.value}: '{cleaned_text[:50]}{'...' if len(cleaned_text) > 50 else ''}'")
+        logger.info(
+            f"Inserting text using {self._preferred_method.value}: '{cleaned_text[:50]}{'...' if len(cleaned_text) > 50 else ''}'"
+        )
 
         # Add delay before insertion if configured
         if self.config.text_insertion_delay > 0:
-            logger.debug(f"Waiting {self.config.text_insertion_delay}s before text insertion")
+            logger.debug(
+                f"Waiting {self.config.text_insertion_delay}s before text insertion"
+            )
             time.sleep(self.config.text_insertion_delay)
 
         try:
@@ -153,11 +161,15 @@ class TextInserter:
                 logger.info("Text insertion successful")
                 return True
             else:
-                logger.warning(f"Text insertion failed with {self._preferred_method.value}")
+                logger.warning(
+                    f"Text insertion failed with {self._preferred_method.value}"
+                )
                 return self._try_fallback_methods(cleaned_text)
 
         except Exception as e:
-            logger.error(f"Error during text insertion with {self._preferred_method.value}: {e}")
+            logger.error(
+                f"Error during text insertion with {self._preferred_method.value}: {e}"
+            )
             return self._try_fallback_methods(cleaned_text)
 
     def _clean_text_for_insertion(self, text: str) -> str:
@@ -222,10 +234,7 @@ class TextInserter:
         """
         logger.debug("Inserting text with wtype")
         result = subprocess.run(
-            ["wtype", text],
-            check=False, capture_output=True,
-            text=True,
-            timeout=10
+            ["wtype", text], check=False, capture_output=True, text=True, timeout=10
         )
         return result.returncode == 0
 
@@ -241,9 +250,10 @@ class TextInserter:
         logger.debug("Inserting text with ydotool")
         result = subprocess.run(
             ["ydotool", "type", text],
-            check=False, capture_output=True,
+            check=False,
+            capture_output=True,
             text=True,
-            timeout=10
+            timeout=10,
         )
         return result.returncode == 0
 
@@ -259,9 +269,10 @@ class TextInserter:
         logger.debug("Inserting text with xdotool")
         result = subprocess.run(
             ["xdotool", "type", "--delay", "10", text],
-            check=False, capture_output=True,
+            check=False,
+            capture_output=True,
             text=True,
-            timeout=10
+            timeout=10,
         )
         return result.returncode == 0
 
@@ -280,17 +291,26 @@ class TextInserter:
             if shutil.which("wl-copy"):
                 result = subprocess.run(
                     ["wl-copy", text],
-                    check=False, capture_output=True,
+                    check=False,
+                    capture_output=True,
                     text=True,
-                    timeout=5
+                    timeout=5,
                 )
                 if result.returncode == 0:
                     # Send Ctrl+V to paste
                     if self._available_methods.get(TextInsertionMethod.YDOTOOL, False):
                         subprocess.run(
-                            ["ydotool", "key", "29:1", "47:1", "47:0", "29:0"],  # Ctrl+V
-                            check=False, capture_output=True,
-                            timeout=5
+                            [
+                                "ydotool",
+                                "key",
+                                "29:1",
+                                "47:1",
+                                "47:0",
+                                "29:0",
+                            ],  # Ctrl+V
+                            check=False,
+                            capture_output=True,
+                            timeout=5,
                         )
                         return True
 
@@ -298,18 +318,20 @@ class TextInserter:
             if shutil.which("xclip"):
                 result = subprocess.run(
                     ["xclip", "-selection", "clipboard"],
-                    check=False, input=text,
+                    check=False,
+                    input=text,
                     text=True,
                     capture_output=True,
-                    timeout=5
+                    timeout=5,
                 )
                 if result.returncode == 0:
                     # Send Ctrl+V to paste
                     if self._available_methods.get(TextInsertionMethod.XDOTOOL, False):
                         subprocess.run(
                             ["xdotool", "key", "ctrl+v"],
-                            check=False, capture_output=True,
-                            timeout=5
+                            check=False,
+                            capture_output=True,
+                            timeout=5,
                         )
                         return True
 
@@ -340,9 +362,9 @@ class TextInserter:
         ]
 
         for method in fallback_order:
-            if (method != self._preferred_method and
-                self._available_methods.get(method, False)):
-
+            if method != self._preferred_method and self._available_methods.get(
+                method, False
+            ):
                 logger.debug(f"Trying fallback method: {method.value}")
                 try:
                     if self._insert_with_method(method, text):
@@ -370,20 +392,32 @@ class TextInserter:
         try:
             # For testing, we'll just verify the command exists and runs without immediate error
             if self._preferred_method == TextInsertionMethod.WTYPE:
-                result = subprocess.run(["wtype", "--version"], check=False, capture_output=True, timeout=5)
+                result = subprocess.run(
+                    ["wtype", "--version"], check=False, capture_output=True, timeout=5
+                )
                 return result.returncode == 0
 
             elif self._preferred_method == TextInsertionMethod.YDOTOOL:
-                result = subprocess.run(["ydotool", "--help"], check=False, capture_output=True, timeout=5)
+                result = subprocess.run(
+                    ["ydotool", "--help"], check=False, capture_output=True, timeout=5
+                )
                 return result.returncode == 0
 
             elif self._preferred_method == TextInsertionMethod.XDOTOOL:
-                result = subprocess.run(["xdotool", "--version"], check=False, capture_output=True, timeout=5)
+                result = subprocess.run(
+                    ["xdotool", "--version"],
+                    check=False,
+                    capture_output=True,
+                    timeout=5,
+                )
                 return result.returncode == 0
 
             elif self._preferred_method == TextInsertionMethod.CLIPBOARD:
                 # Test clipboard access
-                return shutil.which("wl-copy") is not None or shutil.which("xclip") is not None
+                return (
+                    shutil.which("wl-copy") is not None
+                    or shutil.which("xclip") is not None
+                )
 
         except Exception as e:
             logger.error(f"Text insertion test failed: {e}")
@@ -395,7 +429,11 @@ class TextInserter:
         Returns:
             List of available method names
         """
-        return [method.value for method, available in self._available_methods.items() if available]
+        return [
+            method.value
+            for method, available in self._available_methods.items()
+            if available
+        ]
 
     def get_preferred_method(self) -> Optional[str]:
         """Get the currently preferred text insertion method.

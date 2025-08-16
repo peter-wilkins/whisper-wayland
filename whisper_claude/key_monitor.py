@@ -102,13 +102,32 @@ class KeyMonitor:
 
         # Add letter keys (keyboard layout order, not alphabetical)
         letter_keys = {
-            ecodes.KEY_A: "a", ecodes.KEY_B: "b", ecodes.KEY_C: "c", ecodes.KEY_D: "d",
-            ecodes.KEY_E: "e", ecodes.KEY_F: "f", ecodes.KEY_G: "g", ecodes.KEY_H: "h",
-            ecodes.KEY_I: "i", ecodes.KEY_J: "j", ecodes.KEY_K: "k", ecodes.KEY_L: "l",
-            ecodes.KEY_M: "m", ecodes.KEY_N: "n", ecodes.KEY_O: "o", ecodes.KEY_P: "p",
-            ecodes.KEY_Q: "q", ecodes.KEY_R: "r", ecodes.KEY_S: "s", ecodes.KEY_T: "t",
-            ecodes.KEY_U: "u", ecodes.KEY_V: "v", ecodes.KEY_W: "w", ecodes.KEY_X: "x",
-            ecodes.KEY_Y: "y", ecodes.KEY_Z: "z"
+            ecodes.KEY_A: "a",
+            ecodes.KEY_B: "b",
+            ecodes.KEY_C: "c",
+            ecodes.KEY_D: "d",
+            ecodes.KEY_E: "e",
+            ecodes.KEY_F: "f",
+            ecodes.KEY_G: "g",
+            ecodes.KEY_H: "h",
+            ecodes.KEY_I: "i",
+            ecodes.KEY_J: "j",
+            ecodes.KEY_K: "k",
+            ecodes.KEY_L: "l",
+            ecodes.KEY_M: "m",
+            ecodes.KEY_N: "n",
+            ecodes.KEY_O: "o",
+            ecodes.KEY_P: "p",
+            ecodes.KEY_Q: "q",
+            ecodes.KEY_R: "r",
+            ecodes.KEY_S: "s",
+            ecodes.KEY_T: "t",
+            ecodes.KEY_U: "u",
+            ecodes.KEY_V: "v",
+            ecodes.KEY_W: "w",
+            ecodes.KEY_X: "x",
+            ecodes.KEY_Y: "y",
+            ecodes.KEY_Z: "z",
         }
         key_map.update(letter_keys)
 
@@ -195,7 +214,9 @@ class KeyMonitor:
 
         except PermissionError as e:
             logger.error(f"Permission denied accessing input devices: {e}")
-            logger.error("Try running with elevated permissions or add user to input group")
+            logger.error(
+                "Try running with elevated permissions or add user to input group"
+            )
             raise KeyMonitorError(f"Permission denied accessing input devices: {e}")
         except Exception as e:
             logger.error(f"Error finding keyboard devices: {e}")
@@ -363,7 +384,9 @@ class KeyMonitor:
                 self._monitor_thread.start()
 
                 self._monitoring = True
-                logger.info(f"Global hotkey monitoring started for: {self.config.hotkey}")
+                logger.info(
+                    f"Global hotkey monitoring started for: {self.config.hotkey}"
+                )
 
             except Exception as e:
                 logger.error(f"Failed to start key monitoring: {e}")
