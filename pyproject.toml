@@ -3,14 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "whisper-claude"
+name = "whisper-wayland"
 version = "0.1.0"
 description = "A push-to-talk voice transcription service that converts speech to text and inserts it at the cursor position"
 readme = "README.md"
 requires-python = ">=3.8.1"
 license = { text = "MIT" }
 authors = [
-    { name = "Whisper Claude Team", email = "support@whisper-claude.dev" },
+    { name = "Whisper Wayland Team", email = "support@whisper-wayland.dev" },
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -48,12 +48,12 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/whisper-claude/whisper-claude"
-Repository = "https://github.com/whisper-claude/whisper-claude"
-Issues = "https://github.com/whisper-claude/whisper-claude/issues"
+Homepage = "https://github.com/whisper-wayland/whisper-wayland"
+Repository = "https://github.com/whisper-wayland/whisper-wayland"
+Issues = "https://github.com/whisper-wayland/whisper-wayland/issues"
 
 [project.scripts]
-whisper-claude = "whisper_claude:main"
+whisper-wayland = "whisper_wayland:main"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -61,7 +61,7 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=whisper_claude",
+    "--cov=whisper_wayland",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-fail-under=75",
@@ -73,7 +73,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["whisper_claude"]
+source = ["whisper_wayland"]
 omit = [
     "*/tests/*",
     "*/test_*.py",

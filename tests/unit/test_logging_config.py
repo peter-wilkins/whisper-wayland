@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from whisper_claude.config import Config
-from whisper_claude.logging_config import (
+from whisper_wayland.config import Config
+from whisper_wayland.logging_config import (
     _configure_third_party_loggers,
     get_logger,
     setup_logging,

@@ -1,6 +1,6 @@
-# Whisper Claude - Voice-to-Text Service
+# Whisper Wayland - Voice-to-Text Service
 
-[![CI](https://github.com/whisper-claude/whisper-claude/actions/workflows/ci.yml/badge.svg)](https://github.com/whisper-claude/whisper-claude/actions/workflows/ci.yml)
+[![CI](https://github.com/whisper-wayland/whisper-wayland/actions/workflows/ci.yml/badge.svg)](https://github.com/whisper-wayland/whisper-wayland/actions/workflows/ci.yml)
 
 A push-to-talk voice transcription service that converts speech to text and inserts it at the cursor position in any application. Built for Ubuntu/Wayland without requiring root access.
 
@@ -74,20 +74,20 @@ All configuration is handled through environment variables:
    uv sync
    
    # Run the service
-   uv run whisper-claude
+   uv run whisper-wayland
    ```
 
 ### Docker Installation
 
 1. **Build the image**:
    ```bash
-   docker build -t whisper-claude .
+   docker build -t whisper-wayland .
    ```
 
 2. **Run with audio and display access**:
    ```bash
    docker run -d \
-     --name whisper-claude \
+     --name whisper-wayland \
      --device /dev/snd \
      -e DISPLAY=$DISPLAY \
      -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
@@ -95,7 +95,7 @@ All configuration is handled through environment variables:
      -v /tmp/.X11-unix:/tmp/.X11-unix \
      -v $XDG_RUNTIME_DIR:$XDG_RUNTIME_DIR \
      --env-file .env \
-     whisper-claude
+     whisper-wayland
    ```
 
 ### System Service Installation
@@ -103,15 +103,15 @@ All configuration is handled through environment variables:
 1. **Install as systemd service**:
    ```bash
    # Copy service file
-   sudo cp whisper-claude.service /etc/systemd/system/
+   sudo cp whisper-wayland.service /etc/systemd/system/
    
    # Update service file with your paths and user
-   sudo nano /etc/systemd/system/whisper-claude.service
+   sudo nano /etc/systemd/system/whisper-wayland.service
    
    # Enable and start service
    sudo systemctl daemon-reload
-   sudo systemctl enable whisper-claude
-   sudo systemctl start whisper-claude
+   sudo systemctl enable whisper-wayland
+   sudo systemctl start whisper-wayland
    ```
 
 ## Usage
@@ -127,7 +127,7 @@ All configuration is handled through environment variables:
 
 ```bash
 # Run all tests with coverage
-uv run pytest --cov=whisper_claude --cov-report=html --cov-report=term
+uv run pytest --cov=whisper_wayland --cov-report=html --cov-report=term
 
 # Run only unit tests
 uv run pytest tests/unit/
@@ -180,7 +180,7 @@ uv run ruff format .
 uv run ruff check . --fix
 
 # Type checking with mypy
-uv run mypy whisper_claude/
+uv run mypy whisper_wayland/
 ```
 
 ## Architecture

@@ -35,13 +35,13 @@ jobs:
       run: uv sync
       
     - name: Run ruff linting
-      run: uv run ruff check whisper_claude/ --output-format=github
+      run: uv run ruff check whisper_wayland/ --output-format=github
       
     - name: Run ruff formatting check
-      run: uv run ruff format whisper_claude/ --check
+      run: uv run ruff format whisper_wayland/ --check
       
     - name: Run mypy type checking
-      run: uv run mypy whisper_claude/ --strict
+      run: uv run mypy whisper_wayland/ --strict
       continue-on-error: true
 
   test:
@@ -141,7 +141,7 @@ jobs:
     - name: Run tests with coverage
       run: |
         uv run pytest tests/unit/ \
-          --cov=whisper_claude \
+          --cov=whisper_wayland \
           --cov-report=term-missing \
           --cov-report=html \
           --cov-report=xml \
@@ -194,7 +194,7 @@ jobs:
       run: uv sync
       
     - name: Run bandit security linter
-      run: uv run bandit -r whisper_claude/ -f json -o bandit-report.json
+      run: uv run bandit -r whisper_wayland/ -f json -o bandit-report.json
       continue-on-error: true
       
     - name: Upload security scan results

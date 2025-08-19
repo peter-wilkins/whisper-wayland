@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from whisper_claude.config import Config, ConfigError, get_config
+from whisper_wayland.config import Config, ConfigError, get_config
 
 
 class TestConfig:

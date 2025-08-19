@@ -6,12 +6,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from whisper_claude.audio_recorder import (
+from whisper_wayland.audio_recorder import (
     AudioRecorder,
     AudioRecordingError,
     create_audio_recorder,
 )
-from whisper_claude.config import Config
+from whisper_wayland.config import Config
 
 
 class TestAudioRecorder:
@@ -23,7 +23,7 @@ class TestAudioRecorder:
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             return Config()
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_audio_recorder_initialization(self, mock_pyaudio, config):
         """Test audio recorder initialization."""
         mock_audio_instance = Mock()
@@ -42,7 +42,7 @@ class TestAudioRecorder:
         mock_pyaudio.assert_called_once()
         mock_audio_instance.get_device_count.assert_called()
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_audio_recorder_initialization_failure(self, mock_pyaudio, config):
         """Test audio recorder initialization failure."""
         mock_pyaudio.side_effect = Exception("PyAudio init failed")
@@ -50,7 +50,7 @@ class TestAudioRecorder:
         with pytest.raises(AudioRecordingError, match="PyAudio initialization failed"):
             AudioRecorder(config)
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_audio_recorder_no_input_devices(self, mock_pyaudio, config):
         """Test audio recorder with no input devices."""
         mock_audio_instance = Mock()
@@ -64,7 +64,7 @@ class TestAudioRecorder:
         with pytest.raises(AudioRecordingError, match="No audio input devices found"):
             AudioRecorder(config)
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_start_recording_success(self, mock_pyaudio, config):
         """Test successful recording start."""
         mock_audio_instance = self._create_mock_audio_instance()
@@ -79,7 +79,7 @@ class TestAudioRecorder:
         # Cleanup
         recorder.stop_recording()
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_start_recording_already_recording(self, mock_pyaudio, config):
         """Test starting recording when already recording."""
         mock_audio_instance = self._create_mock_audio_instance()
@@ -95,7 +95,7 @@ class TestAudioRecorder:
         # Cleanup
         recorder.stop_recording()
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_stop_recording_success(self, mock_pyaudio, config):
         """Test successful recording stop with audio data."""
         mock_audio_instance = self._create_mock_audio_instance()
@@ -115,7 +115,7 @@ class TestAudioRecorder:
         assert audio_data is not None
         assert isinstance(audio_data, bytes)
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_stop_recording_not_recording(self, mock_pyaudio, config):
         """Test stopping recording when not recording."""
         mock_audio_instance = self._create_mock_audio_instance()
@@ -127,7 +127,7 @@ class TestAudioRecorder:
         result = recorder.stop_recording()
         assert result is None
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recording_max_duration(self, mock_pyaudio, config):
         """Test recording stops at maximum duration."""
         # Set short max duration for test
@@ -158,7 +158,7 @@ class TestAudioRecorder:
             audio_data is not None or audio_data is None
         )  # May be None if no frames captured
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_get_audio_devices(self, mock_pyaudio, config):
         """Test getting audio devices list."""
         mock_audio_instance = Mock()
@@ -191,7 +191,7 @@ class TestAudioRecorder:
         assert devices[1]["name"] == "Microphone 2"
         assert devices[1]["channels"] == 2
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recorder_close(self, mock_pyaudio, config):
         """Test audio recorder cleanup."""
         mock_audio_instance = self._create_mock_audio_instance()
@@ -204,7 +204,7 @@ class TestAudioRecorder:
 
         mock_audio_instance.terminate.assert_called_once()
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_frames_to_wav_conversion(self, mock_pyaudio, config):
         """Test audio frames to WAV conversion."""
         mock_audio_instance = self._create_mock_audio_instance()
@@ -220,7 +220,7 @@ class TestAudioRecorder:
         assert isinstance(wav_data, bytes)
         assert len(wav_data) > len(b"".join(frames))  # Should include WAV header
 
-    @patch("whisper_claude.audio_recorder.pyaudio.PyAudio")
+    @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recording_thread_exception_handling(self, mock_pyaudio, config):
         """Test recording thread handles exceptions gracefully."""
         mock_audio_instance = self._create_mock_audio_instance()
@@ -243,7 +243,7 @@ class TestAudioRecorder:
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             config = Config()
 
-        with patch("whisper_claude.audio_recorder.AudioRecorder") as mock_recorder:
+        with patch("whisper_wayland.audio_recorder.AudioRecorder") as mock_recorder:
             mock_instance = Mock()
             mock_recorder.return_value = mock_instance
 

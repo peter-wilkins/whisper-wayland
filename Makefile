@@ -1,10 +1,10 @@
-# Whisper Claude - Voice-to-Text Service Makefile
+# Whisper Wayland - Voice-to-Text Service Makefile
 
 .PHONY: help install format lint typecheck test test-unit test-integration coverage clean all
 
 # Default target
 help:
-	@echo "Whisper Claude Development Commands"
+	@echo "Whisper Wayland Development Commands"
 	@echo "=================================="
 	@echo ""
 	@echo "Setup:"
@@ -50,7 +50,7 @@ lint:
 # Type checking with mypy
 typecheck:
 	@echo "Running type checks with mypy..."
-	uv run mypy whisper_claude/
+	uv run mypy whisper_wayland/
 	@echo "✅ Type checking complete"
 
 # Run all code quality checks
@@ -60,13 +60,13 @@ check: format lint typecheck
 # Run all tests (depends on code quality checks)
 test: check
 	@echo "Running all tests..."
-	uv run pytest --cov=whisper_claude --cov-report=term --cov-report=html --cov-fail-under=80 -v
+	uv run pytest --cov=whisper_wayland --cov-report=term --cov-report=html --cov-fail-under=80 -v
 	@echo "✅ All tests passed with required coverage"
 
 # Run only unit tests
 test-unit: check
 	@echo "Running unit tests..."
-	uv run pytest tests/unit/ --cov=whisper_claude --cov-report=term -v
+	uv run pytest tests/unit/ --cov=whisper_wayland --cov-report=term -v
 
 # Run only integration tests (requires OPENAI_API_KEY)
 test-integration:
@@ -80,14 +80,14 @@ test-integration:
 # Run tests with detailed coverage
 coverage: check
 	@echo "Running tests with detailed coverage..."
-	uv run pytest --cov=whisper_claude --cov-report=html --cov-report=term-missing --cov-fail-under=80
+	uv run pytest --cov=whisper_wayland --cov-report=html --cov-report=term-missing --cov-fail-under=80
 	@echo "📊 Coverage report generated in htmlcov/"
 
 # Clean up generated files
 clean:
 	@echo "Cleaning up generated files..."
 	rm -rf __pycache__ .pytest_cache .mypy_cache htmlcov
-	rm -rf whisper_claude/__pycache__ tests/__pycache__
+	rm -rf whisper_wayland/__pycache__ tests/__pycache__
 	rm -rf tests/unit/__pycache__ tests/integration/__pycache__
 	rm -f .coverage transcription.txt
 	find . -type f -name "*.pyc" -delete

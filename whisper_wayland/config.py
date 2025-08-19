@@ -1,8 +1,7 @@
-"""Configuration management for Whisper Claude service.
+"""Configuration management for Whisper Wayland service.
 
 Handles environment variable loading and validation with comprehensive
-error handling and logging.
-"""
+error handling and logging."""
 
 import logging
 import os
@@ -20,7 +19,7 @@ class ConfigError(Exception):
 
 
 class Config:
-    """Configuration manager for Whisper Claude service.
+    """Configuration manager for Whisper Wayland service.
 
     Loads and validates all configuration from environment variables
     with reasonable defaults and comprehensive error handling.
@@ -164,7 +163,7 @@ class Config:
     @property
     def service_name(self) -> str:
         """Service name for systemd/docker."""
-        return os.getenv("SERVICE_NAME", "whisper-claude").strip()
+        return os.getenv("SERVICE_NAME", "whisper-wayland").strip()
 
     @property
     def service_description(self) -> str:

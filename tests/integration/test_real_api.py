@@ -9,8 +9,8 @@ from unittest.mock import patch
 
 import pytest
 
-from whisper_claude.config import Config
-from whisper_claude.transcription_client import (
+from whisper_wayland.config import Config
+from whisper_wayland.transcription_client import (
     create_transcription_client,
 )
 

@@ -1787,7 +1787,7 @@ wheels = [
 ]
 
 [[package]]
-name = "whisper-claude"
+name = "whisper-wayland"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

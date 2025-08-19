@@ -6,8 +6,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from whisper_claude.config import Config, ConfigError
-from whisper_claude.main import WhisperClaudeApp, main
+from whisper_wayland.config import Config, ConfigError
+from whisper_wayland.main import WhisperClaudeApp, main
 
 
 class TestWhisperClaudeApp:
@@ -18,12 +18,12 @@ class TestWhisperClaudeApp:
         """Create test configuration."""
         return Config()
 
-    @patch("whisper_claude.main.create_text_inserter")
-    @patch("whisper_claude.main.create_key_monitor")
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_text_inserter")
+    @patch("whisper_wayland.main.create_key_monitor")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_app_initialization_success(
         self,
         mock_get_config,
@@ -58,7 +58,7 @@ class TestWhisperClaudeApp:
         mock_client.test_connection.assert_called_once()
         mock_text_inserter.test_insertion.assert_called_once()
 
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.get_config")
     def test_app_initialization_config_error(self, mock_get_config):
         """Test app initialization with configuration error."""
         mock_get_config.side_effect = ConfigError("Missing API key")
@@ -66,12 +66,12 @@ class TestWhisperClaudeApp:
         with pytest.raises(ConfigError):
             WhisperClaudeApp()
 
-    @patch("whisper_claude.main.create_text_inserter")
-    @patch("whisper_claude.main.create_key_monitor")
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_text_inserter")
+    @patch("whisper_wayland.main.create_key_monitor")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_app_initialization_with_config_file(
         self,
         mock_get_config,
@@ -97,12 +97,12 @@ class TestWhisperClaudeApp:
 
         mock_get_config.assert_called_once_with("/path/to/config.env")
 
-    @patch("whisper_claude.main.create_text_inserter")
-    @patch("whisper_claude.main.create_key_monitor")
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_text_inserter")
+    @patch("whisper_wayland.main.create_key_monitor")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_validate_components_success(
         self,
         mock_get_config,
@@ -127,12 +127,12 @@ class TestWhisperClaudeApp:
         app = WhisperClaudeApp()
         assert app._validate_components() is True
 
-    @patch("whisper_claude.main.create_text_inserter")
-    @patch("whisper_claude.main.create_key_monitor")
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_text_inserter")
+    @patch("whisper_wayland.main.create_key_monitor")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_validate_components_missing_config(
         self,
         mock_get_config,
@@ -159,10 +159,10 @@ class TestWhisperClaudeApp:
 
         assert app._validate_components() is False
 
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_record_audio_session(
         self,
         mock_get_config,
@@ -191,10 +191,10 @@ class TestWhisperClaudeApp:
         mock_recorder.start_recording.assert_called_once()
         mock_recorder.stop_recording.assert_called_once()
 
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_record_audio_session_no_recorder(
         self,
         mock_get_config,
@@ -217,10 +217,10 @@ class TestWhisperClaudeApp:
         audio_data = app._record_audio_session()
         assert audio_data is None
 
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_transcribe_audio(
         self,
         mock_get_config,
@@ -245,10 +245,10 @@ class TestWhisperClaudeApp:
         assert result == "Transcribed text"
         mock_client.transcribe_audio.assert_called_once_with(b"fake_audio_data")
 
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_transcribe_audio_no_client(
         self,
         mock_get_config,
@@ -268,12 +268,12 @@ class TestWhisperClaudeApp:
         result = app._transcribe_audio(b"fake_audio_data")
         assert result is None
 
-    @patch("whisper_claude.main.create_text_inserter")
-    @patch("whisper_claude.main.create_key_monitor")
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_text_inserter")
+    @patch("whisper_wayland.main.create_key_monitor")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_insert_text(
         self,
         mock_get_config,
@@ -305,12 +305,12 @@ class TestWhisperClaudeApp:
 
         mock_text_inserter.insert_text.assert_called_once_with("Test transcription")
 
-    @patch("whisper_claude.main.create_text_inserter")
-    @patch("whisper_claude.main.create_key_monitor")
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_text_inserter")
+    @patch("whisper_wayland.main.create_key_monitor")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_cleanup(
         self,
         mock_get_config,
@@ -342,10 +342,10 @@ class TestWhisperClaudeApp:
         mock_client.close.assert_called_once()
         mock_text_inserter.close.assert_called_once()
 
-    @patch("whisper_claude.main.create_transcription_client")
-    @patch("whisper_claude.main.create_audio_recorder")
-    @patch("whisper_claude.main.setup_logging")
-    @patch("whisper_claude.main.get_config")
+    @patch("whisper_wayland.main.create_transcription_client")
+    @patch("whisper_wayland.main.create_audio_recorder")
+    @patch("whisper_wayland.main.setup_logging")
+    @patch("whisper_wayland.main.get_config")
     def test_wait_for_recording_trigger_keyboard_interrupt(
         self,
         mock_get_config,
@@ -374,19 +374,19 @@ class TestWhisperClaudeApp:
 class TestMainFunction:
     """Test cases for main function."""
 
-    @patch("whisper_claude.main.WhisperClaudeApp")
+    @patch("whisper_wayland.main.WhisperClaudeApp")
     def test_main_success(self, mock_app_class):
         """Test successful main function execution."""
         mock_app = Mock()
         mock_app_class.return_value = mock_app
 
-        with patch("sys.argv", ["whisper-claude"]):
+        with patch("sys.argv", ["whisper-wayland"]):
             main()
 
         mock_app_class.assert_called_once_with(None)
         mock_app.run.assert_called_once()
 
-    @patch("whisper_claude.main.WhisperClaudeApp")
+    @patch("whisper_wayland.main.WhisperClaudeApp")
     @patch("os.path.exists")
     def test_main_with_config_file(self, mock_exists, mock_app_class):
         """Test main function with config file argument."""
@@ -394,19 +394,19 @@ class TestMainFunction:
         mock_app = Mock()
         mock_app_class.return_value = mock_app
 
-        with patch("sys.argv", ["whisper-claude", "/path/to/config.env"]):
+        with patch("sys.argv", ["whisper-wayland", "/path/to/config.env"]):
             main()
 
         mock_app_class.assert_called_once_with("/path/to/config.env")
         mock_app.run.assert_called_once()
 
-    @patch("whisper_claude.main.WhisperClaudeApp")
+    @patch("whisper_wayland.main.WhisperClaudeApp")
     @patch("os.path.exists")
     def test_main_with_nonexistent_config_file(self, mock_exists, mock_app_class):
         """Test main function with nonexistent config file."""
         mock_exists.return_value = False
 
-        with patch("sys.argv", ["whisper-claude", "/nonexistent/config.env"]):
+        with patch("sys.argv", ["whisper-wayland", "/nonexistent/config.env"]):
             with patch("builtins.print") as mock_print:
                 with pytest.raises(SystemExit) as exc_info:
                     main()
@@ -417,12 +417,12 @@ class TestMainFunction:
         )
         mock_app_class.assert_not_called()
 
-    @patch("whisper_claude.main.WhisperClaudeApp")
+    @patch("whisper_wayland.main.WhisperClaudeApp")
     def test_main_config_error(self, mock_app_class):
         """Test main function with configuration error."""
         mock_app_class.side_effect = ConfigError("Missing API key")
 
-        with patch("sys.argv", ["whisper-claude"]):
+        with patch("sys.argv", ["whisper-wayland"]):
             with patch("builtins.print") as mock_print:
                 with pytest.raises(SystemExit) as exc_info:
                     main()
@@ -433,12 +433,12 @@ class TestMainFunction:
             "Please check your environment variables or .env file"
         )
 
-    @patch("whisper_claude.main.WhisperClaudeApp")
+    @patch("whisper_wayland.main.WhisperClaudeApp")
     def test_main_general_error(self, mock_app_class):
         """Test main function with general error."""
         mock_app_class.side_effect = Exception("Unexpected error")
 
-        with patch("sys.argv", ["whisper-claude"]):
+        with patch("sys.argv", ["whisper-wayland"]):
             with patch("builtins.print") as mock_print:
                 with pytest.raises(SystemExit) as exc_info:
                     main()

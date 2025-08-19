@@ -4,7 +4,7 @@ This file contains important context for Claude when working on this project.
 
 ## Project Overview
 
-**Whisper Claude** is a push-to-talk voice transcription service that converts speech to text and inserts it at the cursor position in any application. Built specifically for Ubuntu/Wayland environments without requiring root access.
+**Whisper Wayland** is a push-to-talk voice transcription service that converts speech to text and inserts it at the cursor position in any application. Built specifically for Ubuntu/Wayland environments without requiring root access.
 
 ## Key Requirements
 
@@ -130,8 +130,8 @@ The service is designed with these key components:
 ## File Structure
 
 ```
-whisper-claude/
-├── whisper_claude/
+whisper-wayland/
+├── whisper_wayland/
 │   ├── __init__.py
 │   ├── main.py                 # Entry point
 │   ├── config.py              # Environment variable handling
@@ -146,7 +146,7 @@ whisper-claude/
 ├── docker/
 │   └── Dockerfile
 ├── systemd/
-│   └── whisper-claude.service
+│   └── whisper-wayland.service
 ├── pyproject.toml             # uv configuration
 ├── .env.example               # Environment template
 ├── README.md                  # User documentation
@@ -169,9 +169,9 @@ make test         # Run all tests with coverage
 make coverage     # Detailed coverage report
 
 # Manual commands (if needed)
-uv run whisper-claude                    # Run service
+uv run whisper-wayland                    # Run service
 uv run ruff format . && uv run ruff check . --fix  # Format & lint
-uv run mypy whisper_claude/              # Type checking
+uv run mypy whisper_wayland/              # Type checking
 ```
 
 **API Key Setup:**
@@ -182,25 +182,25 @@ uv run mypy whisper_claude/              # Type checking
 ### Docker
 ```bash
 # Build image
-docker build -t whisper-claude .
+docker build -t whisper-wayland .
 
 # Run with audio/display access
-docker run -d --name whisper-claude --device /dev/snd -e DISPLAY=$DISPLAY -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR -v /tmp/.X11-unix:/tmp/.X11-unix -v $XDG_RUNTIME_DIR:$XDG_RUNTIME_DIR --env-file .env whisper-claude
+docker run -d --name whisper-wayland --device /dev/snd -e DISPLAY=$DISPLAY -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR -v /tmp/.X11-unix:/tmp/.X11-unix -v $XDG_RUNTIME_DIR:$XDG_RUNTIME_DIR --env-file .env whisper-wayland
 ```
 
 ### Service Management
 ```bash
 # Install systemd service
-sudo cp whisper-claude.service /etc/systemd/system/
+sudo cp whisper-wayland.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable whisper-claude
-sudo systemctl start whisper-claude
+sudo systemctl enable whisper-wayland
+sudo systemctl start whisper-wayland
 
 # Check service status
-systemctl status whisper-claude
+systemctl status whisper-wayland
 
 # View logs
-journalctl -u whisper-claude -f
+journalctl -u whisper-wayland -f
 ```
 
 ## Troubleshooting Notes

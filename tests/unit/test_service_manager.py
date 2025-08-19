@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from whisper_claude.config import Config
-from whisper_claude.service_manager import ServiceManager, create_service_manager
+from whisper_wayland.config import Config
+from whisper_wayland.service_manager import ServiceManager, create_service_manager
 
 
 class TestServiceManager:
