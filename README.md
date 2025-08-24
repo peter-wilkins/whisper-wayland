@@ -1,20 +1,37 @@
 # Whisper Wayland - Voice-to-Text Service
 
-[![CI](https://github.com/whisper-wayland/whisper-wayland/actions/workflows/ci.yml/badge.svg)](https://github.com/whisper-wayland/whisper-wayland/actions/workflows/ci.yml)
+[![CI][ci-badge]][ci-url]
 
 A push-to-talk voice transcription service that converts speech to text and inserts it at the cursor position in any application. Built for Ubuntu/Wayland without requiring root access.
 
-## Features
+## What is Whisper Wayland?
+
+Whisper Wayland is a lightweight voice-to-text service that lets you dictate text directly into any application using a simple push-to-talk hotkey. Perfect for:
+
+- **Writing emails and documents** - Dictate naturally instead of typing
+- **Coding with voice** - Add comments or documentation quickly
+- **Accessibility** - Alternative input method for users with typing difficulties
+- **Multi-tasking** - Keep your hands free while entering text
+
+The service runs in the background and works with any application that accepts text input - from web browsers to text editors to chat applications.
+
+## Key Features
 
 - **Push-to-Talk**: Hold Compose key to record, release to transcribe and insert
 - **Universal Text Insertion**: Works with any application that accepts text input
-- **Wayland Support**: Native support for Wayland without root privileges
-- **OpenAI Whisper Integration**: Uses OpenAI's Whisper API for accurate transcription
-- **Docker Support**: Can run as a containerized service or system daemon
-- **Comprehensive Error Handling**: Robust error handling with detailed logging
-- **High Test Coverage**: 80%+ code coverage with real API integration tests
+- **Wayland Support**: Native support for modern Linux desktop environments
+- **High Accuracy**: Uses OpenAI's Whisper API for accurate speech recognition
+- **Privacy Focused**: Audio is only sent to OpenAI for transcription, not stored locally
+- **Multiple Deployment Options**: Run natively, in Docker, or as a system service
 
-## Requirements
+## Quick Start
+
+### Prerequisites
+
+You'll need:
+- Ubuntu/Debian or Fedora/RHEL Linux system with Wayland
+- [OpenAI API key][openai-api-keys] (pay-per-use, typically $0.006 per minute)
+- Python 3.11+ or Docker
 
 ### System Dependencies
 
@@ -27,64 +44,47 @@ sudo apt install portaudio19-dev python3-dev wtype
 sudo dnf install portaudio-devel python3-devel wtype
 ```
 
-### Python Dependencies
+### Installation
 
-This project uses [uv](https://github.com/astral-sh/uv) for dependency management.
+#### Option 1: Native Installation (Recommended)
 
-```bash
-# Install uv if not already installed
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install dependencies
-uv sync
-```
-
-## Configuration
-
-All configuration is handled through environment variables:
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `OPENAI_API_KEY` | OpenAI API key for Whisper service | - | Yes |
-| `WHISPER_MODEL` | Whisper model to use (tiny, base, small, medium, large) | `base` | No |
-| `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
-| `AUDIO_CHUNK_SIZE` | Audio buffer chunk size | `1024` | No |
-| `MAX_RECORDING_DURATION` | Maximum recording duration in seconds | `30` | No |
-| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
-| `HOTKEY` | Push-to-talk key combination | `compose` | No |
-
-## Installation & Usage
-
-### Native Installation
-
-1. **Set up environment**:
+1. **Install [uv][uv-install] package manager:**
    ```bash
-   # Option 1: Copy environment template
-   cp .env.example .env
-   # Edit with your OpenAI API key
-   nano .env
-   
-   # Option 2: API key in separate file (already configured)
-   # If you have .openai-api.key file, it will be automatically loaded
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
-2. **Install and run**:
+2. **Clone and install:**
    ```bash
-   # Install dependencies
+   git clone https://github.com/your-org/whisper-wayland.git
+   cd whisper-wayland
    uv sync
-   
-   # Run the service
+   ```
+
+3. **Configure your API key:**
+   ```bash
+   # Option A: Create .env file
+   cp .env.example .env
+   nano .env  # Add your OPENAI_API_KEY
+
+   # Option B: Use separate key file (recommended)
+   echo "your-openai-api-key" > .openai-api.key
+   ```
+
+4. **Run the service:**
+   ```bash
    uv run whisper-wayland
    ```
 
-### Docker Installation
+#### Option 2: Docker Installation
 
-1. **Build the image**:
+1. **Build and run:**
    ```bash
+   git clone https://github.com/your-org/whisper-wayland.git
+   cd whisper-wayland
    docker build -t whisper-wayland .
    ```
 
-2. **Run with audio and display access**:
+2. **Run with system access:**
    ```bash
    docker run -d \
      --name whisper-wayland \
@@ -98,126 +98,130 @@ All configuration is handled through environment variables:
      whisper-wayland
    ```
 
-### System Service Installation
+#### Option 3: System Service
 
-1. **Install as systemd service**:
-   ```bash
-   # Copy service file
-   sudo cp whisper-wayland.service /etc/systemd/system/
-   
-   # Update service file with your paths and user
-   sudo nano /etc/systemd/system/whisper-wayland.service
-   
-   # Enable and start service
-   sudo systemctl daemon-reload
-   sudo systemctl enable whisper-wayland
-   sudo systemctl start whisper-wayland
-   ```
+For always-on operation, install as a systemd service:
 
-## Usage
+```bash
+# Copy and configure service file
+sudo cp whisper-wayland.service /etc/systemd/system/
+sudo nano /etc/systemd/system/whisper-wayland.service  # Update paths and user
+
+# Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable whisper-wayland
+sudo systemctl start whisper-wayland
+```
+
+## How to Use
 
 1. **Start the service** using one of the installation methods above
-2. **Press and hold Compose key** in any application where you want to insert text
-3. **Speak clearly** while holding the key combination
-4. **Release the keys** - the transcribed text will be inserted at cursor position
+2. **Position your cursor** where you want text to appear in any application
+3. **Press and hold the Compose key** (usually right Alt or Menu key)
+4. **Speak clearly** while holding the key
+5. **Release the key** - transcribed text appears at your cursor position
 
-## Development
+### Usage Tips
 
-### Running Tests
+- **Speak naturally** - Whisper handles conversational speech well
+- **Use punctuation commands** - Say "period", "comma", "question mark", etc.
+- **Keep recordings under 30 seconds** - Default maximum recording duration
+- **Ensure good audio quality** - Use a decent microphone for best results
 
-```bash
-# Run all tests with coverage
-uv run pytest --cov=whisper_wayland --cov-report=html --cov-report=term
+## Configuration
 
-# Run only unit tests
-uv run pytest tests/unit/
+All configuration is handled through environment variables:
 
-# Run integration tests (requires OPENAI_API_KEY)
-uv run pytest tests/integration/
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `OPENAI_API_KEY` | OpenAI API key for Whisper service | - | Yes |
+| `WHISPER_MODEL` | Model to use (tiny, base, small, medium, large) | `base` | No |
+| `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
+| `MAX_RECORDING_DURATION` | Maximum recording duration in seconds | `30` | No |
+| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
+| `HOTKEY` | Push-to-talk key combination | `compose` | No |
 
-### Continuous Integration
+### Model Selection Guide
 
-The project uses GitHub Actions for automated testing and quality checks:
-
-- **Tests**: Run on every push to trunk with Python 3.11, 3.12, and 3.13
-- **Linting**: Automated code formatting and style checking with ruff
-- **Type Checking**: Static type analysis with mypy
-- **Security Scanning**: Vulnerability detection with bandit
-- **Coverage Reports**: Automatic coverage reporting and artifact uploads
-
-All CI workflows run in Ubuntu environments with proper system dependencies installed.
-
-### Code Quality
-
-The project uses a comprehensive quality pipeline with Makefile automation:
-
-```bash
-# Complete development workflow
-make all          # Install deps, run quality checks, and test
-
-# Individual steps
-make install      # Install dependencies
-make format       # Format code with ruff
-make lint         # Lint code with ruff (PEP8 compliance)
-make typecheck    # Run type checking with mypy
-make check        # Run all quality checks together
-
-# Testing
-make test         # Run all tests (after quality checks)
-make test-unit    # Run only unit tests
-make coverage     # Run tests with detailed coverage report
-
-# Utilities
-make clean        # Clean up generated files
-make help         # Show all available commands
-```
-
-**Manual commands** (if needed):
-```bash
-# Format and lint with ruff
-uv run ruff format .
-uv run ruff check . --fix
-
-# Type checking with mypy
-uv run mypy whisper_wayland/
-```
-
-## Architecture
-
-The service consists of several key components:
-
-- **Audio Recorder**: Captures audio using PyAudio with configurable quality settings
-- **Key Monitor**: Global hotkey detection using evdev (full Wayland/X11 compatibility)
-- **Transcription Client**: OpenAI Whisper API integration with error handling
-- **Text Inserter**: Cross-platform text insertion using wtype for Wayland
-- **Service Manager**: Coordinates all components with comprehensive error handling
+- **tiny**: Fastest, least accurate, cheapest (~$0.0024/min)
+- **base**: Good balance of speed and accuracy (~$0.006/min) - **Recommended**
+- **small**: Better accuracy, slightly slower (~$0.006/min)
+- **medium**: High accuracy, slower (~$0.012/min)
+- **large**: Best accuracy, slowest (~$0.018/min)
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Audio not recording**: Ensure your user is in the `audio` group
-2. **Text not inserting**: Verify `wtype` is installed and accessible
-3. **Hotkey not working**: Check if another application is using Compose key
-4. **Docker audio issues**: Ensure proper device mounting and permissions
+**Audio not recording:**
+- Check your user is in the `audio` group: `sudo usermod -a -G audio $USER`
+- Log out and back in after group changes
+- Test microphone: `arecord -d 5 test.wav && aplay test.wav`
 
-### Debug Logging
+**Text not inserting:**
+- Verify `wtype` is installed: `which wtype`
+- Test manually: `echo "test" | wtype -`
+- Check Wayland environment variables are set
 
-Enable debug logging by setting `LOG_LEVEL=DEBUG` in your environment.
+**Hotkey not working:**
+- Verify Compose key is configured: `setxkbmap -option compose:ralt`
+- Check if another application is using the key
+- Try alternative keys by setting `HOTKEY` environment variable
+
+**Service fails to start:**
+- Check your OpenAI API key is valid
+- Ensure all system dependencies are installed
+- Enable debug logging: `LOG_LEVEL=DEBUG`
+
+### Getting Help
+
+For detailed troubleshooting and logs:
+
+```bash
+# Check service status (systemd)
+systemctl status whisper-wayland
+
+# View logs (systemd)
+journalctl -u whisper-wayland -f
+
+# Enable debug logging
+export LOG_LEVEL=DEBUG
+uv run whisper-wayland
+```
+
+## Cost Considerations
+
+Whisper Wayland uses OpenAI's API on a pay-per-use basis:
+- **Typical usage**: $0.006 per minute of audio
+- **Example**: 1 hour of dictation per day ≈ $10-15/month
+- **Factors**: Longer recordings and higher-quality models cost more
+
+## Privacy & Security
+
+- **Audio processing**: Audio is sent to OpenAI for transcription only
+- **No local storage**: Audio data is not saved to your computer
+- **API key security**: Store your API key securely (use `.openai-api.key` file)
+- **Network only**: Service only activates when you press the hotkey
+
+## Support & Contributing
+
+- **Issues**: Report bugs and request features on [GitHub Issues][issues-url]
+- **Contributing**: See [CLAUDE.md][claude-md] for development guidelines
+- **Discussions**: Join community discussions on [GitHub Discussions][discussions-url]
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see [LICENSE][license-url] file for details.
 
-## Contributing
+---
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Ensure 80%+ code coverage
-5. Submit a pull request
+**For developers**: See [CLAUDE.md][claude-md] for repository structure, development workflow, and contribution guidelines.
 
-## Support
-
-For issues and feature requests, please use the GitHub issue tracker.
+[ci-badge]: https://github.com/whisper-wayland/whisper-wayland/actions/workflows/ci.yml/badge.svg
+[ci-url]: https://github.com/whisper-wayland/whisper-wayland/actions/workflows/ci.yml
+[openai-api-keys]: https://platform.openai.com/api-keys
+[uv-install]: https://docs.astral.sh/uv/getting-started/installation/
+[issues-url]: https://github.com/your-org/whisper-wayland/issues
+[discussions-url]: https://github.com/your-org/whisper-wayland/discussions
+[license-url]: https://github.com/your-org/whisper-wayland/blob/trunk/LICENSE
+[claude-md]: https://github.com/your-org/whisper-wayland/blob/trunk/CLAUDE.md
