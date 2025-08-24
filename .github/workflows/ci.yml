@@ -7,45 +7,8 @@ on:
     branches: [trunk]
 
 jobs:
-  lint-and-typecheck:
-    name: Lint and Type Check
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-        
-    - name: Set up Python
-      run: uv python install 3.13
-      
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libasound2-dev \
-          libportaudio2 \
-          portaudio19-dev
-      
-    - name: Install dependencies
-      run: uv sync
-      
-    - name: Run ruff linting
-      run: uv run ruff check whisper_wayland/ --output-format=github
-      
-    - name: Run ruff formatting check
-      run: uv run ruff format whisper_wayland/ --check
-      
-    - name: Run mypy type checking
-      run: uv run mypy whisper_wayland/ --strict
-      continue-on-error: true
-
-  test:
-    name: Test Python ${{ matrix.python-version }}
+  build-and-test:
+    name: Build and Test Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -53,10 +16,9 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
     
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # OPENAI_API_KEY is optional; set to empty if not defined
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || '' }}
       LOG_LEVEL: ERROR
-      HOTKEY: compose
-      TEXT_INSERTION_METHOD: ydotool
         
     steps:
     - name: Checkout code
@@ -81,36 +43,20 @@ jobs:
           alsa-utils \
           ydotool \
           wl-clipboard \
-          xclip
+          xclip \
+          wtype
       
-    - name: Install dependencies
-      run: uv sync
-      
-    - name: Run unit tests
-      run: |
-        uv run pytest tests/unit/ -v \
-          --tb=short \
-          --disable-warnings \
-          -x
-        
-    - name: Run integration tests (Python 3.13 only)
-      if: matrix.python-version == '3.13'
-      run: |
-        uv run pytest tests/integration/ -v \
-          --tb=short \
-          --disable-warnings \
-          -x
+    - name: Run complete pipeline
+      run: make all
 
   coverage:
     name: Coverage Report
     runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, test]
+    needs: [build-and-test]
     
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       LOG_LEVEL: ERROR
-      HOTKEY: compose
-      TEXT_INSERTION_METHOD: ydotool
     
     steps:
     - name: Checkout code
@@ -131,9 +77,12 @@ jobs:
           libasound2-dev \
           libportaudio2 \
           portaudio19-dev \
+          pulseaudio \
+          alsa-utils \
           ydotool \
           wl-clipboard \
-          xclip
+          xclip \
+          wtype
       
     - name: Install dependencies
       run: uv sync
@@ -145,7 +94,7 @@ jobs:
           --cov-report=term-missing \
           --cov-report=html \
           --cov-report=xml \
-          --cov-fail-under=30 \
+          --cov-fail-under=75 \
           --tb=short \
           --disable-warnings
         
@@ -188,7 +137,8 @@ jobs:
         sudo apt-get install -y \
           libasound2-dev \
           libportaudio2 \
-          portaudio19-dev
+          portaudio19-dev \
+          wtype
       
     - name: Install dependencies
       run: uv sync
