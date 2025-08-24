@@ -26,7 +26,7 @@ class TestConfig:
                 assert config.audio_chunk_size == 1024
                 assert config.max_recording_duration == 30
                 assert config.log_level == "INFO"
-                assert config.hotkey == "compose"
+                assert config.hotkey == "ctrl+compose"
         finally:
             # Restore LOG_LEVEL if it existed
             if old_log_level:

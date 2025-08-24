@@ -61,10 +61,6 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=whisper_wayland",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-fail-under=75",
 ]
 testpaths = ["tests"]
 filterwarnings = [

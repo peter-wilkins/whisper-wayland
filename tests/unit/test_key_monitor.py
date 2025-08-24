@@ -74,7 +74,7 @@ class TestKeyMonitor:
         assert monitor._release_callback is None
         assert not monitor._monitoring
         assert not monitor._hotkey_pressed
-        assert monitor._hotkey_combination == {"compose"}
+        assert monitor._hotkey_combination == {"ctrl", "compose"}
 
     def test_key_monitor_initialization_custom_hotkey(self, mock_api_key):
         """Test key monitor initialization with custom hotkey."""
@@ -240,8 +240,9 @@ class TestKeyMonitor:
         monitor.set_callback(press_callback)
         monitor.set_release_callback(release_callback)
 
-        # Simulate pressing compose key
+        # Simulate pressing ctrl+compose keys
         with monitor._lock:
+            monitor._pressed_keys.add("ctrl")
             monitor._pressed_keys.add("compose")
             monitor._check_hotkey_state()
 
@@ -250,7 +251,7 @@ class TestKeyMonitor:
         assert monitor._hotkey_pressed
         press_callback.assert_called_once()
 
-        # Simulate releasing compose key
+        # Simulate releasing compose key (ctrl still held)
         with monitor._lock:
             monitor._pressed_keys.remove("compose")
             monitor._check_hotkey_state()

@@ -58,7 +58,6 @@ def mock_api_key() -> typing.Generator[str, None, None]:
     """Provide mock API key for tests."""
     with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
         yield "sk-test123"
-        yield "sk-test123"
 
 
 @pytest.fixture

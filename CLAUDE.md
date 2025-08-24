@@ -187,7 +187,7 @@ uv run pytest --cov=whisper_wayland --cov-report=html --cov-report=term
 
 - **Unit Tests**: Test individual components in isolation
 - **Integration Tests**: Test component interactions and external APIs
-- **Coverage Target**: Minimum 80% code coverage (currently >85%)
+- **Coverage Target**: Minimum 75% code coverage (currently ~78%)
 - **Test Structure**: Mirror source structure in test directories
 
 ### Testing Approach

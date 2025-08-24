@@ -157,7 +157,7 @@ class Config:
     @property
     def hotkey(self) -> str:
         """Push-to-talk key combination."""
-        return os.getenv("HOTKEY", "compose").strip().lower()
+        return os.getenv("HOTKEY", "ctrl+compose").strip().lower()
 
     # Service Configuration (for future steps)
     @property
