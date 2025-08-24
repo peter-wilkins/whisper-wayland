@@ -155,7 +155,7 @@ class TestConfigurationIntegration:
 
         # Temporarily remove LOG_LEVEL to test .env file loading
         old_log_level = os.environ.pop("LOG_LEVEL", None)
-        
+
         try:
             # Load config from env file
             config = Config(env_file_path)

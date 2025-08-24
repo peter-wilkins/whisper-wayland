@@ -40,7 +40,7 @@ class TestConfig:
         if test_config.openai_api_key:
             # Skip test if API key is available (CI environment or .env file)
             pytest.skip("API key available from environment or .env file")
-        
+
         # Only test if no API key is available
         old_api_key = os.environ.pop("OPENAI_API_KEY", None)
         try:
@@ -157,7 +157,9 @@ class TestConfig:
             # Invalid value (should fallback to default)
             with patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "invalid_method"}):
                 config = Config()
-                assert config.text_insertion_method == "ydotool"  # Fallback per config.py line 210
+                assert (
+                    config.text_insertion_method == "ydotool"
+                )  # Fallback per config.py line 210
 
     def test_config_service_properties(self):
         """Test service-related configuration properties."""
@@ -190,7 +192,7 @@ class TestConfig:
         old_api_key = os.environ.pop("OPENAI_API_KEY", None)
         old_model = os.environ.pop("WHISPER_MODEL", None)
         old_log_level = os.environ.pop("LOG_LEVEL", None)
-        
+
         try:
             config = Config(env_file_path)
             assert config.openai_api_key == "sk-envfile123"
@@ -238,7 +240,7 @@ class TestConfig:
 
         # Temporarily remove environment variable to test .env file loading
         old_api_key = os.environ.pop("OPENAI_API_KEY", None)
-        
+
         try:
             config = get_config(env_file_path)
             assert config.openai_api_key == "sk-filetest123"

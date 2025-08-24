@@ -147,7 +147,10 @@ class TestAudioRecorder:
             # Simulate time progression to trigger max duration
             # Use itertools.count to provide unlimited time values
             import itertools
-            time_values = itertools.cycle([0, 0, 0.5, 1.5, 2.0, 2.0, 2.1, 2.2, 2.3, 2.4])
+
+            time_values = itertools.cycle(
+                [0, 0, 0.5, 1.5, 2.0, 2.0, 2.1, 2.2, 2.3, 2.4]
+            )
             mock_time.side_effect = lambda: next(time_values)
 
             recorder.start_recording()

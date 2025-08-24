@@ -1,6 +1,5 @@
 """Unit tests for logging configuration module."""
 
-import logging
 import os
 import tempfile
 from unittest.mock import Mock, patch
@@ -26,7 +25,7 @@ class TestLoggingConfig:
     def test_setup_logging_functionality(self, mock_api_key):
         """Test logging setup functionality - handlers and basic configuration."""
         test_config = Config()
-        
+
         with patch("logging.getLogger") as mock_get_logger:
             mock_root_logger = Mock()
             mock_get_logger.return_value = mock_root_logger
@@ -36,14 +35,20 @@ class TestLoggingConfig:
             # Verify that setup_logging calls the essential functions
             # Due to test isolation complexities, just verify it was called
             assert mock_root_logger.setLevel.called  # Called with some level
-            assert mock_root_logger.addHandler.call_count >= 1  # Adds at least one handler
+            assert (
+                mock_root_logger.addHandler.call_count >= 1
+            )  # Adds at least one handler
 
     def test_setup_logging_debug_level(self, mock_api_key):
         """Test logging setup with DEBUG level."""
         test_config = Config()
-        
+
         # Patch the log_level property to return DEBUG
-        with patch.object(type(test_config), 'log_level', new_callable=lambda: property(lambda self: "DEBUG")):
+        with patch.object(
+            type(test_config),
+            "log_level",
+            new_callable=lambda: property(lambda self: "DEBUG"),
+        ):
             with patch("logging.getLogger") as mock_get_logger:
                 mock_root_logger = Mock()
                 mock_get_logger.return_value = mock_root_logger
@@ -110,19 +115,11 @@ class TestLoggingConfig:
 
     def test_logging_levels_mapping(self, config, mock_api_key):
         """Test that string log levels are properly mapped."""
-        test_levels = {
-            "DEBUG": logging.DEBUG,
-            "INFO": logging.INFO,
-            "WARNING": logging.WARNING,
-            "ERROR": logging.ERROR,
-            "CRITICAL": logging.CRITICAL,
-        }
 
         # Test just one level to verify the functionality works
         # Use the current environment's log level to avoid CI conflicts
         test_config = Config()
-        current_level = getattr(logging, test_config.log_level.upper(), logging.INFO)
-        
+
         with patch("logging.getLogger") as mock_get_logger:
             mock_root_logger = Mock()
             mock_get_logger.return_value = mock_root_logger

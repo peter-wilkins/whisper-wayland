@@ -57,25 +57,21 @@ typecheck:
 check: format lint typecheck
 	@echo "✅ All code quality checks passed"
 
-# Run all tests (depends on code quality checks)
-test: check
+# Run all tests
+test: test-unit test-integration
 	@echo "Running all tests..."
 	uv run pytest --cov=whisper_wayland --cov-report=term --cov-report=html --cov-fail-under=80 -v
 	@echo "✅ All tests passed with required coverage"
 
 # Run only unit tests
-test-unit: check
+test-unit:
 	@echo "Running unit tests..."
-	uv run pytest tests/unit/ --cov=whisper_wayland --cov-report=term -v
+	uv run pytest tests/unit --cov=whisper_wayland --cov-report=term --cov-report=html --cov-fail-under=80 -v
 
-# Run only integration tests (requires OPENAI_API_KEY)
+# Run only integration tests
 test-integration:
 	@echo "Running integration tests..."
-	@if [ -z "$$OPENAI_API_KEY" ] && [ ! -f .env ]; then \
-		echo "⚠️  OPENAI_API_KEY not set and no .env file found"; \
-		echo "   Integration tests will be skipped"; \
-	fi
-	uv run pytest tests/integration/ -v
+	uv run pytest tests/integration --cov=whisper_wayland --cov-report=term --cov-report=html --cov-fail-under=80 -v
 
 # Run tests with detailed coverage
 coverage: check

@@ -7,11 +7,11 @@ Supports configurable key combinations and full Wayland compatibility.
 import logging
 import select
 import threading
-from typing import Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 try:
     import evdev
-    from evdev import InputDevice, ecodes
+    from evdev import InputDevice, InputEvent, ecodes
 except ImportError:
     raise ImportError(
         "evdev is required for key monitoring. Install with: pip install evdev or uv add evdev"
@@ -244,10 +244,30 @@ class KeyMonitor:
 
         # Try to get key name from evdev
         try:
-            key_name = ecodes.KEY[keycode]
-            if key_name.startswith("KEY_"):
-                return key_name[4:].lower()
-        except KeyError:
+            key_val = ecodes.KEY[keycode]
+
+            # Handle different types that evdev might return
+            raw_key_name: Any = None
+            if isinstance(key_val, tuple) and key_val:
+                raw_key_name = key_val[0]
+            else:
+                raw_key_name = key_val
+
+            # Convert to string regardless of whether it's bytes or str
+            if isinstance(raw_key_name, bytes):
+                key_name_str = raw_key_name.decode()
+            elif isinstance(raw_key_name, str):
+                key_name_str = raw_key_name
+            else:
+                return None
+
+            # Remove KEY_ prefix if present
+            if key_name_str.startswith("KEY_"):
+                return key_name_str[4:].lower()
+            else:
+                return key_name_str.lower()
+
+        except (KeyError, UnicodeDecodeError, AttributeError):
             pass
 
         return None
@@ -316,7 +336,7 @@ class KeyMonitor:
         finally:
             logger.debug("Key monitoring loop stopped")
 
-    def _handle_key_event(self, event) -> None:
+    def _handle_key_event(self, event: InputEvent) -> None:
         """Handle a keyboard event.
 
         Args:

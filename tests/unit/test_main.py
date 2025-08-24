@@ -1,7 +1,5 @@
 """Unit tests for main application module."""
 
-import os
-import tempfile
 from unittest.mock import Mock, patch
 
 import pytest
@@ -292,7 +290,7 @@ class TestWhisperClaudeApp:
         mock_client.test_connection.return_value = True
         mock_create_client.return_value = mock_client
         mock_create_key_monitor.return_value = Mock()
-        
+
         mock_text_inserter = Mock()
         mock_text_inserter.test_insertion.return_value = True
         mock_text_inserter.insert_text.return_value = True
@@ -330,7 +328,7 @@ class TestWhisperClaudeApp:
         mock_client.test_connection.return_value = True
         mock_create_client.return_value = mock_client
         mock_create_key_monitor.return_value = Mock()
-        
+
         mock_text_inserter = Mock()
         mock_text_inserter.test_insertion.return_value = True
         mock_create_text_inserter.return_value = mock_text_inserter

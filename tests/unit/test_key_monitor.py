@@ -1,9 +1,8 @@
 """Unit tests for key monitor module with evdev implementation."""
 
 import os
-import threading
 import time
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -52,18 +51,18 @@ class TestKeyMonitor:
             # Mock list_devices to return device paths
             mock_evdev.list_devices.return_value = [
                 "/dev/input/event0",
-                "/dev/input/event1"
+                "/dev/input/event1",
             ]
-            
+
             # Mock InputDevice constructor to return our mock devices
             mock_evdev.InputDevice.side_effect = mock_evdev_devices
-            
+
             # Mock ecodes constants
             mock_evdev.ecodes.EV_KEY = 1
             mock_evdev.ecodes.KEY_SPACE = 57
             mock_evdev.ecodes.KEY_ENTER = 28
             mock_evdev.ecodes.KEY_COMPOSE = 127
-            
+
             yield mock_evdev
 
     def test_key_monitor_initialization(self, config):
@@ -149,11 +148,11 @@ class TestKeyMonitor:
         assert key_map[57] == "space"  # KEY_SPACE
         assert key_map[28] == "enter"  # KEY_ENTER
         assert key_map[127] == "compose"  # KEY_COMPOSE
-        
+
         # Test letter keys
         assert key_map[30] == "a"  # KEY_A
         assert key_map[48] == "b"  # KEY_B
-        
+
         # Test number keys
         assert key_map[2] == "1"  # KEY_1
         assert key_map[11] == "0"  # KEY_0
@@ -174,7 +173,7 @@ class TestKeyMonitor:
     def test_start_monitoring_success(self, mock_select, config, mock_evdev):
         """Test successful start of key monitoring."""
         mock_select.return_value = ([], [], [])
-        
+
         monitor = KeyMonitor(config)
         monitor.start_monitoring()
 
@@ -194,30 +193,33 @@ class TestKeyMonitor:
         """Test handling when no devices are found."""
         with patch("whisper_wayland.key_monitor.evdev.list_devices", return_value=[]):
             monitor = KeyMonitor(config)
-            
+
             with pytest.raises(KeyMonitorError, match="No keyboard devices found"):
                 monitor.start_monitoring()
 
     def test_start_monitoring_permission_error(self, config):
         """Test handling of permission errors."""
-        with patch("whisper_wayland.key_monitor.evdev.list_devices", 
-                  side_effect=PermissionError("Access denied")):
+        with patch(
+            "whisper_wayland.key_monitor.evdev.list_devices",
+            side_effect=PermissionError("Access denied"),
+        ):
             monitor = KeyMonitor(config)
-            
+
             with pytest.raises(KeyMonitorError, match="Permission denied"):
                 monitor.start_monitoring()
 
     def test_stop_monitoring(self, config, mock_evdev):
         """Test stopping key monitoring."""
-        with patch("whisper_wayland.key_monitor.select.select", 
-                  return_value=([], [], [])):
+        with patch(
+            "whisper_wayland.key_monitor.select.select", return_value=([], [], [])
+        ):
             monitor = KeyMonitor(config)
             monitor.start_monitoring()
-            
+
             assert monitor.is_monitoring()
-            
+
             monitor.stop_monitoring()
-            
+
             assert not monitor.is_monitoring()
             assert len(monitor._devices) == 0
 
@@ -331,15 +333,16 @@ class TestKeyMonitor:
 
     def test_close(self, config, mock_evdev):
         """Test key monitor cleanup."""
-        with patch("whisper_wayland.key_monitor.select.select", 
-                  return_value=([], [], [])):
+        with patch(
+            "whisper_wayland.key_monitor.select.select", return_value=([], [], [])
+        ):
             monitor = KeyMonitor(config)
             monitor.start_monitoring()
-            
+
             assert monitor.is_monitoring()
-            
+
             monitor.close()
-            
+
             assert not monitor.is_monitoring()
 
     def test_create_key_monitor(self, config):

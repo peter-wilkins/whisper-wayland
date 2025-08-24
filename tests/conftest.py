@@ -1,12 +1,16 @@
 """Pytest configuration and fixtures."""
 
 import os
-from unittest.mock import patch
+import typing
+import unittest.mock as mock  # noqa: PLR0402
 
+import dotenv
 import pytest
 
+dotenv.load_dotenv()
 
-def pytest_configure(config):
+
+def pytest_configure(config: pytest.Config) -> None:
     """Configure pytest with custom markers."""
     config.addinivalue_line(
         "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
@@ -14,7 +18,7 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True)
-def clean_environment():
+def clean_environment() -> typing.Generator[None, None, None]:
     """Clean environment for each test."""
     # Store original environment
     original_env = dict(os.environ)
@@ -50,14 +54,15 @@ def clean_environment():
 
 
 @pytest.fixture
-def mock_api_key():
+def mock_api_key() -> typing.Generator[str, None, None]:
     """Provide mock API key for tests."""
-    with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+    with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+        yield "sk-test123"
         yield "sk-test123"
 
 
 @pytest.fixture
-def temp_transcription_file():
+def temp_transcription_file() -> typing.Generator[str, None, None]:
     """Create temporary transcription file for tests."""
     import tempfile
 
