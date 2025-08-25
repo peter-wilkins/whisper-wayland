@@ -5,9 +5,9 @@ error handling and logging."""
 
 import logging
 import os
-from typing import Optional
+import typing
 
-from dotenv import load_dotenv
+import dotenv
 
 from .constants import (
     DEFAULT_CHUNK_SIZE,
@@ -32,7 +32,7 @@ class Config:
     with reasonable defaults and comprehensive error handling.
     """
 
-    def __init__(self, env_file: Optional[str] = None) -> None:
+    def __init__(self, env_file: typing.Optional[str] = None) -> None:
         """Initialize configuration manager.
 
         Args:
@@ -43,12 +43,12 @@ class Config:
         logger.info("Configuration loaded successfully")
         logger.debug(f"Configuration: {self._get_safe_config_summary()}")
 
-    def _load_env_file(self, env_file: Optional[str]) -> None:
+    def _load_env_file(self, env_file: typing.Optional[str]) -> None:
         """Load environment variables from .env file if it exists."""
         try:
             if env_file:
                 if os.path.exists(env_file):
-                    load_dotenv(env_file)
+                    dotenv.load_dotenv(env_file)
                     logger.debug(f"Loaded environment from {env_file}")
                 else:
                     logger.warning(f"Environment file {env_file} not found")
@@ -56,7 +56,7 @@ class Config:
                 # Try to load from default locations
                 for default_env in [".env", ".env.local"]:
                     if os.path.exists(default_env):
-                        load_dotenv(default_env)
+                        dotenv.load_dotenv(default_env)
                         logger.debug(f"Loaded environment from {default_env}")
                         break
         except Exception as e:
@@ -211,7 +211,7 @@ class Config:
         return method
 
 
-def get_config(env_file: Optional[str] = None) -> Config:
+def get_config(env_file: typing.Optional[str] = None) -> Config:
     """Get configuration instance with optional environment file.
 
     Args:

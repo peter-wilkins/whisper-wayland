@@ -8,13 +8,12 @@ import io
 import logging
 import struct
 import time
-from typing import Optional
+import typing
 
 import openai
-from openai import OpenAI
 
-from .config import Config
-from .constants import TEXT_PREVIEW_LENGTH
+from . import config as config_module
+from . import constants
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class TranscriptionClient:
     retry logic, and comprehensive logging.
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: config_module.Config) -> None:
         """Initialize transcription client with configuration.
 
         Args:
@@ -42,7 +41,7 @@ class TranscriptionClient:
             TranscriptionError: If client initialization fails
         """
         self.config = config
-        self._client: Optional[OpenAI] = None
+        self._client: typing.Optional[openai.OpenAI] = None
 
         self._initialize_client()
         logger.info("Transcription client initialized successfully")
@@ -51,7 +50,7 @@ class TranscriptionClient:
     def _initialize_client(self) -> None:
         """Initialize OpenAI client with error handling."""
         try:
-            self._client = OpenAI(api_key=self.config.openai_api_key)
+            self._client = openai.OpenAI(api_key=self.config.openai_api_key)
             self._validate_client()
             logger.debug("OpenAI client initialized successfully")
         except Exception as e:
@@ -92,7 +91,7 @@ class TranscriptionClient:
 
     def transcribe_audio(
         self, audio_data: bytes, language: str = "en", max_retries: int = 3
-    ) -> Optional[str]:
+    ) -> typing.Optional[str]:
         """Transcribe audio data to text using OpenAI Whisper API.
 
         Args:
@@ -170,8 +169,8 @@ class TranscriptionClient:
                 return ""
 
             logger.info(
-                f"Transcription successful: '{transcribed_text[:TEXT_PREVIEW_LENGTH]}"
-                f"{'...' if len(transcribed_text) > TEXT_PREVIEW_LENGTH else ''}'"
+                f"Transcription successful: '{transcribed_text[: constants.TEXT_PREVIEW_LENGTH]}"
+                f"{'...' if len(transcribed_text) > constants.TEXT_PREVIEW_LENGTH else ''}'"
             )
             logger.debug(f"Full transcription: '{transcribed_text}'")
 
@@ -335,7 +334,7 @@ class TranscriptionClient:
         self.close()
 
 
-def create_transcription_client(config: Config) -> TranscriptionClient:
+def create_transcription_client(config: config_module.Config) -> TranscriptionClient:
     """Create and initialize transcription client instance.
 
     Args:

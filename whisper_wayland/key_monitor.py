@@ -7,17 +7,17 @@ Supports configurable key combinations and full Wayland compatibility.
 import logging
 import select
 import threading
-from typing import Any, Callable, Dict, List, Optional, Set
+import typing
 
 try:
     import evdev
-    from evdev import InputDevice, InputEvent, ecodes
+    # Use evdev.InputDevice, evdev.InputEvent, evdev.ecodes
 except ImportError as e:
     raise ImportError(
         "evdev is required for key monitoring. Install with: pip install evdev or uv add evdev"
     ) from e
 
-from .config import Config
+from . import config as config_module
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class KeyMonitor:
     Works on both X11 and Wayland systems.
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: config_module.Config) -> None:
         """Initialize key monitor with configuration.
 
         Args:
@@ -46,15 +46,15 @@ class KeyMonitor:
             KeyMonitorError: If hotkey configuration is invalid
         """
         self.config = config
-        self._callback: Optional[Callable[[], None]] = None
-        self._release_callback: Optional[Callable[[], None]] = None
+        self._callback: typing.Optional[typing.Callable[[], None]] = None
+        self._release_callback: typing.Optional[typing.Callable[[], None]] = None
         self._monitoring = False
-        self._monitor_thread: Optional[threading.Thread] = None
+        self._monitor_thread: typing.Optional[threading.Thread] = None
         self._stop_event = threading.Event()
-        self._devices: List[InputDevice] = []
-        self._pressed_keys: Set[str] = set()
+        self._devices: list[evdev.InputDevice] = []
+        self._pressed_keys: set[str] = set()
         self._hotkey_pressed = False
-        self._hotkey_combination: Set[str] = set()
+        self._hotkey_combination: set[str] = set()
         self._lock = threading.Lock()
 
         # Key code mapping for evdev
@@ -68,73 +68,73 @@ class KeyMonitor:
             logger.error(f"Failed to initialize key monitor: {e}")
             raise KeyMonitorError(f"Key monitor initialization failed: {e}") from e
 
-    def _build_key_map(self) -> Dict[int, str]:
+    def _build_key_map(self) -> dict[int, str]:
         """Build mapping from evdev keycodes to key names."""
         key_map = {
-            ecodes.KEY_LEFTCTRL: "ctrl",
-            ecodes.KEY_RIGHTCTRL: "ctrl",
-            ecodes.KEY_LEFTALT: "alt",
-            ecodes.KEY_RIGHTALT: "alt",
-            ecodes.KEY_LEFTSHIFT: "shift",
-            ecodes.KEY_RIGHTSHIFT: "shift",
-            ecodes.KEY_SPACE: "space",
-            ecodes.KEY_ENTER: "enter",
-            ecodes.KEY_ESC: "esc",
-            ecodes.KEY_TAB: "tab",
-            ecodes.KEY_BACKSPACE: "backspace",
-            ecodes.KEY_DELETE: "delete",
-            ecodes.KEY_COMPOSE: "compose",  # The compose key
-            ecodes.KEY_MENU: "menu",
+            evdev.ecodes.KEY_LEFTCTRL: "ctrl",
+            evdev.ecodes.KEY_RIGHTCTRL: "ctrl",
+            evdev.ecodes.KEY_LEFTALT: "alt",
+            evdev.ecodes.KEY_RIGHTALT: "alt",
+            evdev.ecodes.KEY_LEFTSHIFT: "shift",
+            evdev.ecodes.KEY_RIGHTSHIFT: "shift",
+            evdev.ecodes.KEY_SPACE: "space",
+            evdev.ecodes.KEY_ENTER: "enter",
+            evdev.ecodes.KEY_ESC: "esc",
+            evdev.ecodes.KEY_TAB: "tab",
+            evdev.ecodes.KEY_BACKSPACE: "backspace",
+            evdev.ecodes.KEY_DELETE: "delete",
+            evdev.ecodes.KEY_COMPOSE: "compose",  # The compose key
+            evdev.ecodes.KEY_MENU: "menu",
             # Function keys
-            ecodes.KEY_F1: "f1",
-            ecodes.KEY_F2: "f2",
-            ecodes.KEY_F3: "f3",
-            ecodes.KEY_F4: "f4",
-            ecodes.KEY_F5: "f5",
-            ecodes.KEY_F6: "f6",
-            ecodes.KEY_F7: "f7",
-            ecodes.KEY_F8: "f8",
-            ecodes.KEY_F9: "f9",
-            ecodes.KEY_F10: "f10",
-            ecodes.KEY_F11: "f11",
-            ecodes.KEY_F12: "f12",
+            evdev.ecodes.KEY_F1: "f1",
+            evdev.ecodes.KEY_F2: "f2",
+            evdev.ecodes.KEY_F3: "f3",
+            evdev.ecodes.KEY_F4: "f4",
+            evdev.ecodes.KEY_F5: "f5",
+            evdev.ecodes.KEY_F6: "f6",
+            evdev.ecodes.KEY_F7: "f7",
+            evdev.ecodes.KEY_F8: "f8",
+            evdev.ecodes.KEY_F9: "f9",
+            evdev.ecodes.KEY_F10: "f10",
+            evdev.ecodes.KEY_F11: "f11",
+            evdev.ecodes.KEY_F12: "f12",
         }
 
         # Add letter keys (keyboard layout order, not alphabetical)
         letter_keys = {
-            ecodes.KEY_A: "a",
-            ecodes.KEY_B: "b",
-            ecodes.KEY_C: "c",
-            ecodes.KEY_D: "d",
-            ecodes.KEY_E: "e",
-            ecodes.KEY_F: "f",
-            ecodes.KEY_G: "g",
-            ecodes.KEY_H: "h",
-            ecodes.KEY_I: "i",
-            ecodes.KEY_J: "j",
-            ecodes.KEY_K: "k",
-            ecodes.KEY_L: "l",
-            ecodes.KEY_M: "m",
-            ecodes.KEY_N: "n",
-            ecodes.KEY_O: "o",
-            ecodes.KEY_P: "p",
-            ecodes.KEY_Q: "q",
-            ecodes.KEY_R: "r",
-            ecodes.KEY_S: "s",
-            ecodes.KEY_T: "t",
-            ecodes.KEY_U: "u",
-            ecodes.KEY_V: "v",
-            ecodes.KEY_W: "w",
-            ecodes.KEY_X: "x",
-            ecodes.KEY_Y: "y",
-            ecodes.KEY_Z: "z",
+            evdev.ecodes.KEY_A: "a",
+            evdev.ecodes.KEY_B: "b",
+            evdev.ecodes.KEY_C: "c",
+            evdev.ecodes.KEY_D: "d",
+            evdev.ecodes.KEY_E: "e",
+            evdev.ecodes.KEY_F: "f",
+            evdev.ecodes.KEY_G: "g",
+            evdev.ecodes.KEY_H: "h",
+            evdev.ecodes.KEY_I: "i",
+            evdev.ecodes.KEY_J: "j",
+            evdev.ecodes.KEY_K: "k",
+            evdev.ecodes.KEY_L: "l",
+            evdev.ecodes.KEY_M: "m",
+            evdev.ecodes.KEY_N: "n",
+            evdev.ecodes.KEY_O: "o",
+            evdev.ecodes.KEY_P: "p",
+            evdev.ecodes.KEY_Q: "q",
+            evdev.ecodes.KEY_R: "r",
+            evdev.ecodes.KEY_S: "s",
+            evdev.ecodes.KEY_T: "t",
+            evdev.ecodes.KEY_U: "u",
+            evdev.ecodes.KEY_V: "v",
+            evdev.ecodes.KEY_W: "w",
+            evdev.ecodes.KEY_X: "x",
+            evdev.ecodes.KEY_Y: "y",
+            evdev.ecodes.KEY_Z: "z",
         }
         key_map.update(letter_keys)
 
         # Add number keys
         for i in range(10):
-            key_map[ecodes.KEY_1 + i] = str(i + 1)
-        key_map[ecodes.KEY_0] = "0"
+            key_map[evdev.ecodes.KEY_1 + i] = str(i + 1)
+        key_map[evdev.ecodes.KEY_0] = "0"
 
         return key_map
 
@@ -203,10 +203,10 @@ class KeyMonitor:
             for device in devices:
                 # Check if device has keyboard capabilities
                 capabilities = device.capabilities()
-                if ecodes.EV_KEY in capabilities:
+                if evdev.ecodes.EV_KEY in capabilities:
                     # Check if it has common keyboard keys
-                    keys = capabilities[ecodes.EV_KEY]
-                    if ecodes.KEY_SPACE in keys or ecodes.KEY_ENTER in keys:
+                    keys = capabilities[evdev.ecodes.EV_KEY]
+                    if evdev.ecodes.KEY_SPACE in keys or evdev.ecodes.KEY_ENTER in keys:
                         devices_found.append(device)
                         logger.debug(f"Found keyboard device: {device.name} ({device.path})")
 
@@ -226,7 +226,7 @@ class KeyMonitor:
         logger.info(f"Monitoring {len(self._devices)} keyboard device(s)")
         return True
 
-    def _get_key_name(self, keycode: int) -> Optional[str]:
+    def _get_key_name(self, keycode: int) -> typing.Optional[str]:
         """Convert keycode to readable key name.
 
         Args:
@@ -240,10 +240,10 @@ class KeyMonitor:
 
         # Try to get key name from evdev
         try:
-            key_val = ecodes.KEY[keycode]
+            key_val = evdev.ecodes.KEY[keycode]
 
             # Handle different types that evdev might return
-            raw_key_name: Any = None
+            raw_key_name: typing.Any = None
             if isinstance(key_val, tuple) and key_val:
                 raw_key_name = key_val[0]
             else:
@@ -320,7 +320,7 @@ class KeyMonitor:
                     try:
                         # Read events from device
                         for event in device.read():
-                            if event.type == ecodes.EV_KEY:
+                            if event.type == evdev.ecodes.EV_KEY:
                                 self._handle_key_event(event)
                     except OSError:
                         # Device disconnected
@@ -332,7 +332,7 @@ class KeyMonitor:
         finally:
             logger.debug("Key monitoring loop stopped")
 
-    def _handle_key_event(self, event: InputEvent) -> None:
+    def _handle_key_event(self, event: evdev.InputEvent) -> None:
         """Handle a keyboard event.
 
         Args:
@@ -356,7 +356,7 @@ class KeyMonitor:
             # Check target combination after each event
             self._check_hotkey_state()
 
-    def set_callback(self, callback: Callable[[], None]) -> None:
+    def set_callback(self, callback: typing.Callable[[], None]) -> None:
         """Set callback for hotkey press events.
 
         Args:
@@ -365,7 +365,7 @@ class KeyMonitor:
         self._callback = callback
         logger.debug("Key monitor press callback set")
 
-    def set_release_callback(self, callback: Callable[[], None]) -> None:
+    def set_release_callback(self, callback: typing.Callable[[], None]) -> None:
         """Set callback for hotkey release events.
 
         Args:
@@ -458,7 +458,7 @@ class KeyMonitor:
         with self._lock:
             return self._hotkey_pressed
 
-    def get_pressed_keys(self) -> Set[str]:
+    def get_pressed_keys(self) -> set[str]:
         """Get currently pressed keys for debugging.
 
         Returns:
@@ -473,7 +473,7 @@ class KeyMonitor:
         self.stop_monitoring()
 
 
-def create_key_monitor(config: Config) -> KeyMonitor:
+def create_key_monitor(config: config_module.Config) -> KeyMonitor:
     """Create and initialize key monitor instance.
 
     Args:

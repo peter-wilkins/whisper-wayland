@@ -7,6 +7,6 @@ __version__ = "0.1.0"
 __author__ = "Whisper Wayland Team"
 __email__ = "support@whisper-wayland.dev"
 
-from .main import main
+from . import main
 
-__all__ = ["main"]
+__all__ = ["main"]  # Refers to main.main

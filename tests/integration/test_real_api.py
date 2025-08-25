@@ -6,32 +6,28 @@ and will make actual API calls to OpenAI.
 
 import os
 import tempfile
-from unittest.mock import patch
+import unittest.mock
 
 import pytest
 
-from whisper_wayland.config import Config
-from whisper_wayland.constants import HIGH_QUALITY_SAMPLE_RATE
-from whisper_wayland.transcription_client import (
-    create_transcription_client,
-)
+from whisper_wayland import config, constants, transcription_client
 
 
 class TestRealAPIIntegration:
     """Integration tests with real OpenAI API."""
 
     @pytest.fixture
-    def config(self):
+    def test_config(self):
         """Create configuration for real API testing."""
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             pytest.skip("OPENAI_API_KEY not set, skipping real API tests")
 
-        return Config()
+        return config.Config()
 
-    def test_real_api_connection(self, config):
+    def test_real_api_connection(self, test_config):
         """Test connection to real OpenAI API."""
-        client = create_transcription_client(config)
+        client = transcription_client.create_transcription_client(test_config)
 
         # Test connection
         result = client.test_connection()
@@ -39,9 +35,9 @@ class TestRealAPIIntegration:
         assert result is True
         client.close()
 
-    def test_real_api_transcription_with_test_audio(self, config):
+    def test_real_api_transcription_with_test_audio(self, test_config):
         """Test transcription with minimal test audio."""
-        client = create_transcription_client(config)
+        client = transcription_client.create_transcription_client(test_config)
 
         try:
             # Use the client's test audio (minimal silence)
@@ -56,16 +52,16 @@ class TestRealAPIIntegration:
         finally:
             client.close()
 
-    def test_real_api_with_various_models(self, config):
+    def test_real_api_with_various_models(self, test_config):
         """Test transcription with different model configurations."""
         models_to_test = ["base", "tiny", "whisper-1"]
 
         for model in models_to_test:
             # Update config for this model
-            with patch.dict(os.environ, {"WHISPER_MODEL": model}):
-                test_config = Config()
+            with unittest.mock.patch.dict(os.environ, {"WHISPER_MODEL": model}):
+                model_config = config.Config()
 
-                client = create_transcription_client(test_config)
+                client = transcription_client.create_transcription_client(model_config)
 
                 try:
                     # Test connection with this model
@@ -75,10 +71,10 @@ class TestRealAPIIntegration:
                 finally:
                     client.close()
 
-    def test_real_api_error_handling(self, config):
+    def test_real_api_error_handling(self, test_config):
         """Test error handling with real API."""
         # Create client with invalid model to test validation
-        client = create_transcription_client(config)
+        client = transcription_client.create_transcription_client(test_config)
 
         try:
             # Test with empty audio (should handle gracefully)
@@ -93,9 +89,9 @@ class TestRealAPIIntegration:
         finally:
             client.close()
 
-    def test_real_api_language_parameter(self, config):
+    def test_real_api_language_parameter(self, test_config):
         """Test transcription with language parameter."""
-        client = create_transcription_client(config)
+        client = transcription_client.create_transcription_client(test_config)
 
         try:
             test_audio = client._create_test_audio()
@@ -111,9 +107,9 @@ class TestRealAPIIntegration:
         finally:
             client.close()
 
-    def test_real_api_supported_features(self, config):
+    def test_real_api_supported_features(self, test_config):
         """Test supported models and languages."""
-        client = create_transcription_client(config)
+        client = transcription_client.create_transcription_client(test_config)
 
         try:
             # Test supported models list
@@ -145,7 +141,7 @@ class TestConfigurationIntegration:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write(f"OPENAI_API_KEY={api_key}\n")
             f.write("WHISPER_MODEL=large\n")
-            f.write(f"AUDIO_SAMPLE_RATE={HIGH_QUALITY_SAMPLE_RATE}\n")
+            f.write(f"AUDIO_SAMPLE_RATE={constants.HIGH_QUALITY_SAMPLE_RATE}\n")
             f.write("LOG_LEVEL=DEBUG\n")
             env_file_path = f.name
 
@@ -158,12 +154,12 @@ class TestConfigurationIntegration:
 
         try:
             # Load config from env file
-            config = Config(env_file_path)
+            test_config = config.Config(env_file_path)
 
-            assert config.openai_api_key == api_key
-            assert config.whisper_model == "large"
-            assert config.audio_sample_rate == HIGH_QUALITY_SAMPLE_RATE
-            assert config.log_level == "DEBUG"
+            assert test_config.openai_api_key == api_key
+            assert test_config.whisper_model == "large"
+            assert test_config.audio_sample_rate == constants.HIGH_QUALITY_SAMPLE_RATE
+            assert test_config.log_level == "DEBUG"
 
         finally:
             # Restore environment variables if they existed
@@ -173,13 +169,13 @@ class TestConfigurationIntegration:
 
     def test_config_validation_with_invalid_api_key(self):
         """Test configuration validation with invalid API key format."""
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "invalid-key-format"}):
+        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "invalid-key-format"}):
             # Should still create config (validation happens at API level)
-            config = Config()
-            assert config.openai_api_key == "invalid-key-format"
+            invalid_config = config.Config()
+            assert invalid_config.openai_api_key == "invalid-key-format"
 
             # But transcription client should fail on API calls
-            client = create_transcription_client(config)
+            client = transcription_client.create_transcription_client(invalid_config)
 
             try:
                 # Connection test should fail
@@ -201,22 +197,22 @@ class TestEndToEndIntegration:
             pytest.skip("OPENAI_API_KEY not set, skipping E2E test")
 
         # Create config
-        config = Config()
+        test_config = config.Config()
 
         # Create transcription client
-        transcription_client = create_transcription_client(config)
+        trans_client = transcription_client.create_transcription_client(test_config)
 
         try:
             # Test connection
-            assert transcription_client.test_connection() is True
+            assert trans_client.test_connection() is True
 
             # Simulate audio data (use test audio)
-            audio_data = transcription_client._create_test_audio()
+            audio_data = trans_client._create_test_audio()
             assert audio_data is not None
             assert len(audio_data) > 0
 
             # Transcribe audio
-            transcription = transcription_client.transcribe_audio(audio_data)
+            transcription = trans_client.transcribe_audio(audio_data)
             assert isinstance(transcription, str)
 
             # Simulate saving to file
@@ -234,4 +230,4 @@ class TestEndToEndIntegration:
                 os.unlink(temp_file)
 
         finally:
-            transcription_client.close()
+            trans_client.close()

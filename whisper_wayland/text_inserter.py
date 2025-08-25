@@ -5,20 +5,20 @@ across X11 and Wayland environments. Supports wtype, ydotool, xdotool, and
 clipboard fallback methods.
 """
 
+import enum
 import logging
 import shutil
 import subprocess
 import time
-from enum import Enum
-from typing import Dict, List, Optional
+import typing
 
-from .config import Config
-from .constants import TEXT_PREVIEW_LENGTH
+from . import config as config_module
+from . import constants
 
 logger = logging.getLogger(__name__)
 
 
-class TextInsertionMethod(Enum):
+class TextInsertionMethod(enum.Enum):
     """Available text insertion methods."""
 
     WTYPE = "wtype"  # Wayland text insertion (preferred)
@@ -41,7 +41,7 @@ class TextInserter:
     and comprehensive error handling.
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: config_module.Config) -> None:
         """Initialize text inserter with configuration.
 
         Args:
@@ -51,8 +51,8 @@ class TextInserter:
             TextInsertionError: If no text insertion methods are available
         """
         self.config = config
-        self._available_methods: Dict[TextInsertionMethod, bool] = {}
-        self._preferred_method: Optional[TextInsertionMethod] = None
+        self._available_methods: dict[TextInsertionMethod, bool] = {}
+        self._preferred_method: typing.Optional[TextInsertionMethod] = None
 
         # Detect available methods
         self._detect_available_methods()
@@ -144,8 +144,8 @@ class TextInserter:
             logger.warning("Text became empty after cleaning")
             return False
 
-        preview_text = cleaned_text[:TEXT_PREVIEW_LENGTH]
-        ellipsis = "..." if len(cleaned_text) > TEXT_PREVIEW_LENGTH else ""
+        preview_text = cleaned_text[: constants.TEXT_PREVIEW_LENGTH]
+        ellipsis = "..." if len(cleaned_text) > constants.TEXT_PREVIEW_LENGTH else ""
         logger.info(
             f"Inserting text using {self._preferred_method.value}: '{preview_text}{ellipsis}'"
         )
@@ -414,7 +414,7 @@ class TextInserter:
             logger.error(f"Text insertion test failed: {e}")
             return False
 
-    def get_available_methods(self) -> List[str]:
+    def get_available_methods(self) -> list[str]:
         """Get list of available text insertion methods.
 
         Returns:
@@ -422,7 +422,7 @@ class TextInserter:
         """
         return [method.value for method, available in self._available_methods.items() if available]
 
-    def get_preferred_method(self) -> Optional[str]:
+    def get_preferred_method(self) -> typing.Optional[str]:
         """Get the currently preferred text insertion method.
 
         Returns:
@@ -435,7 +435,7 @@ class TextInserter:
         logger.debug("Text inserter cleanup completed")
 
 
-def create_text_inserter(config: Config) -> TextInserter:
+def create_text_inserter(config: config_module.Config) -> TextInserter:
     """Create and initialize text inserter instance.
 
     Args:

@@ -7,12 +7,12 @@ formatters, and handlers for both development and production use.
 import logging
 import logging.handlers
 import sys
-from typing import Optional
+import typing
 
-from .config import Config
+from . import config as config_module
 
 
-def setup_logging(config: Config, log_file: Optional[str] = None) -> None:
+def setup_logging(config: config_module.Config, log_file: typing.Optional[str] = None) -> None:
     """Set up logging configuration for the application.
 
     Args:

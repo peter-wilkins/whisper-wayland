@@ -3,7 +3,7 @@
 import os
 import tempfile
 import typing
-import unittest.mock as mock  # noqa: PLR0402
+import unittest.mock
 
 import dotenv
 import pytest
@@ -57,7 +57,7 @@ def clean_environment() -> typing.Generator[None, None, None]:
 @pytest.fixture
 def mock_api_key() -> typing.Generator[str, None, None]:
     """Provide mock API key for tests."""
-    with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+    with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
         yield "sk-test123"
 
 

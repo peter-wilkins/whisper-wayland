@@ -5,13 +5,10 @@ lifecycle management and coordination between components.
 """
 
 import logging
-from typing import Optional
+import typing
 
-from .audio_recorder import AudioRecorder
-from .config import Config
-from .key_monitor import KeyMonitor
-from .text_inserter import TextInserter
-from .transcription_client import TranscriptionClient
+from . import audio_recorder, key_monitor, text_inserter, transcription_client
+from . import config as config_module
 
 logger = logging.getLogger(__name__)
 
@@ -29,17 +26,17 @@ class ServiceManager:
     to provide proper service lifecycle management.
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: config_module.Config) -> None:
         """Initialize service manager with configuration.
 
         Args:
             config: Configuration instance
         """
         self.config = config
-        self._audio_recorder: Optional[AudioRecorder] = None
-        self._transcription_client: Optional[TranscriptionClient] = None
-        self._key_monitor: Optional[KeyMonitor] = None
-        self._text_inserter: Optional[TextInserter] = None
+        self._audio_recorder: typing.Optional[audio_recorder.AudioRecorder] = None
+        self._transcription_client: typing.Optional[transcription_client.TranscriptionClient] = None
+        self._key_monitor: typing.Optional[key_monitor.KeyMonitor] = None
+        self._text_inserter: typing.Optional[text_inserter.TextInserter] = None
         self._running = False
 
         logger.info("Service manager placeholder initialized (Step 4 implementation pending)")
@@ -98,7 +95,7 @@ class ServiceManager:
         logger.debug("Service manager cleanup (placeholder)")
 
 
-def create_service_manager(config: Config) -> ServiceManager:
+def create_service_manager(config: config_module.Config) -> ServiceManager:
     """Create and initialize service manager instance.
 
     Args:

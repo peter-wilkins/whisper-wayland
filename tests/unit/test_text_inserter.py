@@ -2,17 +2,11 @@
 
 import os
 import subprocess
-from unittest.mock import Mock, patch
+import unittest.mock
 
 import pytest
 
-from whisper_wayland.config import Config
-from whisper_wayland.constants import EXPECTED_DEVICE_COUNT
-from whisper_wayland.text_inserter import (
-    TextInserter,
-    TextInsertionMethod,
-    create_text_inserter,
-)
+from whisper_wayland import config, constants, text_inserter
 
 
 class TestTextInsertionMethod:
@@ -20,19 +14,19 @@ class TestTextInsertionMethod:
 
     def test_enum_values(self):
         """Test that enum has correct values."""
-        assert TextInsertionMethod.WTYPE.value == "wtype"
-        assert TextInsertionMethod.YDOTOOL.value == "ydotool"
-        assert TextInsertionMethod.XDOTOOL.value == "xdotool"
-        assert TextInsertionMethod.CLIPBOARD.value == "clipboard"
+        assert text_inserter.text_inserter.TextInsertionMethod.WTYPE.value == "wtype"
+        assert text_inserter.text_inserter.TextInsertionMethod.YDOTOOL.value == "ydotool"
+        assert text_inserter.text_inserter.TextInsertionMethod.XDOTOOL.value == "xdotool"
+        assert text_inserter.text_inserter.TextInsertionMethod.CLIPBOARD.value == "clipboard"
 
 
 class TestTextInserter:
     """Test cases for TextInserter class."""
 
     @pytest.fixture
-    def config(self):
+    def test_config(self):
         """Create test configuration."""
-        with patch.dict(
+        with unittest.mock.patch.dict(
             os.environ,
             {
                 "OPENAI_API_KEY": "sk-test123",
@@ -40,100 +34,108 @@ class TestTextInserter:
                 "TEXT_INSERTION_DELAY": "0.1",
             },
         ):
-            return Config()
+            return config.Config()
 
     @pytest.fixture
     def mock_shutil_which(self):
         """Mock shutil.which to control available tools."""
-        with patch("whisper_wayland.text_inserter.shutil.which") as mock:
+        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock:
             # By default, make ydotool available
             mock.side_effect = lambda tool: tool == "ydotool"
             yield mock
 
     @pytest.fixture
-    def text_inserter(self, config, mock_shutil_which):
+    def text_inserter(self, test_config, mock_shutil_which):
         """Create text inserter with mocked dependencies."""
-        return TextInserter(config)
+        return text_inserter.TextInserter(test_config)
 
-    def test_initialization_with_available_method(self, config, mock_shutil_which):
+    def test_initialization_with_available_method(self, test_config, mock_shutil_which):
         """Test successful initialization with available method."""
-        inserter = TextInserter(config)
+        inserter = text_inserter.TextInserter(test_config)
 
-        assert inserter.config == config
-        assert inserter._preferred_method == TextInsertionMethod.YDOTOOL
-        assert inserter._available_methods[TextInsertionMethod.YDOTOOL] is True
-        assert inserter._available_methods[TextInsertionMethod.CLIPBOARD] is True
+        assert inserter.config == test_config
+        assert inserter._preferred_method == text_inserter.TextInsertionMethod.YDOTOOL
+        assert inserter._available_methods[text_inserter.TextInsertionMethod.YDOTOOL] is True
+        assert inserter._available_methods[text_inserter.TextInsertionMethod.CLIPBOARD] is True
 
-    def test_initialization_no_methods_available(self, config):
+    def test_initialization_no_methods_available(self, test_config):
         """Test initialization when no methods are available."""
-        with patch("whisper_wayland.text_inserter.shutil.which", return_value=None):
+        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which", return_value=None):
             # Even with no tools, clipboard should be available
-            inserter = TextInserter(config)
-            assert inserter._preferred_method == TextInsertionMethod.CLIPBOARD
+            inserter = text_inserter.TextInserter(test_config)
+            assert inserter._preferred_method == text_inserter.TextInsertionMethod.CLIPBOARD
 
-    def test_detect_available_methods_all_available(self, config):
+    def test_detect_available_methods_all_available(self, test_config):
         """Test detection when all methods are available."""
-        with patch("whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"):
-            inserter = TextInserter(config)
+        with unittest.mock.patch(
+            "whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"
+        ):
+            inserter = text_inserter.TextInserter(test_config)
 
             assert all(inserter._available_methods.values())
             # Config is set to use ydotool, so even with all available, should use configured method
-            assert inserter._preferred_method == TextInsertionMethod.YDOTOOL
+            assert inserter._preferred_method == text_inserter.TextInsertionMethod.YDOTOOL
 
-    def test_detect_available_methods_partial(self, config):
+    def test_detect_available_methods_partial(self, test_config):
         """Test detection with only some methods available."""
 
         def mock_which(tool):
             return "/usr/bin/tool" if tool in ["ydotool", "xdotool"] else None
 
-        with patch("whisper_wayland.text_inserter.shutil.which", side_effect=mock_which):
-            inserter = TextInserter(config)
+        with unittest.mock.patch(
+            "whisper_wayland.text_inserter.shutil.which", side_effect=mock_which
+        ):
+            inserter = text_inserter.TextInserter(test_config)
 
-            assert inserter._available_methods[TextInsertionMethod.WTYPE] is False
-            assert inserter._available_methods[TextInsertionMethod.YDOTOOL] is True
-            assert inserter._available_methods[TextInsertionMethod.XDOTOOL] is True
-            assert inserter._available_methods[TextInsertionMethod.CLIPBOARD] is True
+            assert inserter._available_methods[text_inserter.TextInsertionMethod.WTYPE] is False
+            assert inserter._available_methods[text_inserter.TextInsertionMethod.YDOTOOL] is True
+            assert inserter._available_methods[text_inserter.TextInsertionMethod.XDOTOOL] is True
+            assert inserter._available_methods[text_inserter.TextInsertionMethod.CLIPBOARD] is True
 
     def test_preferred_method_configuration_respected(self, mock_shutil_which):
         """Test that configured method is used when available."""
-        with patch.dict(
+        with unittest.mock.patch.dict(
             os.environ,
             {"OPENAI_API_KEY": "sk-test123", "TEXT_INSERTION_METHOD": "xdotool"},
         ):
             # Make both ydotool and xdotool available
             mock_shutil_which.side_effect = lambda tool: tool in ["ydotool", "xdotool"]
 
-            config = Config()
-            inserter = TextInserter(config)
+            xdotool_config = config.Config()
+            inserter = text_inserter.TextInserter(xdotool_config)
 
-            assert inserter._preferred_method == TextInsertionMethod.XDOTOOL
+            assert inserter._preferred_method == text_inserter.TextInsertionMethod.XDOTOOL
 
     def test_preferred_method_fallback_when_configured_unavailable(self):
         """Test fallback when configured method is unavailable."""
-        with patch.dict(
+        with unittest.mock.patch.dict(
             os.environ,
             {
                 "OPENAI_API_KEY": "sk-test123",
                 "TEXT_INSERTION_METHOD": "nonexistent",  # Configure a method that doesn't exist
             },
         ):
-            with patch("whisper_wayland.text_inserter.shutil.which") as mock_which:
+            with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock_which:
                 # Only make ydotool available
                 mock_which.side_effect = lambda tool: tool == "ydotool"
 
-                config = Config()
-                inserter = TextInserter(config)
+                fallback_config = config.Config()
+                inserter = text_inserter.TextInserter(fallback_config)
 
                 # Should fallback to ydotool since nonexistent method is not available
-                assert inserter._preferred_method == TextInsertionMethod.YDOTOOL
+                assert inserter._preferred_method == text_inserter.TextInsertionMethod.YDOTOOL
 
     def test_insert_text_success(self, text_inserter):
         """Test successful text insertion."""
-        with patch.object(text_inserter, "_insert_with_method", return_value=True) as mock_insert:
+        with unittest.mock.patch.object(
+            text_inserter, "_insert_with_method", return_value=True
+        ) as mock_insert:
             result = text_inserter.insert_text("Hello, World!")
 
             assert result is True
-            mock_insert.assert_called_once_with(TextInsertionMethod.YDOTOOL, "Hello, World!")
+            mock_insert.assert_called_once_with(
+                text_inserter.TextInsertionMethod.YDOTOOL, "Hello, World!"
+            )
 
     def test_insert_text_empty(self, text_inserter):
         """Test text insertion with empty string."""
@@ -144,28 +146,34 @@ class TestTextInserter:
     def test_insert_text_none(self, text_inserter):
         """Test text insertion with None."""
         # Convert None to empty string for cleaning
-        with patch.object(text_inserter, "_clean_text_for_insertion", return_value=""):
+        with unittest.mock.patch.object(
+            text_inserter, "_clean_text_for_insertion", return_value=""
+        ):
             result = text_inserter.insert_text(None)
 
             assert result is False
 
     def test_insert_text_with_cleaning(self, text_inserter):
         """Test text insertion with text cleaning."""
-        with patch.object(text_inserter, "_insert_with_method", return_value=True) as mock_insert:
+        with unittest.mock.patch.object(
+            text_inserter, "_insert_with_method", return_value=True
+        ) as mock_insert:
             # Text with extra whitespace
             result = text_inserter.insert_text("  Hello,    World!  ")
 
             assert result is True
             # Should be cleaned to single spaces
-            mock_insert.assert_called_once_with(TextInsertionMethod.YDOTOOL, "Hello, World!")
+            mock_insert.assert_called_once_with(
+                text_inserter.TextInsertionMethod.YDOTOOL, "Hello, World!"
+            )
 
     def test_insert_text_with_delay(self, config, mock_shutil_which):
         """Test text insertion respects configured delay."""
-        with patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "0.5"}):
-            config = Config()
-            inserter = TextInserter(config)
+        with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "0.5"}):
+            delay_config = config.Config()
+            inserter = text_inserter.TextInserter(delay_config)
 
-            with patch("time.sleep") as mock_sleep, patch.object(
+            with unittest.mock.patch("time.sleep") as mock_sleep, unittest.mock.patch.object(
                 inserter, "_insert_with_method", return_value=True
             ):
                 inserter.insert_text("test")
@@ -174,7 +182,9 @@ class TestTextInserter:
 
     def test_insert_text_fallback_on_failure(self, text_inserter):
         """Test fallback methods when primary method fails."""
-        with patch.object(text_inserter, "_insert_with_method") as mock_insert, patch.object(
+        with unittest.mock.patch.object(
+            text_inserter, "_insert_with_method"
+        ) as mock_insert, unittest.mock.patch.object(
             text_inserter, "_try_fallback_methods", return_value=True
         ) as mock_fallback:
             # Primary method fails
@@ -187,9 +197,9 @@ class TestTextInserter:
 
     def test_insert_text_all_methods_fail(self, text_inserter):
         """Test when all insertion methods fail."""
-        with patch.object(text_inserter, "_insert_with_method", return_value=False), patch.object(
-            text_inserter, "_try_fallback_methods", return_value=False
-        ):
+        with unittest.mock.patch.object(
+            text_inserter, "_insert_with_method", return_value=False
+        ), unittest.mock.patch.object(text_inserter, "_try_fallback_methods", return_value=False):
             result = text_inserter.insert_text("test")
 
             assert result is False
@@ -218,10 +228,10 @@ class TestTextInserter:
 
     def test_insert_with_wtype(self, text_inserter):
         """Test wtype insertion method."""
-        mock_result = Mock()
+        mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
             result = text_inserter._insert_with_wtype("test text")
 
             assert result is True
@@ -235,10 +245,10 @@ class TestTextInserter:
 
     def test_insert_with_ydotool(self, text_inserter):
         """Test ydotool insertion method."""
-        mock_result = Mock()
+        mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
             result = text_inserter._insert_with_ydotool("test text")
 
             assert result is True
@@ -252,10 +262,10 @@ class TestTextInserter:
 
     def test_insert_with_xdotool(self, text_inserter):
         """Test xdotool insertion method."""
-        mock_result = Mock()
+        mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
             result = text_inserter._insert_with_xdotool("test text")
 
             assert result is True
@@ -269,30 +279,31 @@ class TestTextInserter:
 
     def test_insert_with_clipboard_wl_copy(self, text_inserter):
         """Test clipboard insertion with wl-copy."""
-        mock_result = Mock()
+        mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
 
         # Mock ydotool available for paste command
-        text_inserter._available_methods[TextInsertionMethod.YDOTOOL] = True
+        text_inserter._available_methods[text_inserter.TextInsertionMethod.YDOTOOL] = True
 
         def mock_which(tool):
             return "/usr/bin/tool" if tool == "wl-copy" else None
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run, patch(
-            "whisper_wayland.text_inserter.shutil.which", side_effect=mock_which
-        ):
-            result = text_inserter._insert_with_clipboard("test text")
+        with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
+            with unittest.mock.patch(
+                "whisper_wayland.text_inserter.shutil.which", side_effect=mock_which
+            ):
+                result = text_inserter._insert_with_clipboard("test text")
 
             assert result is True
-            assert mock_run.call_count == EXPECTED_DEVICE_COUNT  # wl-copy + ydotool paste
+            assert mock_run.call_count == constants.EXPECTED_DEVICE_COUNT  # wl-copy + ydotool paste
 
     def test_insert_with_clipboard_xclip(self, text_inserter):
         """Test clipboard insertion with xclip."""
-        mock_result = Mock()
+        mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
 
         # Mock xdotool available for paste command
-        text_inserter._available_methods[TextInsertionMethod.XDOTOOL] = True
+        text_inserter._available_methods[text_inserter.TextInsertionMethod.XDOTOOL] = True
 
         def mock_which(tool):
             if tool == "wl-copy":
@@ -301,21 +312,22 @@ class TestTextInserter:
                 return "/usr/bin/xclip"
             return None
 
-        with patch("subprocess.run", return_value=mock_result) as mock_run, patch(
-            "whisper_wayland.text_inserter.shutil.which", side_effect=mock_which
-        ):
-            result = text_inserter._insert_with_clipboard("test text")
+        with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
+            with unittest.mock.patch(
+                "whisper_wayland.text_inserter.shutil.which", side_effect=mock_which
+            ):
+                result = text_inserter._insert_with_clipboard("test text")
 
             assert result is True
-            assert mock_run.call_count == EXPECTED_DEVICE_COUNT  # xclip + xdotool paste
+            assert mock_run.call_count == constants.EXPECTED_DEVICE_COUNT  # xclip + xdotool paste
 
     def test_insert_method_failure(self, text_inserter):
         """Test handling of subprocess failures."""
         # Mock subprocess.run directly to avoid actually calling it
-        mock_result = Mock()
+        mock_result = unittest.mock.Mock()
         mock_result.returncode = 1  # Non-zero return code indicates failure
 
-        with patch("subprocess.run", return_value=mock_result):
+        with unittest.mock.patch("subprocess.run", return_value=mock_result):
             result = text_inserter._insert_with_ydotool("test")
 
             assert result is False
@@ -323,11 +335,13 @@ class TestTextInserter:
     def test_insert_method_timeout(self, text_inserter):
         """Test handling of subprocess timeouts."""
         # Test through the wrapper method that has exception handling
-        with patch("subprocess.run") as mock_run:
+        with unittest.mock.patch("subprocess.run") as mock_run:
             # Configure the mock to raise TimeoutExpired
             mock_run.side_effect = subprocess.TimeoutExpired("cmd", 10)
 
-            result = text_inserter._insert_with_method(TextInsertionMethod.YDOTOOL, "test")
+            result = text_inserter._insert_with_method(
+                text_inserter.TextInsertionMethod.YDOTOOL, "test"
+            )
 
             assert result is False
 
@@ -336,87 +350,89 @@ class TestTextInserter:
         # Make multiple methods available
         text_inserter._available_methods.update(
             {
-                TextInsertionMethod.WTYPE: True,
-                TextInsertionMethod.XDOTOOL: True,
+                text_inserter.TextInsertionMethod.WTYPE: True,
+                text_inserter.TextInsertionMethod.XDOTOOL: True,
             }
         )
 
-        with patch.object(text_inserter, "_insert_with_method") as mock_insert:
+        with unittest.mock.patch.object(text_inserter, "_insert_with_method") as mock_insert:
             # First fallback (YDOTOOL) fails, second (WTYPE) succeeds
             mock_insert.side_effect = [False, True]
 
             result = text_inserter._try_fallback_methods("test")
 
             assert result is True
-            assert mock_insert.call_count == EXPECTED_DEVICE_COUNT
+            assert mock_insert.call_count == constants.EXPECTED_DEVICE_COUNT
 
     def test_try_fallback_methods_all_fail(self, text_inserter):
         """Test when all fallback methods fail."""
         # Make multiple methods available
         text_inserter._available_methods.update(
             {
-                TextInsertionMethod.WTYPE: True,
-                TextInsertionMethod.XDOTOOL: True,
+                text_inserter.TextInsertionMethod.WTYPE: True,
+                text_inserter.TextInsertionMethod.XDOTOOL: True,
             }
         )
 
-        with patch.object(text_inserter, "_insert_with_method", return_value=False):
+        with unittest.mock.patch.object(text_inserter, "_insert_with_method", return_value=False):
             result = text_inserter._try_fallback_methods("test")
 
             assert result is False
 
-    def test_test_insertion_wtype(self, config, mock_shutil_which):
+    def test_test_insertion_wtype(self, test_config, mock_shutil_which):
         """Test insertion capability test for wtype."""
         mock_shutil_which.side_effect = lambda tool: tool == "wtype"
 
-        inserter = TextInserter(config)
-        mock_result = Mock()
+        inserter = text_inserter.TextInserter(test_config)
+        mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
 
-        with patch("subprocess.run", return_value=mock_result):
+        with unittest.mock.patch("subprocess.run", return_value=mock_result):
             result = inserter.test_insertion()
 
             assert result is True
 
     def test_test_insertion_ydotool(self, text_inserter):
         """Test insertion capability test for ydotool."""
-        mock_result = Mock()
+        mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
 
-        with patch("subprocess.run", return_value=mock_result):
+        with unittest.mock.patch("subprocess.run", return_value=mock_result):
             result = text_inserter.test_insertion()
 
             assert result is True
 
-    def test_test_insertion_xdotool(self, config, mock_shutil_which):
+    def test_test_insertion_xdotool(self, test_config, mock_shutil_which):
         """Test insertion capability test for xdotool."""
         mock_shutil_which.side_effect = lambda tool: tool == "xdotool"
 
-        inserter = TextInserter(config)
-        mock_result = Mock()
+        inserter = text_inserter.TextInserter(test_config)
+        mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
 
-        with patch("subprocess.run", return_value=mock_result):
+        with unittest.mock.patch("subprocess.run", return_value=mock_result):
             result = inserter.test_insertion()
 
             assert result is True
 
-    def test_test_insertion_clipboard(self, config):
+    def test_test_insertion_clipboard(self, test_config):
         """Test insertion capability test for clipboard."""
-        with patch("whisper_wayland.text_inserter.shutil.which") as mock_which:
+        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock_which:
             # No direct tools available, should fallback to clipboard
             mock_which.side_effect = (
                 lambda tool: tool == "wl-copy" if tool in ["wl-copy", "xclip"] else None
             )
 
-            inserter = TextInserter(config)
+            inserter = text_inserter.TextInserter(test_config)
             result = inserter.test_insertion()
 
             assert result is True
 
     def test_test_insertion_failure(self, text_inserter):
         """Test insertion capability test failure."""
-        with patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "cmd")):
+        with unittest.mock.patch(
+            "subprocess.run", side_effect=subprocess.CalledProcessError(1, "cmd")
+        ):
             result = text_inserter.test_insertion()
 
             assert result is False
@@ -425,10 +441,10 @@ class TestTextInserter:
         """Test getting available methods."""
         # Set up known available methods
         text_inserter._available_methods = {
-            TextInsertionMethod.YDOTOOL: True,
-            TextInsertionMethod.CLIPBOARD: True,
-            TextInsertionMethod.WTYPE: False,
-            TextInsertionMethod.XDOTOOL: False,
+            text_inserter.TextInsertionMethod.YDOTOOL: True,
+            text_inserter.TextInsertionMethod.CLIPBOARD: True,
+            text_inserter.TextInsertionMethod.WTYPE: False,
+            text_inserter.TextInsertionMethod.XDOTOOL: False,
         }
 
         methods = text_inserter.get_available_methods()
@@ -441,11 +457,11 @@ class TestTextInserter:
 
         assert method == "ydotool"
 
-    def test_get_preferred_method_none(self, config):
+    def test_get_preferred_method_none(self, test_config):
         """Test getting preferred method when none available."""
-        with patch("whisper_wayland.text_inserter.shutil.which", return_value=None):
+        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which", return_value=None):
             # This should still have clipboard as fallback
-            inserter = TextInserter(config)
+            inserter = text_inserter.TextInserter(test_config)
             method = inserter.get_preferred_method()
 
             assert method == "clipboard"
@@ -462,23 +478,25 @@ class TestCreateTextInserter:
     @pytest.fixture
     def config(self):
         """Create test configuration."""
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-            return Config()
+        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+            return config.Config()
 
-    def test_create_text_inserter_success(self, config):
+    def test_create_text_inserter_success(self, test_config):
         """Test successful text inserter creation."""
-        with patch("whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"):
-            inserter = create_text_inserter(config)
+        with unittest.mock.patch(
+            "whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"
+        ):
+            inserter = text_inserter.create_text_inserter(test_config)
 
-            assert isinstance(inserter, TextInserter)
-            assert inserter.config == config
+            assert isinstance(inserter, text_inserter.TextInserter)
+            assert inserter.config == test_config
 
-    def test_create_text_inserter_no_methods_available(self, config):
+    def test_create_text_inserter_no_methods_available(self, test_config):
         """Test creation when no methods are available."""
-        with patch("whisper_wayland.text_inserter.shutil.which") as mock_which:
+        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock_which:
             # Make only clipboard tools unavailable to force error
             mock_which.return_value = None
 
             # Even with no tools, clipboard should be available as fallback
-            inserter = create_text_inserter(config)
-            assert isinstance(inserter, TextInserter)
+            inserter = text_inserter.create_text_inserter(test_config)
+            assert isinstance(inserter, text_inserter.TextInserter)

@@ -8,12 +8,12 @@ import io
 import logging
 import threading
 import time
+import typing
 import wave
-from typing import Any, Optional
 
 import pyaudio
 
-from .config import Config
+from . import config as config_module
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class AudioRecorder:
     and comprehensive error handling.
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: config_module.Config) -> None:
         """Initialize audio recorder with configuration.
 
         Args:
@@ -41,11 +41,11 @@ class AudioRecorder:
             AudioRecordingError: If PyAudio initialization fails
         """
         self.config = config
-        self._audio: Optional[pyaudio.PyAudio] = None
-        self._stream: Optional[pyaudio.Stream] = None
+        self._audio: typing.Optional[pyaudio.PyAudio] = None
+        self._stream: typing.Optional[pyaudio.Stream] = None
         self._recording = False
-        self._recording_thread: Optional[threading.Thread] = None
-        self._audio_data: Optional[bytes] = None
+        self._recording_thread: typing.Optional[threading.Thread] = None
+        self._audio_data: typing.Optional[bytes] = None
         self._lock = threading.Lock()
 
         self._initialize_audio()
@@ -123,7 +123,7 @@ class AudioRecorder:
                 logger.error(f"Failed to start recording: {e}")
                 raise AudioRecordingError(f"Failed to start recording: {e}") from e
 
-    def stop_recording(self) -> Optional[bytes]:
+    def stop_recording(self) -> typing.Optional[bytes]:
         """Stop audio recording and return recorded data.
 
         Returns:
@@ -269,7 +269,7 @@ class AudioRecorder:
         Returns:
             List of dictionaries containing device information
         """
-        devices: list[dict[str, Any]] = []
+        devices: list[dict[str, typing.Any]] = []
         if not self._audio:
             return devices
 
@@ -313,7 +313,7 @@ class AudioRecorder:
             logger.error(f"Error closing audio recorder: {e}")
 
 
-def create_audio_recorder(config: Config) -> AudioRecorder:
+def create_audio_recorder(config: config_module.Config) -> AudioRecorder:
     """Create and initialize audio recorder instance.
 
     Args:

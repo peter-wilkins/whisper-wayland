@@ -11,19 +11,17 @@ import signal
 import sys
 import threading
 import time
-from typing import Any, Optional
+import typing
 
-from .audio_recorder import AudioRecorder, AudioRecordingError, create_audio_recorder
-from .config import Config, ConfigError, get_config
-from .constants import TEXT_PREVIEW_LENGTH, TRANSCRIPTION_PREVIEW_LENGTH
-from .key_monitor import KeyMonitor, KeyMonitorError, create_key_monitor
-from .logging_config import setup_logging
-from .text_inserter import TextInserter, TextInsertionError, create_text_inserter
-from .transcription_client import (
-    TranscriptionClient,
-    TranscriptionError,
-    create_transcription_client,
+from . import (
+    audio_recorder,
+    constants,
+    key_monitor,
+    logging_config,
+    text_inserter,
+    transcription_client,
 )
+from . import config as config_module
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +34,17 @@ class WhisperClaudeApp:
     text insertion.
     """
 
-    def __init__(self, config_file: Optional[str] = None) -> None:
+    def __init__(self, config_file: typing.Optional[str] = None) -> None:
         """Initialize the application.
 
         Args:
             config_file: Optional path to configuration file
         """
-        self.config: Optional[Config] = None
-        self.audio_recorder: Optional[AudioRecorder] = None
-        self.transcription_client: Optional[TranscriptionClient] = None
-        self.key_monitor: Optional[KeyMonitor] = None
-        self.text_inserter: Optional[TextInserter] = None
+        self.config: typing.Optional[config_module.Config] = None
+        self.audio_recorder: typing.Optional[audio_recorder.AudioRecorder] = None
+        self.transcription_client: typing.Optional[transcription_client.TranscriptionClient] = None
+        self.key_monitor: typing.Optional[key_monitor.KeyMonitor] = None
+        self.text_inserter: typing.Optional[text_inserter.TextInserter] = None
         self._running = False
         self._recording_active = False
 
@@ -57,29 +55,29 @@ class WhisperClaudeApp:
             logger.error(f"Failed to initialize application: {e}")
             raise
 
-    def _initialize(self, config_file: Optional[str]) -> None:
+    def _initialize(self, config_file: typing.Optional[str]) -> None:
         """Initialize application components.
 
         Args:
             config_file: Optional path to configuration file
         """
         # Load configuration
-        self.config = get_config(config_file)
+        self.config = config_module.get_config(config_file)
 
         # Setup logging
-        setup_logging(self.config)
+        logging_config.setup_logging(self.config)
 
         # Initialize audio recorder
-        self.audio_recorder = create_audio_recorder(self.config)
+        self.audio_recorder = audio_recorder.create_audio_recorder(self.config)
 
         # Initialize transcription client
-        self.transcription_client = create_transcription_client(self.config)
+        self.transcription_client = transcription_client.create_transcription_client(self.config)
 
         # Initialize key monitor
-        self.key_monitor = create_key_monitor(self.config)
+        self.key_monitor = key_monitor.create_key_monitor(self.config)
 
         # Initialize text inserter
-        self.text_inserter = create_text_inserter(self.config)
+        self.text_inserter = text_inserter.create_text_inserter(self.config)
 
         # Test API connection
         logger.info("Testing OpenAI API connection...")
@@ -160,7 +158,7 @@ class WhisperClaudeApp:
     def _setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown."""
 
-        def signal_handler(signum: int, frame: Any) -> None:
+        def signal_handler(signum: int, frame: typing.Any) -> None:
             logger.info(f"Received signal {signum}, initiating shutdown...")
             self._running = False
 
@@ -193,7 +191,7 @@ class WhisperClaudeApp:
         try:
             if self.audio_recorder:
                 self.audio_recorder.start_recording()
-        except AudioRecordingError as e:
+        except audio_recorder.AudioRecordingError as e:
             logger.error(f"Failed to start recording: {e}")
             self._recording_active = False
 
@@ -219,7 +217,7 @@ class WhisperClaudeApp:
                     ).start()
                 else:
                     logger.warning("No audio data captured")
-        except AudioRecordingError as e:
+        except audio_recorder.AudioRecordingError as e:
             logger.error(f"Failed to stop recording: {e}")
 
     def _process_transcription(self, audio_data: bytes) -> None:
@@ -250,7 +248,7 @@ class WhisperClaudeApp:
             if self.key_monitor:
                 self.key_monitor.start_monitoring()
                 logger.info("Global hotkey monitoring active")
-        except KeyMonitorError as e:
+        except key_monitor.KeyMonitorError as e:
             logger.error(f"Failed to start key monitoring: {e}")
             return
 
@@ -274,7 +272,7 @@ class WhisperClaudeApp:
         except (EOFError, KeyboardInterrupt):
             self._running = False
 
-    def _record_audio_session(self) -> Optional[bytes]:
+    def _record_audio_session(self) -> typing.Optional[bytes]:
         """Record an audio session.
 
         Returns:
@@ -305,14 +303,14 @@ class WhisperClaudeApp:
 
             return audio_data
 
-        except AudioRecordingError as e:
+        except audio_recorder.AudioRecordingError as e:
             logger.error(f"Audio recording error: {e}")
             return None
         except Exception as e:
             logger.error(f"Unexpected error during recording: {e}")
             return None
 
-    def _transcribe_audio(self, audio_data: bytes) -> Optional[str]:
+    def _transcribe_audio(self, audio_data: bytes) -> typing.Optional[str]:
         """Transcribe audio data to text.
 
         Args:
@@ -330,16 +328,16 @@ class WhisperClaudeApp:
             transcribed_text = self.transcription_client.transcribe_audio(audio_data)
 
             if transcribed_text:
-                logger.info(
-                    f"Transcription completed: '{transcribed_text[:TRANSCRIPTION_PREVIEW_LENGTH]}"
-                    f"{'...' if len(transcribed_text) > TRANSCRIPTION_PREVIEW_LENGTH else ''}'"
-                )
+                preview_len = constants.TRANSCRIPTION_PREVIEW_LENGTH
+                preview_text = transcribed_text[:preview_len]
+                ellipsis = "..." if len(transcribed_text) > preview_len else ""
+                logger.info(f"Transcription completed: '{preview_text}{ellipsis}'")
             else:
                 logger.warning("Transcription returned empty result")
 
             return transcribed_text
 
-        except TranscriptionError as e:
+        except transcription_client.TranscriptionError as e:
             logger.error(f"Transcription error: {e}")
             return None
         except Exception as e:
@@ -359,10 +357,10 @@ class WhisperClaudeApp:
             return
 
         try:
-            logger.info(
-                f"Inserting transcribed text: '{text[:TEXT_PREVIEW_LENGTH]}"
-                f"{'...' if len(text) > TEXT_PREVIEW_LENGTH else ''}'"
-            )
+            preview_len = constants.TEXT_PREVIEW_LENGTH
+            preview_text = text[:preview_len]
+            ellipsis = "..." if len(text) > preview_len else ""
+            logger.info(f"Inserting transcribed text: '{preview_text}{ellipsis}'")
             success = self.text_inserter.insert_text(text)
 
             if success:
@@ -373,7 +371,7 @@ class WhisperClaudeApp:
                 print(f"✗ Failed to insert text: {text}")
                 print("Check that you have focus on a text input field")
 
-        except TextInsertionError as e:
+        except text_inserter.TextInsertionError as e:
             logger.error(f"Text insertion error: {e}")
             print(f"Text insertion error: {e}")
             print(f"Transcribed text: {text}")
@@ -420,7 +418,7 @@ def main() -> None:
         app = WhisperClaudeApp(config_file)
         app.run()
 
-    except ConfigError as e:
+    except config_module.ConfigError as e:
         print(f"Configuration error: {e}")
         print("Please check your environment variables or .env file")
         sys.exit(1)
