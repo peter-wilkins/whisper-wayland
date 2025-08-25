@@ -37,7 +37,7 @@ Repository = "https://github.com/whisper-wayland/whisper-wayland"
 Issues = "https://github.com/whisper-wayland/whisper-wayland/issues"
 
 [project.scripts]
-whisper-wayland = "whisper_wayland:main"
+whisper-wayland = "whisper_wayland:main_function"
 
 [tool.pytest.ini_options]
 minversion = "7.0"

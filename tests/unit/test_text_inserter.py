@@ -14,10 +14,10 @@ class TestTextInsertionMethod:
 
     def test_enum_values(self):
         """Test that enum has correct values."""
-        assert text_inserter.text_inserter.TextInsertionMethod.WTYPE.value == "wtype"
-        assert text_inserter.text_inserter.TextInsertionMethod.YDOTOOL.value == "ydotool"
-        assert text_inserter.text_inserter.TextInsertionMethod.XDOTOOL.value == "xdotool"
-        assert text_inserter.text_inserter.TextInsertionMethod.CLIPBOARD.value == "clipboard"
+        assert text_inserter.TextInsertionMethod.WTYPE.value == "wtype"
+        assert text_inserter.TextInsertionMethod.YDOTOOL.value == "ydotool"
+        assert text_inserter.TextInsertionMethod.XDOTOOL.value == "xdotool"
+        assert text_inserter.TextInsertionMethod.CLIPBOARD.value == "clipboard"
 
 
 class TestTextInserter:

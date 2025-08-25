@@ -51,7 +51,7 @@ class TestWhisperClaudeApp:
         assert app.transcription_client == mock_client
         assert app.key_monitor == mock_key_monitor
         assert app.text_inserter == mock_text_inserter
-        mock_setup_logging.assert_called_once_with(config)
+        mock_setup_logging.assert_called_once_with(test_config)
         mock_client.test_connection.assert_called_once()
         mock_text_inserter.test_insertion.assert_called_once()
 
@@ -378,7 +378,7 @@ class TestMainFunction:
         mock_app_class.return_value = mock_app
 
         with unittest.mock.patch("sys.argv", ["whisper-wayland"]):
-            main()
+            main.main()
 
         mock_app_class.assert_called_once_with(None)
         mock_app.run.assert_called_once()
@@ -392,7 +392,7 @@ class TestMainFunction:
         mock_app_class.return_value = mock_app
 
         with unittest.mock.patch("sys.argv", ["whisper-wayland", "/path/to/config.env"]):
-            main()
+            main.main()
 
         mock_app_class.assert_called_once_with("/path/to/config.env")
         mock_app.run.assert_called_once()
@@ -406,7 +406,7 @@ class TestMainFunction:
         with unittest.mock.patch("sys.argv", ["whisper-wayland", "/nonexistent/config.env"]):
             with unittest.mock.patch("builtins.print") as mock_print:
                 with pytest.raises(SystemExit) as exc_info:
-                    main()
+                    main.main()
 
         assert exc_info.value.code == 1
         mock_print.assert_called_with(
@@ -422,7 +422,7 @@ class TestMainFunction:
         with unittest.mock.patch("sys.argv", ["whisper-wayland"]):
             with unittest.mock.patch("builtins.print") as mock_print:
                 with pytest.raises(SystemExit) as exc_info:
-                    main()
+                    main.main()
 
         assert exc_info.value.code == 1
         mock_print.assert_any_call("Configuration error: Missing API key")
@@ -436,7 +436,7 @@ class TestMainFunction:
         with unittest.mock.patch("sys.argv", ["whisper-wayland"]):
             with unittest.mock.patch("builtins.print") as mock_print:
                 with pytest.raises(SystemExit) as exc_info:
-                    main()
+                    main.main()
 
         assert exc_info.value.code == 1
         mock_print.assert_called_with("Application error: Unexpected error")

@@ -78,7 +78,7 @@ class TestLoggingConfig:
             mock_get_logger.return_value = mock_root_logger
 
             # Should not raise an error, just log it
-            logging_config.setup_logging(config, invalid_file)
+            logging_config.setup_logging(test_config, invalid_file)
 
             # Should still add console handler
             assert mock_root_logger.addHandler.call_count >= 1
@@ -106,12 +106,11 @@ class TestLoggingConfig:
             assert result == mock_logger
             mock_get_logger.assert_called_once_with("test.module")
 
-    def test_logging_levels_mapping(self, config, mock_api_key):
+    def test_logging_levels_mapping(self, test_config, mock_api_key):
         """Test that string log levels are properly mapped."""
 
         # Test just one level to verify the functionality works
         # Use the current environment's log level to avoid CI conflicts
-        test_config = config.Config()
 
         with unittest.mock.patch("logging.getLogger") as mock_get_logger:
             mock_root_logger = unittest.mock.Mock()

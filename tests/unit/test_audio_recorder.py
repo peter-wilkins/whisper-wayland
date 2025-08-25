@@ -33,7 +33,7 @@ class TestAudioRecorder:
 
         recorder = audio_recorder.AudioRecorder(test_config)
 
-        assert recorder.config == config
+        assert recorder.config == test_config
         assert recorder._audio == mock_audio_instance
         mock_pyaudio.assert_called_once()
         mock_audio_instance.get_device_count.assert_called()

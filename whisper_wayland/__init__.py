@@ -8,5 +8,6 @@ __author__ = "Whisper Wayland Team"
 __email__ = "support@whisper-wayland.dev"
 
 from . import main
+from .main import main as main_function
 
-__all__ = ["main"]  # Refers to main.main
+__all__ = ["main", "main_function"]

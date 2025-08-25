@@ -17,11 +17,16 @@ from . import (
     audio_recorder,
     constants,
     key_monitor,
-    logging_config,
     text_inserter,
     transcription_client,
 )
 from . import config as config_module
+from .audio_recorder import create_audio_recorder
+from .config import get_config
+from .key_monitor import create_key_monitor
+from .logging_config import setup_logging
+from .text_inserter import create_text_inserter
+from .transcription_client import create_transcription_client
 
 logger = logging.getLogger(__name__)
 
@@ -62,22 +67,22 @@ class WhisperClaudeApp:
             config_file: Optional path to configuration file
         """
         # Load configuration
-        self.config = config_module.get_config(config_file)
+        self.config = get_config(config_file)
 
         # Setup logging
-        logging_config.setup_logging(self.config)
+        setup_logging(self.config)
 
         # Initialize audio recorder
-        self.audio_recorder = audio_recorder.create_audio_recorder(self.config)
+        self.audio_recorder = create_audio_recorder(self.config)
 
         # Initialize transcription client
-        self.transcription_client = transcription_client.create_transcription_client(self.config)
+        self.transcription_client = create_transcription_client(self.config)
 
         # Initialize key monitor
-        self.key_monitor = key_monitor.create_key_monitor(self.config)
+        self.key_monitor = create_key_monitor(self.config)
 
         # Initialize text inserter
-        self.text_inserter = text_inserter.create_text_inserter(self.config)
+        self.text_inserter = create_text_inserter(self.config)
 
         # Test API connection
         logger.info("Testing OpenAI API connection...")

@@ -15,13 +15,13 @@ class TestKeyMonitor:
     @pytest.fixture
     def test_config(self, mock_api_key):
         """Create test configuration."""
-        with unittest.mock.unittest.mock.patch.dict(os.environ, {"HOTKEY": "compose"}):
-            return config.config.Config()
+        with unittest.mock.patch.dict(os.environ, {"HOTKEY": "compose"}):
+            return config.Config()
 
     @pytest.fixture
     def mock_evdev_devices(self):
         """Create mock evdev devices."""
-        mock_device1 = unittest.mock.unittest.mock.Mock()
+        mock_device1 = unittest.mock.Mock()
         mock_device1.name = "Test Keyboard 1"
         mock_device1.path = "/dev/input/event0"
         mock_device1.fd = 10
@@ -29,9 +29,9 @@ class TestKeyMonitor:
             1: [1, 2, 3, 28, 57]  # EV_KEY with some key codes including space
         }
         mock_device1.read.return_value = []
-        mock_device1.close = unittest.mock.unittest.mock.Mock()
+        mock_device1.close = unittest.mock.Mock()
 
-        mock_device2 = unittest.mock.unittest.mock.Mock()
+        mock_device2 = unittest.mock.Mock()
         mock_device2.name = "Test Keyboard 2"
         mock_device2.path = "/dev/input/event1"
         mock_device2.fd = 11
@@ -39,7 +39,7 @@ class TestKeyMonitor:
             1: [1, 2, 3, 28, 57]  # EV_KEY with some key codes including space
         }
         mock_device2.read.return_value = []
-        mock_device2.close = unittest.mock.unittest.mock.Mock()
+        mock_device2.close = unittest.mock.Mock()
 
         return [mock_device1, mock_device2]
 
