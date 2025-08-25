@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from whisper_wayland.config import Config
+from whisper_wayland.constants import EXPECTED_HANDLER_COUNT, MIN_LOGGER_CALLS
 from whisper_wayland.logging_config import (
     _configure_third_party_loggers,
     get_logger,
@@ -35,9 +36,7 @@ class TestLoggingConfig:
             # Verify that setup_logging calls the essential functions
             # Due to test isolation complexities, just verify it was called
             assert mock_root_logger.setLevel.called  # Called with some level
-            assert (
-                mock_root_logger.addHandler.call_count >= 1
-            )  # Adds at least one handler
+            assert mock_root_logger.addHandler.call_count >= 1  # Adds at least one handler
 
     def test_setup_logging_debug_level(self, mock_api_key):
         """Test logging setup with DEBUG level."""
@@ -71,7 +70,7 @@ class TestLoggingConfig:
                 setup_logging(config, log_file)
 
                 # Should add both console and file handlers
-                assert mock_root_logger.addHandler.call_count == 2
+                assert mock_root_logger.addHandler.call_count == EXPECTED_HANDLER_COUNT
 
         finally:
             os.unlink(log_file)
@@ -99,8 +98,8 @@ class TestLoggingConfig:
             _configure_third_party_loggers()
 
             # Should be called for each third-party logger
-            assert mock_get_logger.call_count >= 3
-            assert mock_logger.setLevel.call_count >= 3
+            assert mock_get_logger.call_count >= MIN_LOGGER_CALLS
+            assert mock_logger.setLevel.call_count >= MIN_LOGGER_CALLS
 
     def test_get_logger(self):
         """Test get_logger function."""
@@ -132,9 +131,7 @@ class TestLoggingConfig:
     def test_logging_formatter_selection(self, config):
         """Test that appropriate formatters are selected."""
         # Test DEBUG level gets detailed formatter
-        with patch.dict(
-            os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "DEBUG"}
-        ):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "DEBUG"}):
             debug_config = Config()
 
         with patch("logging.getLogger") as mock_get_logger, patch(
@@ -151,9 +148,7 @@ class TestLoggingConfig:
             assert mock_handler.setFormatter.called
 
         # Test INFO level gets simple formatter
-        with patch.dict(
-            os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "INFO"}
-        ):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "INFO"}):
             info_config = Config()
 
         with patch("logging.getLogger") as mock_get_logger, patch(

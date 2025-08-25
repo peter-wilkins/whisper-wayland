@@ -5,11 +5,13 @@ and will make actual API calls to OpenAI.
 """
 
 import os
+import tempfile
 from unittest.mock import patch
 
 import pytest
 
 from whisper_wayland.config import Config
+from whisper_wayland.constants import HIGH_QUALITY_SAMPLE_RATE
 from whisper_wayland.transcription_client import (
     create_transcription_client,
 )
@@ -99,15 +101,11 @@ class TestRealAPIIntegration:
             test_audio = client._create_test_audio()
 
             # Test with English
-            result_en = client.transcribe_audio(
-                test_audio, language="en", max_retries=1
-            )
+            result_en = client.transcribe_audio(test_audio, language="en", max_retries=1)
             assert isinstance(result_en, str)
 
             # Test with Spanish (should still work with silence)
-            result_es = client.transcribe_audio(
-                test_audio, language="es", max_retries=1
-            )
+            result_es = client.transcribe_audio(test_audio, language="es", max_retries=1)
             assert isinstance(result_es, str)
 
         finally:
@@ -143,13 +141,11 @@ class TestConfigurationIntegration:
         if not api_key:
             pytest.skip("OPENAI_API_KEY not set, skipping env file test")
 
-        import tempfile
-
         # Create temporary .env file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write(f"OPENAI_API_KEY={api_key}\n")
             f.write("WHISPER_MODEL=large\n")
-            f.write("AUDIO_SAMPLE_RATE=44100\n")
+            f.write(f"AUDIO_SAMPLE_RATE={HIGH_QUALITY_SAMPLE_RATE}\n")
             f.write("LOG_LEVEL=DEBUG\n")
             env_file_path = f.name
 
@@ -166,7 +162,7 @@ class TestConfigurationIntegration:
 
             assert config.openai_api_key == api_key
             assert config.whisper_model == "large"
-            assert config.audio_sample_rate == 44100
+            assert config.audio_sample_rate == HIGH_QUALITY_SAMPLE_RATE
             assert config.log_level == "DEBUG"
 
         finally:
@@ -224,8 +220,6 @@ class TestEndToEndIntegration:
             assert isinstance(transcription, str)
 
             # Simulate saving to file
-            import tempfile
-
             with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
                 f.write(f"Test transcription: {transcription}\n")
                 temp_file = f.name

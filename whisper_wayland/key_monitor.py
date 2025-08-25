@@ -12,10 +12,10 @@ from typing import Any, Callable, Dict, List, Optional, Set
 try:
     import evdev
     from evdev import InputDevice, InputEvent, ecodes
-except ImportError:
+except ImportError as e:
     raise ImportError(
         "evdev is required for key monitoring. Install with: pip install evdev or uv add evdev"
-    )
+    ) from e
 
 from .config import Config
 
@@ -66,7 +66,7 @@ class KeyMonitor:
             logger.info(f"Key monitor initialized with hotkey: {config.hotkey}")
         except Exception as e:
             logger.error(f"Failed to initialize key monitor: {e}")
-            raise KeyMonitorError(f"Key monitor initialization failed: {e}")
+            raise KeyMonitorError(f"Key monitor initialization failed: {e}") from e
 
     def _build_key_map(self) -> Dict[int, str]:
         """Build mapping from evdev keycodes to key names."""
@@ -208,19 +208,15 @@ class KeyMonitor:
                     keys = capabilities[ecodes.EV_KEY]
                     if ecodes.KEY_SPACE in keys or ecodes.KEY_ENTER in keys:
                         devices_found.append(device)
-                        logger.debug(
-                            f"Found keyboard device: {device.name} ({device.path})"
-                        )
+                        logger.debug(f"Found keyboard device: {device.name} ({device.path})")
 
         except PermissionError as e:
             logger.error(f"Permission denied accessing input devices: {e}")
-            logger.error(
-                "Try running with elevated permissions or add user to input group"
-            )
-            raise KeyMonitorError(f"Permission denied accessing input devices: {e}")
+            logger.error("Try running with elevated permissions or add user to input group")
+            raise KeyMonitorError(f"Permission denied accessing input devices: {e}") from e
         except Exception as e:
             logger.error(f"Error finding keyboard devices: {e}")
-            raise KeyMonitorError(f"Error finding keyboard devices: {e}")
+            raise KeyMonitorError(f"Error finding keyboard devices: {e}") from e
 
         if not devices_found:
             logger.error("No keyboard devices found")
@@ -404,14 +400,12 @@ class KeyMonitor:
                 self._monitor_thread.start()
 
                 self._monitoring = True
-                logger.info(
-                    f"Global hotkey monitoring started for: {self.config.hotkey}"
-                )
+                logger.info(f"Global hotkey monitoring started for: {self.config.hotkey}")
 
             except Exception as e:
                 logger.error(f"Failed to start key monitoring: {e}")
                 self._cleanup_devices()
-                raise KeyMonitorError(f"Failed to start key monitoring: {e}")
+                raise KeyMonitorError(f"Failed to start key monitoring: {e}") from e
 
     def stop_monitoring(self) -> None:
         """Stop global hotkey monitoring."""

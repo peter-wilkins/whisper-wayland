@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from whisper_wayland.config import Config
+from whisper_wayland.constants import EXPECTED_DEVICE_COUNT
 from whisper_wayland.text_inserter import (
     TextInserter,
     TextInsertionMethod,
@@ -72,9 +73,7 @@ class TestTextInserter:
 
     def test_detect_available_methods_all_available(self, config):
         """Test detection when all methods are available."""
-        with patch(
-            "whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"
-        ):
+        with patch("whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"):
             inserter = TextInserter(config)
 
             assert all(inserter._available_methods.values())
@@ -87,9 +86,7 @@ class TestTextInserter:
         def mock_which(tool):
             return "/usr/bin/tool" if tool in ["ydotool", "xdotool"] else None
 
-        with patch(
-            "whisper_wayland.text_inserter.shutil.which", side_effect=mock_which
-        ):
+        with patch("whisper_wayland.text_inserter.shutil.which", side_effect=mock_which):
             inserter = TextInserter(config)
 
             assert inserter._available_methods[TextInsertionMethod.WTYPE] is False
@@ -132,15 +129,11 @@ class TestTextInserter:
 
     def test_insert_text_success(self, text_inserter):
         """Test successful text insertion."""
-        with patch.object(
-            text_inserter, "_insert_with_method", return_value=True
-        ) as mock_insert:
+        with patch.object(text_inserter, "_insert_with_method", return_value=True) as mock_insert:
             result = text_inserter.insert_text("Hello, World!")
 
             assert result is True
-            mock_insert.assert_called_once_with(
-                TextInsertionMethod.YDOTOOL, "Hello, World!"
-            )
+            mock_insert.assert_called_once_with(TextInsertionMethod.YDOTOOL, "Hello, World!")
 
     def test_insert_text_empty(self, text_inserter):
         """Test text insertion with empty string."""
@@ -158,17 +151,13 @@ class TestTextInserter:
 
     def test_insert_text_with_cleaning(self, text_inserter):
         """Test text insertion with text cleaning."""
-        with patch.object(
-            text_inserter, "_insert_with_method", return_value=True
-        ) as mock_insert:
+        with patch.object(text_inserter, "_insert_with_method", return_value=True) as mock_insert:
             # Text with extra whitespace
             result = text_inserter.insert_text("  Hello,    World!  ")
 
             assert result is True
             # Should be cleaned to single spaces
-            mock_insert.assert_called_once_with(
-                TextInsertionMethod.YDOTOOL, "Hello, World!"
-            )
+            mock_insert.assert_called_once_with(TextInsertionMethod.YDOTOOL, "Hello, World!")
 
     def test_insert_text_with_delay(self, config, mock_shutil_which):
         """Test text insertion respects configured delay."""
@@ -185,9 +174,7 @@ class TestTextInserter:
 
     def test_insert_text_fallback_on_failure(self, text_inserter):
         """Test fallback methods when primary method fails."""
-        with patch.object(
-            text_inserter, "_insert_with_method"
-        ) as mock_insert, patch.object(
+        with patch.object(text_inserter, "_insert_with_method") as mock_insert, patch.object(
             text_inserter, "_try_fallback_methods", return_value=True
         ) as mock_fallback:
             # Primary method fails
@@ -200,9 +187,9 @@ class TestTextInserter:
 
     def test_insert_text_all_methods_fail(self, text_inserter):
         """Test when all insertion methods fail."""
-        with patch.object(
-            text_inserter, "_insert_with_method", return_value=False
-        ), patch.object(text_inserter, "_try_fallback_methods", return_value=False):
+        with patch.object(text_inserter, "_insert_with_method", return_value=False), patch.object(
+            text_inserter, "_try_fallback_methods", return_value=False
+        ):
             result = text_inserter.insert_text("test")
 
             assert result is False
@@ -213,15 +200,10 @@ class TestTextInserter:
         assert text_inserter._clean_text_for_insertion("  hello  ") == "hello"
 
         # Test multiple spaces
-        assert (
-            text_inserter._clean_text_for_insertion("hello    world") == "hello world"
-        )
+        assert text_inserter._clean_text_for_insertion("hello    world") == "hello world"
 
         # Test combined
-        assert (
-            text_inserter._clean_text_for_insertion("  hello    world  ")
-            == "hello world"
-        )
+        assert text_inserter._clean_text_for_insertion("  hello    world  ") == "hello world"
 
     def test_clean_text_for_insertion_edge_cases(self, text_inserter):
         """Test text cleaning edge cases."""
@@ -302,7 +284,7 @@ class TestTextInserter:
             result = text_inserter._insert_with_clipboard("test text")
 
             assert result is True
-            assert mock_run.call_count == 2  # wl-copy + ydotool paste
+            assert mock_run.call_count == EXPECTED_DEVICE_COUNT  # wl-copy + ydotool paste
 
     def test_insert_with_clipboard_xclip(self, text_inserter):
         """Test clipboard insertion with xclip."""
@@ -325,7 +307,7 @@ class TestTextInserter:
             result = text_inserter._insert_with_clipboard("test text")
 
             assert result is True
-            assert mock_run.call_count == 2  # xclip + xdotool paste
+            assert mock_run.call_count == EXPECTED_DEVICE_COUNT  # xclip + xdotool paste
 
     def test_insert_method_failure(self, text_inserter):
         """Test handling of subprocess failures."""
@@ -345,9 +327,7 @@ class TestTextInserter:
             # Configure the mock to raise TimeoutExpired
             mock_run.side_effect = subprocess.TimeoutExpired("cmd", 10)
 
-            result = text_inserter._insert_with_method(
-                TextInsertionMethod.YDOTOOL, "test"
-            )
+            result = text_inserter._insert_with_method(TextInsertionMethod.YDOTOOL, "test")
 
             assert result is False
 
@@ -368,7 +348,7 @@ class TestTextInserter:
             result = text_inserter._try_fallback_methods("test")
 
             assert result is True
-            assert mock_insert.call_count == 2
+            assert mock_insert.call_count == EXPECTED_DEVICE_COUNT
 
     def test_try_fallback_methods_all_fail(self, text_inserter):
         """Test when all fallback methods fail."""
@@ -436,9 +416,7 @@ class TestTextInserter:
 
     def test_test_insertion_failure(self, text_inserter):
         """Test insertion capability test failure."""
-        with patch(
-            "subprocess.run", side_effect=subprocess.CalledProcessError(1, "cmd")
-        ):
+        with patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "cmd")):
             result = text_inserter.test_insertion()
 
             assert result is False
@@ -489,9 +467,7 @@ class TestCreateTextInserter:
 
     def test_create_text_inserter_success(self, config):
         """Test successful text inserter creation."""
-        with patch(
-            "whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"
-        ):
+        with patch("whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"):
             inserter = create_text_inserter(config)
 
             assert isinstance(inserter, TextInserter)

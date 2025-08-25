@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from whisper_wayland.config import Config
+from whisper_wayland.constants import EXPECTED_DEVICE_COUNT
 from whisper_wayland.key_monitor import KeyMonitor, KeyMonitorError, create_key_monitor
 
 
@@ -178,7 +179,7 @@ class TestKeyMonitor:
         monitor.start_monitoring()
 
         assert monitor.is_monitoring()
-        assert len(monitor._devices) == 2  # Two mock devices
+        assert len(monitor._devices) == EXPECTED_DEVICE_COUNT  # Two mock devices
 
     def test_start_monitoring_already_active(self, config, mock_evdev):
         """Test starting monitoring when already active."""
@@ -210,9 +211,7 @@ class TestKeyMonitor:
 
     def test_stop_monitoring(self, config, mock_evdev):
         """Test stopping key monitoring."""
-        with patch(
-            "whisper_wayland.key_monitor.select.select", return_value=([], [], [])
-        ):
+        with patch("whisper_wayland.key_monitor.select.select", return_value=([], [], [])):
             monitor = KeyMonitor(config)
             monitor.start_monitoring()
 
@@ -334,9 +333,7 @@ class TestKeyMonitor:
 
     def test_close(self, config, mock_evdev):
         """Test key monitor cleanup."""
-        with patch(
-            "whisper_wayland.key_monitor.select.select", return_value=([], [], [])
-        ):
+        with patch("whisper_wayland.key_monitor.select.select", return_value=([], [], [])):
             monitor = KeyMonitor(config)
             monitor.start_monitoring()
 

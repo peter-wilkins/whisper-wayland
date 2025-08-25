@@ -9,6 +9,13 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
+from .constants import (
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_RECORDING_DURATION,
+    DEFAULT_SAMPLE_RATE,
+    DEFAULT_TEXT_INSERTION_DELAY,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,7 +61,7 @@ class Config:
                         break
         except Exception as e:
             logger.error(f"Failed to load environment file: {e}")
-            raise ConfigError(f"Environment file loading failed: {e}")
+            raise ConfigError(f"Environment file loading failed: {e}") from e
 
     def _validate_required_config(self) -> None:
         """Validate that all required configuration is present."""
@@ -66,9 +73,7 @@ class Config:
                 missing_vars.append(var)
 
         if missing_vars:
-            error_msg = (
-                f"Missing required environment variables: {', '.join(missing_vars)}"
-            )
+            error_msg = f"Missing required environment variables: {', '.join(missing_vars)}"
             logger.error(error_msg)
             raise ConfigError(error_msg)
 
@@ -108,37 +113,37 @@ class Config:
     def audio_sample_rate(self) -> int:
         """Audio recording sample rate in Hz."""
         try:
-            rate = int(os.getenv("AUDIO_SAMPLE_RATE", "16000"))
+            rate = int(os.getenv("AUDIO_SAMPLE_RATE", str(DEFAULT_SAMPLE_RATE)))
             if rate <= 0:
                 raise ValueError("Sample rate must be positive")
             return rate
         except ValueError as e:
             logger.error(f"Invalid AUDIO_SAMPLE_RATE: {e}")
-            raise ConfigError(f"Invalid AUDIO_SAMPLE_RATE: {e}")
+            raise ConfigError(f"Invalid AUDIO_SAMPLE_RATE: {e}") from e
 
     @property
     def audio_chunk_size(self) -> int:
         """Audio buffer chunk size in samples."""
         try:
-            chunk_size = int(os.getenv("AUDIO_CHUNK_SIZE", "1024"))
+            chunk_size = int(os.getenv("AUDIO_CHUNK_SIZE", str(DEFAULT_CHUNK_SIZE)))
             if chunk_size <= 0:
                 raise ValueError("Chunk size must be positive")
             return chunk_size
         except ValueError as e:
             logger.error(f"Invalid AUDIO_CHUNK_SIZE: {e}")
-            raise ConfigError(f"Invalid AUDIO_CHUNK_SIZE: {e}")
+            raise ConfigError(f"Invalid AUDIO_CHUNK_SIZE: {e}") from e
 
     @property
     def max_recording_duration(self) -> int:
         """Maximum recording duration in seconds."""
         try:
-            duration = int(os.getenv("MAX_RECORDING_DURATION", "30"))
+            duration = int(os.getenv("MAX_RECORDING_DURATION", str(DEFAULT_RECORDING_DURATION)))
             if duration <= 0:
                 raise ValueError("Recording duration must be positive")
             return duration
         except ValueError as e:
             logger.error(f"Invalid MAX_RECORDING_DURATION: {e}")
-            raise ConfigError(f"Invalid MAX_RECORDING_DURATION: {e}")
+            raise ConfigError(f"Invalid MAX_RECORDING_DURATION: {e}") from e
 
     # Logging Configuration
     @property
@@ -147,9 +152,7 @@ class Config:
         level = os.getenv("LOG_LEVEL", "INFO").upper().strip()
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if level not in valid_levels:
-            logger.warning(
-                f"Invalid LOG_LEVEL '{level}', using INFO. Valid levels: {valid_levels}"
-            )
+            logger.warning(f"Invalid LOG_LEVEL '{level}', using INFO. Valid levels: {valid_levels}")
             return "INFO"
         return level
 
@@ -168,9 +171,7 @@ class Config:
     @property
     def service_description(self) -> str:
         """Service description."""
-        return os.getenv(
-            "SERVICE_DESCRIPTION", "Voice-to-text transcription service"
-        ).strip()
+        return os.getenv("SERVICE_DESCRIPTION", "Voice-to-text transcription service").strip()
 
     # Docker Configuration (for future steps)
     @property
@@ -188,13 +189,13 @@ class Config:
     def text_insertion_delay(self) -> float:
         """Delay before text insertion in seconds."""
         try:
-            delay = float(os.getenv("TEXT_INSERTION_DELAY", "0.1"))
+            delay = float(os.getenv("TEXT_INSERTION_DELAY", str(DEFAULT_TEXT_INSERTION_DELAY)))
             if delay < 0:
                 raise ValueError("Text insertion delay must be non-negative")
             return delay
         except ValueError as e:
             logger.error(f"Invalid TEXT_INSERTION_DELAY: {e}")
-            raise ConfigError(f"Invalid TEXT_INSERTION_DELAY: {e}")
+            raise ConfigError(f"Invalid TEXT_INSERTION_DELAY: {e}") from e
 
     @property
     def text_insertion_method(self) -> str:

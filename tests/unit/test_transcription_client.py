@@ -7,6 +7,7 @@ import openai
 import pytest
 
 from whisper_wayland.config import Config
+from whisper_wayland.constants import EXPECTED_DEVICE_COUNT, WAV_HEADER_SIZE
 from whisper_wayland.transcription_client import (
     TranscriptionClient,
     TranscriptionError,
@@ -35,15 +36,11 @@ class TestTranscriptionClient:
         mock_openai_class.assert_called_once_with(api_key="sk-test123")
 
     @patch("whisper_wayland.transcription_client.OpenAI")
-    def test_transcription_client_initialization_failure(
-        self, mock_openai_class, config
-    ):
+    def test_transcription_client_initialization_failure(self, mock_openai_class, config):
         """Test transcription client initialization failure."""
         mock_openai_class.side_effect = Exception("OpenAI init failed")
 
-        with pytest.raises(
-            TranscriptionError, match="OpenAI client initialization failed"
-        ):
+        with pytest.raises(TranscriptionError, match="OpenAI client initialization failed"):
             TranscriptionClient(config)
 
     def test_model_name_mapping(self, config):
@@ -143,7 +140,7 @@ class TestTranscriptionClient:
             result = client.transcribe_audio(test_audio, max_retries=2)
 
         assert result == "Transcription successful"
-        assert mock_transcription.create.call_count == 2
+        assert mock_transcription.create.call_count == EXPECTED_DEVICE_COUNT
 
     @patch("whisper_wayland.transcription_client.OpenAI")
     def test_transcribe_audio_max_retries_exceeded(self, mock_openai_class, config):
@@ -215,7 +212,7 @@ class TestTranscriptionClient:
         test_audio = client._create_test_audio()
 
         assert isinstance(test_audio, bytes)
-        assert len(test_audio) > 44  # Should include WAV header
+        assert len(test_audio) > WAV_HEADER_SIZE  # Should include WAV header
 
         # Check WAV header magic
         assert test_audio.startswith(b"RIFF")
@@ -278,9 +275,7 @@ class TestTranscriptionClient:
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             config = Config()
 
-        with patch(
-            "whisper_wayland.transcription_client.TranscriptionClient"
-        ) as mock_client:
+        with patch("whisper_wayland.transcription_client.TranscriptionClient") as mock_client:
             mock_instance = Mock()
             mock_client.return_value = mock_instance
 

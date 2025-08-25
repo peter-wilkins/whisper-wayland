@@ -7,7 +7,7 @@ name = "whisper-wayland"
 version = "0.1.0"
 description = "A push-to-talk voice transcription service that converts speech to text and inserts it at the cursor position"
 readme = "README.md"
-requires-python = ">=3.8.1"
+requires-python = ">=3.13.1"
 license = { text = "MIT" }
 authors = [
     { name = "Whisper Wayland Team", email = "support@whisper-wayland.dev" },
@@ -17,12 +17,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -36,16 +30,6 @@ dependencies = [
     "python-dotenv>=1.0.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-asyncio>=0.21.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0.0",
-    "types-requests>=2.28.0",
-    "bandit>=1.7.0",
-]
 
 [project.urls]
 Homepage = "https://github.com/whisper-wayland/whisper-wayland"
@@ -71,9 +55,9 @@ filterwarnings = [
 [tool.coverage.run]
 source = ["whisper_wayland"]
 omit = [
-    "*/tests/*",
-    "*/test_*.py",
+    "./tests/*",
     "setup.py",
+    "./whisper_wayland/**/__init__.py"
 ]
 
 [tool.coverage.report]
@@ -91,7 +75,7 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 target-version = "py38"
 
 [tool.ruff.lint]
@@ -106,13 +90,6 @@ select = [
     "PL",  # pylint
 ]
 ignore = [
-    "E501",    # line too long (handled by formatter)
-    "PLR0913", # too many arguments
-    "PLR0915", # too many statements
-    "PLW2901", # redefined loop variable
-    "PLR2004", # magic value used in comparison (acceptable in tests)
-    "PLC0415", # import should be at top level (acceptable in test fixtures)
-    "B904",    # raise within except (acceptable for our error handling pattern)
 ]
 
 [tool.ruff.format]
@@ -122,7 +99,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

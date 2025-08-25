@@ -7,6 +7,16 @@ from unittest.mock import patch
 import pytest
 
 from whisper_wayland.config import Config, ConfigError, get_config
+from whisper_wayland.constants import (
+    CUSTOM_TEXT_INSERTION_DELAY,
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_RECORDING_DURATION,
+    DEFAULT_SAMPLE_RATE,
+    DEFAULT_TEXT_INSERTION_DELAY,
+    HIGH_QUALITY_SAMPLE_RATE,
+    LARGE_CHUNK_SIZE,
+    LONG_RECORDING_DURATION,
+)
 
 
 class TestConfig:
@@ -22,9 +32,9 @@ class TestConfig:
 
                 assert config.openai_api_key == "sk-test123"
                 assert config.whisper_model == "base"
-                assert config.audio_sample_rate == 16000
-                assert config.audio_chunk_size == 1024
-                assert config.max_recording_duration == 30
+                assert config.audio_sample_rate == DEFAULT_SAMPLE_RATE
+                assert config.audio_chunk_size == DEFAULT_CHUNK_SIZE
+                assert config.max_recording_duration == DEFAULT_RECORDING_DURATION
                 assert config.log_level == "INFO"
                 assert config.hotkey == "ctrl+compose"
         finally:
@@ -74,9 +84,9 @@ class TestConfig:
 
             assert config.openai_api_key == "sk-custom123"
             assert config.whisper_model == "large"
-            assert config.audio_sample_rate == 44100
-            assert config.audio_chunk_size == 2048
-            assert config.max_recording_duration == 60
+            assert config.audio_sample_rate == HIGH_QUALITY_SAMPLE_RATE
+            assert config.audio_chunk_size == LARGE_CHUNK_SIZE
+            assert config.max_recording_duration == LONG_RECORDING_DURATION
             assert config.log_level == "DEBUG"
             assert config.hotkey == "alt+space"
 
@@ -105,9 +115,7 @@ class TestConfig:
 
     def test_config_invalid_log_level(self):
         """Test config handles invalid log levels gracefully."""
-        with patch.dict(
-            os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "INVALID_LEVEL"}
-        ):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "INVALID_LEVEL"}):
             config = Config()
             assert config.log_level == "INFO"  # Should fallback to default
 
@@ -116,12 +124,12 @@ class TestConfig:
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             # Default value
             config = Config()
-            assert config.text_insertion_delay == 0.1
+            assert config.text_insertion_delay == DEFAULT_TEXT_INSERTION_DELAY
 
             # Custom value
             with patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "0.5"}):
                 config = Config()
-                assert config.text_insertion_delay == 0.5
+                assert config.text_insertion_delay == CUSTOM_TEXT_INSERTION_DELAY
 
             # Invalid value
             with patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "invalid"}):
@@ -157,9 +165,7 @@ class TestConfig:
             # Invalid value (should fallback to default)
             with patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "invalid_method"}):
                 config = Config()
-                assert (
-                    config.text_insertion_method == "ydotool"
-                )  # Fallback per config.py line 210
+                assert config.text_insertion_method == "ydotool"  # Fallback per config.py line 210
 
     def test_config_service_properties(self):
         """Test service-related configuration properties."""

@@ -6,6 +6,7 @@ error handling and retry logic.
 
 import io
 import logging
+import struct
 import time
 from typing import Optional
 
@@ -13,6 +14,7 @@ import openai
 from openai import OpenAI
 
 from .config import Config
+from .constants import TEXT_PREVIEW_LENGTH
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +56,7 @@ class TranscriptionClient:
             logger.debug("OpenAI client initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize OpenAI client: {e}")
-            raise TranscriptionError(f"OpenAI client initialization failed: {e}")
+            raise TranscriptionError(f"OpenAI client initialization failed: {e}") from e
 
     def _validate_client(self) -> None:
         """Validate OpenAI client configuration.
@@ -85,8 +87,7 @@ class TranscriptionClient:
         model = self.config.whisper_model
         if model not in valid_models:
             logger.warning(
-                f"Model '{model}' may not be supported. "
-                f"Supported models: {', '.join(valid_models)}"
+                f"Model '{model}' may not be supported. Supported models: {', '.join(valid_models)}"
             )
 
     def transcribe_audio(
@@ -127,10 +128,8 @@ class TranscriptionClient:
                     )
                     time.sleep(retry_delay)
                 else:
-                    logger.error(
-                        f"Transcription failed after {max_retries + 1} attempts: {e}"
-                    )
-                    raise TranscriptionError(f"Transcription failed: {e}")
+                    logger.error(f"Transcription failed after {max_retries + 1} attempts: {e}")
+                    raise TranscriptionError(f"Transcription failed: {e}") from e
 
         return None
 
@@ -171,7 +170,8 @@ class TranscriptionClient:
                 return ""
 
             logger.info(
-                f"Transcription successful: '{transcribed_text[:50]}{'...' if len(transcribed_text) > 50 else ''}'"
+                f"Transcription successful: '{transcribed_text[:TEXT_PREVIEW_LENGTH]}"
+                f"{'...' if len(transcribed_text) > TEXT_PREVIEW_LENGTH else ''}'"
             )
             logger.debug(f"Full transcription: '{transcribed_text}'")
 
@@ -179,7 +179,7 @@ class TranscriptionClient:
 
         except openai.RateLimitError as e:
             logger.error(f"OpenAI API rate limit exceeded: {e}")
-            raise TranscriptionError(f"API rate limit exceeded: {e}")
+            raise TranscriptionError(f"API rate limit exceeded: {e}") from e
         except openai.BadRequestError as e:
             # Handle bad request errors (like invalid file format) as expected failures
             error_msg = str(e)
@@ -188,16 +188,16 @@ class TranscriptionClient:
                 return ""  # Return empty string for invalid audio format
             else:
                 logger.error(f"OpenAI API bad request error: {e}")
-                raise TranscriptionError(f"API bad request error: {e}")
+                raise TranscriptionError(f"API bad request error: {e}") from e
         except openai.APIError as e:
             logger.error(f"OpenAI API error: {e}")
-            raise TranscriptionError(f"API error: {e}")
+            raise TranscriptionError(f"API error: {e}") from e
         except openai.AuthenticationError as e:
             logger.error(f"OpenAI authentication error: {e}")
-            raise TranscriptionError(f"Authentication error: {e}")
+            raise TranscriptionError(f"Authentication error: {e}") from e
         except Exception as e:
             logger.error(f"Unexpected transcription error: {e}")
-            raise TranscriptionError(f"Unexpected error: {e}")
+            raise TranscriptionError(f"Unexpected error: {e}") from e
 
     def _map_model_name(self, model: str) -> str:
         """Map configuration model name to OpenAI API model name.
@@ -255,8 +255,6 @@ class TranscriptionClient:
         Returns:
             Minimal WAV audio data
         """
-        import struct
-
         # Create 1 second of silence at 16kHz, 16-bit mono
         sample_rate = 16000
         duration = 1.0

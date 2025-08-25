@@ -15,6 +15,7 @@ from typing import Any, Optional
 
 from .audio_recorder import AudioRecorder, AudioRecordingError, create_audio_recorder
 from .config import Config, ConfigError, get_config
+from .constants import TEXT_PREVIEW_LENGTH, TRANSCRIPTION_PREVIEW_LENGTH
 from .key_monitor import KeyMonitor, KeyMonitorError, create_key_monitor
 from .logging_config import setup_logging
 from .text_inserter import TextInserter, TextInsertionError, create_text_inserter
@@ -100,9 +101,7 @@ class WhisperClaudeApp:
             logger.error("Cannot start application - component validation failed")
             return
 
-        logger.info(
-            "Starting Whisper Claude service (Step 3: Text insertion at cursor)"
-        )
+        logger.info("Starting Whisper Claude service (Step 3: Text insertion at cursor)")
         logger.info("Usage:")
         if self.config:
             logger.info(f"  - Press and hold {self.config.hotkey} to record audio")
@@ -269,9 +268,7 @@ class WhisperClaudeApp:
         In Step 2, this will be replaced with proper hotkey detection.
         """
         # Simple Step 1 implementation: wait for Enter key
-        print(
-            "\nPress Enter to simulate Ctrl+Space recording trigger (or Ctrl+C to exit)..."
-        )
+        print("\nPress Enter to simulate Ctrl+Space recording trigger (or Ctrl+C to exit)...")
         try:
             input()
         except (EOFError, KeyboardInterrupt):
@@ -334,7 +331,8 @@ class WhisperClaudeApp:
 
             if transcribed_text:
                 logger.info(
-                    f"Transcription completed: '{transcribed_text[:100]}{'...' if len(transcribed_text) > 100 else ''}'"
+                    f"Transcription completed: '{transcribed_text[:TRANSCRIPTION_PREVIEW_LENGTH]}"
+                    f"{'...' if len(transcribed_text) > TRANSCRIPTION_PREVIEW_LENGTH else ''}'"
                 )
             else:
                 logger.warning("Transcription returned empty result")
@@ -362,7 +360,8 @@ class WhisperClaudeApp:
 
         try:
             logger.info(
-                f"Inserting transcribed text: '{text[:50]}{'...' if len(text) > 50 else ''}'"
+                f"Inserting transcribed text: '{text[:TEXT_PREVIEW_LENGTH]}"
+                f"{'...' if len(text) > TEXT_PREVIEW_LENGTH else ''}'"
             )
             success = self.text_inserter.insert_text(text)
 

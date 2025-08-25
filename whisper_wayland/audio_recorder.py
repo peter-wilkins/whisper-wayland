@@ -64,7 +64,7 @@ class AudioRecorder:
             logger.debug("PyAudio initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize PyAudio: {e}")
-            raise AudioRecordingError(f"PyAudio initialization failed: {e}")
+            raise AudioRecordingError(f"PyAudio initialization failed: {e}") from e
 
     def _validate_audio_system(self) -> None:
         """Validate audio system availability and configuration."""
@@ -99,7 +99,7 @@ class AudioRecorder:
 
         except Exception as e:
             logger.error(f"Audio system validation failed: {e}")
-            raise AudioRecordingError(f"Audio system validation failed: {e}")
+            raise AudioRecordingError(f"Audio system validation failed: {e}") from e
 
     def start_recording(self) -> None:
         """Start audio recording in a separate thread.
@@ -115,15 +115,13 @@ class AudioRecorder:
             try:
                 self._recording = True
                 self._audio_data = None
-                self._recording_thread = threading.Thread(
-                    target=self._record_audio, daemon=True
-                )
+                self._recording_thread = threading.Thread(target=self._record_audio, daemon=True)
                 self._recording_thread.start()
                 logger.info("Audio recording started")
             except Exception as e:
                 self._recording = False
                 logger.error(f"Failed to start recording: {e}")
-                raise AudioRecordingError(f"Failed to start recording: {e}")
+                raise AudioRecordingError(f"Failed to start recording: {e}") from e
 
     def stop_recording(self) -> Optional[bytes]:
         """Stop audio recording and return recorded data.
@@ -157,9 +155,7 @@ class AudioRecorder:
                 self._recording_thread = None
 
                 if audio_data:
-                    logger.info(
-                        f"Audio recording stopped, captured {len(audio_data)} bytes"
-                    )
+                    logger.info(f"Audio recording stopped, captured {len(audio_data)} bytes")
                 else:
                     logger.warning("No audio data captured")
 
@@ -167,7 +163,7 @@ class AudioRecorder:
 
             except Exception as e:
                 logger.error(f"Failed to stop recording: {e}")
-                raise AudioRecordingError(f"Failed to stop recording: {e}")
+                raise AudioRecordingError(f"Failed to stop recording: {e}") from e
 
     def _record_audio(self) -> None:
         """Internal method to handle audio recording in separate thread."""
@@ -256,7 +252,7 @@ class AudioRecorder:
 
         except Exception as e:
             logger.error(f"Failed to create WAV data: {e}")
-            raise AudioRecordingError(f"WAV creation failed: {e}")
+            raise AudioRecordingError(f"WAV creation failed: {e}") from e
 
     def is_recording(self) -> bool:
         """Check if recording is currently in progress.

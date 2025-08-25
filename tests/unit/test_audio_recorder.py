@@ -1,5 +1,6 @@
 """Unit tests for audio recorder module."""
 
+import itertools
 import os
 import time
 from unittest.mock import Mock, patch
@@ -12,6 +13,11 @@ from whisper_wayland.audio_recorder import (
     create_audio_recorder,
 )
 from whisper_wayland.config import Config
+from whisper_wayland.constants import (
+    EXPECTED_CHANNELS_MONO,
+    EXPECTED_CHANNELS_STEREO,
+    EXPECTED_DEVICE_COUNT,
+)
 
 
 class TestAudioRecorder:
@@ -146,20 +152,14 @@ class TestAudioRecorder:
         with patch("time.time") as mock_time:
             # Simulate time progression to trigger max duration
             # Use itertools.count to provide unlimited time values
-            import itertools
-
-            time_values = itertools.cycle(
-                [0, 0, 0.5, 1.5, 2.0, 2.0, 2.1, 2.2, 2.3, 2.4]
-            )
+            time_values = itertools.cycle([0, 0, 0.5, 1.5, 2.0, 2.0, 2.1, 2.2, 2.3, 2.4])
             mock_time.side_effect = lambda: next(time_values)
 
             recorder.start_recording()
             time.sleep(0.1)  # Brief pause for thread to start
             audio_data = recorder.stop_recording()
 
-        assert (
-            audio_data is not None or audio_data is None
-        )  # May be None if no frames captured
+        assert audio_data is not None or audio_data is None  # May be None if no frames captured
 
     @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_get_audio_devices(self, mock_pyaudio, config):
@@ -188,11 +188,11 @@ class TestAudioRecorder:
 
         devices = recorder.get_audio_devices()
 
-        assert len(devices) == 2  # Only input devices
+        assert len(devices) == EXPECTED_DEVICE_COUNT  # Only input devices
         assert devices[0]["name"] == "Microphone 1"
-        assert devices[0]["channels"] == 1
+        assert devices[0]["channels"] == EXPECTED_CHANNELS_MONO
         assert devices[1]["name"] == "Microphone 2"
-        assert devices[1]["channels"] == 2
+        assert devices[1]["channels"] == EXPECTED_CHANNELS_STEREO
 
     @patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recorder_close(self, mock_pyaudio, config):

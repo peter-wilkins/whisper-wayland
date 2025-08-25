@@ -22,7 +22,7 @@ class TestWhisperClaudeApp:
     @patch("whisper_wayland.main.create_audio_recorder")
     @patch("whisper_wayland.main.setup_logging")
     @patch("whisper_wayland.main.get_config")
-    def test_app_initialization_success(
+    def test_app_initialization_success(  # noqa: PLR0913
         self,
         mock_get_config,
         mock_setup_logging,
@@ -70,7 +70,7 @@ class TestWhisperClaudeApp:
     @patch("whisper_wayland.main.create_audio_recorder")
     @patch("whisper_wayland.main.setup_logging")
     @patch("whisper_wayland.main.get_config")
-    def test_app_initialization_with_config_file(
+    def test_app_initialization_with_config_file(  # noqa: PLR0913
         self,
         mock_get_config,
         mock_setup_logging,
@@ -101,7 +101,7 @@ class TestWhisperClaudeApp:
     @patch("whisper_wayland.main.create_audio_recorder")
     @patch("whisper_wayland.main.setup_logging")
     @patch("whisper_wayland.main.get_config")
-    def test_validate_components_success(
+    def test_validate_components_success(  # noqa: PLR0913
         self,
         mock_get_config,
         mock_setup_logging,
@@ -131,7 +131,7 @@ class TestWhisperClaudeApp:
     @patch("whisper_wayland.main.create_audio_recorder")
     @patch("whisper_wayland.main.setup_logging")
     @patch("whisper_wayland.main.get_config")
-    def test_validate_components_missing_config(
+    def test_validate_components_missing_config(  # noqa: PLR0913
         self,
         mock_get_config,
         mock_setup_logging,
@@ -272,7 +272,7 @@ class TestWhisperClaudeApp:
     @patch("whisper_wayland.main.create_audio_recorder")
     @patch("whisper_wayland.main.setup_logging")
     @patch("whisper_wayland.main.get_config")
-    def test_insert_text(
+    def test_insert_text(  # noqa: PLR0913
         self,
         mock_get_config,
         mock_setup_logging,
@@ -309,7 +309,7 @@ class TestWhisperClaudeApp:
     @patch("whisper_wayland.main.create_audio_recorder")
     @patch("whisper_wayland.main.setup_logging")
     @patch("whisper_wayland.main.get_config")
-    def test_cleanup(
+    def test_cleanup(  # noqa: PLR0913
         self,
         mock_get_config,
         mock_setup_logging,
@@ -427,9 +427,7 @@ class TestMainFunction:
 
         assert exc_info.value.code == 1
         mock_print.assert_any_call("Configuration error: Missing API key")
-        mock_print.assert_any_call(
-            "Please check your environment variables or .env file"
-        )
+        mock_print.assert_any_call("Please check your environment variables or .env file")
 
     @patch("whisper_wayland.main.WhisperClaudeApp")
     def test_main_general_error(self, mock_app_class):

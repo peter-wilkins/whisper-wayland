@@ -42,9 +42,7 @@ class ServiceManager:
         self._text_inserter: Optional[TextInserter] = None
         self._running = False
 
-        logger.info(
-            "Service manager placeholder initialized (Step 4 implementation pending)"
-        )
+        logger.info("Service manager placeholder initialized (Step 4 implementation pending)")
 
     def start_service(self) -> None:
         """Start the service with all components (placeholder)."""

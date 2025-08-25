@@ -1,6 +1,7 @@
 """Pytest configuration and fixtures."""
 
 import os
+import tempfile
 import typing
 import unittest.mock as mock  # noqa: PLR0402
 
@@ -63,8 +64,6 @@ def mock_api_key() -> typing.Generator[str, None, None]:
 @pytest.fixture
 def temp_transcription_file() -> typing.Generator[str, None, None]:
     """Create temporary transcription file for tests."""
-    import tempfile
-
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
         temp_file = f.name
 

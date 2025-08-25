@@ -13,6 +13,7 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 from .config import Config
+from .constants import TEXT_PREVIEW_LENGTH
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +64,10 @@ class TextInserter:
             raise TextInsertionError("No text insertion methods available")
 
         logger.info(f"Text inserter initialized with method: {self._preferred_method}")
-        logger.debug(
-            f"Available methods: {[m.value for m, available in self._available_methods.items() if available]}"
-        )
+        available_methods = [
+            m.value for m, available in self._available_methods.items() if available
+        ]
+        logger.debug(f"Available methods: {available_methods}")
 
     def _detect_available_methods(self) -> None:
         """Detect which text insertion methods are available."""
@@ -98,9 +100,7 @@ class TextInserter:
 
         # Try to use configured method first
         for method in TextInsertionMethod:
-            if method.value == configured_method and self._available_methods.get(
-                method, False
-            ):
+            if method.value == configured_method and self._available_methods.get(method, False):
                 self._preferred_method = method
                 logger.debug(f"Using configured method: {method.value}")
                 return
@@ -144,15 +144,15 @@ class TextInserter:
             logger.warning("Text became empty after cleaning")
             return False
 
+        preview_text = cleaned_text[:TEXT_PREVIEW_LENGTH]
+        ellipsis = "..." if len(cleaned_text) > TEXT_PREVIEW_LENGTH else ""
         logger.info(
-            f"Inserting text using {self._preferred_method.value}: '{cleaned_text[:50]}{'...' if len(cleaned_text) > 50 else ''}'"
+            f"Inserting text using {self._preferred_method.value}: '{preview_text}{ellipsis}'"
         )
 
         # Add delay before insertion if configured
         if self.config.text_insertion_delay > 0:
-            logger.debug(
-                f"Waiting {self.config.text_insertion_delay}s before text insertion"
-            )
+            logger.debug(f"Waiting {self.config.text_insertion_delay}s before text insertion")
             time.sleep(self.config.text_insertion_delay)
 
         try:
@@ -161,15 +161,11 @@ class TextInserter:
                 logger.info("Text insertion successful")
                 return True
             else:
-                logger.warning(
-                    f"Text insertion failed with {self._preferred_method.value}"
-                )
+                logger.warning(f"Text insertion failed with {self._preferred_method.value}")
                 return self._try_fallback_methods(cleaned_text)
 
         except Exception as e:
-            logger.error(
-                f"Error during text insertion with {self._preferred_method.value}: {e}"
-            )
+            logger.error(f"Error during text insertion with {self._preferred_method.value}: {e}")
             return self._try_fallback_methods(cleaned_text)
 
     def _clean_text_for_insertion(self, text: str) -> str:
@@ -362,9 +358,7 @@ class TextInserter:
         ]
 
         for method in fallback_order:
-            if method != self._preferred_method and self._available_methods.get(
-                method, False
-            ):
+            if method != self._preferred_method and self._available_methods.get(method, False):
                 logger.debug(f"Trying fallback method: {method.value}")
                 try:
                     if self._insert_with_method(method, text):
@@ -414,10 +408,7 @@ class TextInserter:
 
             elif self._preferred_method == TextInsertionMethod.CLIPBOARD:
                 # Test clipboard access
-                return (
-                    shutil.which("wl-copy") is not None
-                    or shutil.which("xclip") is not None
-                )
+                return shutil.which("wl-copy") is not None or shutil.which("xclip") is not None
 
         except Exception as e:
             logger.error(f"Text insertion test failed: {e}")
@@ -429,11 +420,7 @@ class TextInserter:
         Returns:
             List of available method names
         """
-        return [
-            method.value
-            for method, available in self._available_methods.items()
-            if available
-        ]
+        return [method.value for method, available in self._available_methods.items() if available]
 
     def get_preferred_method(self) -> Optional[str]:
         """Get the currently preferred text insertion method.
