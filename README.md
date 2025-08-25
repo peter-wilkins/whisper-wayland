@@ -62,12 +62,9 @@ sudo dnf install portaudio-devel python3-devel wtype
 
 3. **Configure your API key:**
    ```bash
-   # Option A: Create .env file
+   # Create and configure .env file
    cp .env.example .env
    nano .env  # Add your OPENAI_API_KEY
-
-   # Option B: Use separate key file (recommended)
-   echo "your-openai-api-key" > .openai-api.key
    ```
 
 4. **Run the service:**
@@ -200,7 +197,7 @@ Whisper Wayland uses OpenAI's API on a pay-per-use basis:
 
 - **Audio processing**: Audio is sent to OpenAI for transcription only
 - **No local storage**: Audio data is not saved to your computer
-- **API key security**: Store your API key securely (use `.openai-api.key` file)
+- **API key security**: Store your API key securely in `.env` file
 - **Network only**: Service only activates when you press the hotkey
 
 ## Support & Contributing

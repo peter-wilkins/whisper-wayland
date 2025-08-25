@@ -10,11 +10,6 @@ from whisper_wayland import config, main
 class TestWhisperClaudeApp:
     """Test cases for WhisperClaudeApp class."""
 
-    @pytest.fixture
-    def test_config(self, mock_api_key):
-        """Create test configuration."""
-        return config.Config()
-
     @unittest.mock.patch("whisper_wayland.main.create_text_inserter")
     @unittest.mock.patch("whisper_wayland.main.create_key_monitor")
     @unittest.mock.patch("whisper_wayland.main.create_transcription_client")

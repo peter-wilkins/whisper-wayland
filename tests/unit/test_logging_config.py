@@ -4,20 +4,13 @@ import os
 import tempfile
 import unittest.mock
 
-import pytest
-
 from whisper_wayland import config, constants, logging_config
 
 
 class TestLoggingConfig:
     """Test cases for logging configuration."""
 
-    @pytest.fixture
-    def test_config(self, mock_api_key):
-        """Create test configuration."""
-        return config.Config()
-
-    def test_setup_logging_functionality(self, mock_api_key):
+    def test_setup_logging_functionality(self):
         """Test logging setup functionality - handlers and basic configuration."""
         test_config = config.Config()
 
@@ -32,7 +25,7 @@ class TestLoggingConfig:
             assert mock_root_logger.setLevel.called  # Called with some level
             assert mock_root_logger.addHandler.call_count >= 1  # Adds at least one handler
 
-    def test_setup_logging_debug_level(self, mock_api_key):
+    def test_setup_logging_debug_level(self):
         """Test logging setup with DEBUG level."""
         test_config = config.Config()
 
@@ -106,7 +99,7 @@ class TestLoggingConfig:
             assert result == mock_logger
             mock_get_logger.assert_called_once_with("test.module")
 
-    def test_logging_levels_mapping(self, test_config, mock_api_key):
+    def test_logging_levels_mapping(self, test_config):
         """Test that string log levels are properly mapped."""
 
         # Test just one level to verify the functionality works

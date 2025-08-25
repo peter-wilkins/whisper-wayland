@@ -12,11 +12,6 @@ from whisper_wayland import config, constants, transcription_client
 class TestTranscriptionClient:
     """Test cases for TranscriptionClient class."""
 
-    @pytest.fixture
-    def test_config(self, mock_api_key):
-        """Create test configuration."""
-        return config.Config()
-
     @unittest.mock.patch("whisper_wayland.transcription_client.OpenAI")
     def test_transcription_client_initialization(self, mock_openai_class, test_config):
         """Test transcription client initialization."""

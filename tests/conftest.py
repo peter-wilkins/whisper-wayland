@@ -3,10 +3,11 @@
 import os
 import tempfile
 import typing
-import unittest.mock
 
 import dotenv
 import pytest
+
+from whisper_wayland.config import Config
 
 dotenv.load_dotenv()
 
@@ -55,10 +56,15 @@ def clean_environment() -> typing.Generator[None, None, None]:
 
 
 @pytest.fixture
-def mock_api_key() -> typing.Generator[str, None, None]:
-    """Provide mock API key for tests."""
-    with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-        yield "sk-test123"
+def test_config() -> typing.Generator[Config, None, None]:
+    """Provide test configuration loaded from .env file."""
+    # Ensure .env file is loaded and API key is available
+    if not os.getenv("OPENAI_API_KEY"):
+        pytest.skip(
+            "OPENAI_API_KEY not found in environment. Ensure .env file is properly configured."
+        )
+
+    yield Config()
 
 
 @pytest.fixture

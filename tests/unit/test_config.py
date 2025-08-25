@@ -34,22 +34,10 @@ class TestConfig:
 
     def test_config_missing_required_api_key(self):
         """Test config fails when required API key is missing."""
-        # This test may not work in environments with .env files or CI secrets
-        # Check if API key is available from any source
-        test_config = config.Config()
-        if test_config.openai_api_key:
-            # Skip test if API key is available (CI environment or .env file)
-            pytest.skip("API key available from environment or .env file")
-
-        # Only test if no API key is available
-        old_api_key = os.environ.pop("OPENAI_API_KEY", None)
-        try:
+        # Temporarily remove API key to test validation
+        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
             with pytest.raises(config.ConfigError, match="OPENAI_API_KEY"):
                 config.Config()
-        finally:
-            # Restore API key if it existed
-            if old_api_key:
-                os.environ["OPENAI_API_KEY"] = old_api_key
 
     def test_config_empty_api_key(self):
         """Test config fails when API key is empty."""
