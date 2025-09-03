@@ -8,7 +8,6 @@ import os
 import sys
 
 import whisper_wayland as ww
-import whisper_wayland.config as config
 
 
 def main() -> None:
@@ -27,7 +26,7 @@ def main() -> None:
         app.run()
         sys.exit(0)
 
-    except config.ConfigError as e:
+    except ww.ConfigError as e:
         print(f"Configuration error: {e}")
         print("Please check your environment variables or .env file")
         sys.exit(1)

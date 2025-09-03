@@ -217,15 +217,15 @@ class TestConfig:
             assert summary["whisper_model"] == "base"
             assert "sk-sensitive123" not in str(summary)
 
-    def test_get_config_function(self) -> None:
-        """Test get_config helper function."""
+    def test_config_get_static_method(self) -> None:
+        """Test Config.get static method."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-            test_config = config.get_config()
+            test_config = config.Config.get()
             assert isinstance(test_config, config.Config)
             assert test_config.openai_api_key == "sk-test123"
 
-    def test_get_config_with_file(self) -> None:
-        """Test get_config with environment file."""
+    def test_config_get_with_file(self) -> None:
+        """Test Config.get with environment file."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("OPENAI_API_KEY=sk-filetest123\n")
             env_file_path = f.name
@@ -234,7 +234,7 @@ class TestConfig:
         old_api_key = os.environ.pop("OPENAI_API_KEY", None)
 
         try:
-            test_config = config.get_config(env_file_path)
+            test_config = config.Config.get(env_file_path)
             assert test_config.openai_api_key == "sk-filetest123"
         finally:
             # Restore environment variable

@@ -10,7 +10,7 @@ import typing
 import dotenv
 import pytest
 
-import whisper_wayland.config as config
+import whisper_wayland as ww
 
 dotenv.load_dotenv()
 
@@ -59,7 +59,7 @@ def clean_environment() -> typing.Generator[None, None, None]:
 
 
 @pytest.fixture
-def test_config() -> typing.Generator[config.Config, None, None]:
+def test_config() -> typing.Generator[ww.Config, None, None]:
     """Provide test configuration loaded from .env file."""
     # Ensure .env file is loaded and API key is available
     if not os.getenv("OPENAI_API_KEY"):
@@ -67,7 +67,7 @@ def test_config() -> typing.Generator[config.Config, None, None]:
             "OPENAI_API_KEY not found in environment. Ensure .env file is properly configured."
         )
 
-    yield config.Config()
+    yield ww.Config()
 
 
 @pytest.fixture

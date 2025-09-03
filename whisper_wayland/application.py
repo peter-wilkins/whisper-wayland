@@ -11,7 +11,6 @@ import time
 import typing
 
 import whisper_wayland as ww
-import whisper_wayland.config as config
 import whisper_wayland.constants as constants
 import whisper_wayland.logging_config as logging_config
 
@@ -32,7 +31,7 @@ class Application:
         Args:
             config_file: Optional path to configuration file
         """
-        self.config: typing.Optional[config.Config] = None
+        self.config: typing.Optional[ww.Config] = None
         self.audio_recorder: typing.Optional[ww.AudioRecorder] = None
         self.transcription_client: typing.Optional[ww.TranscriptionClient] = None
         self.key_monitor: typing.Optional[ww.KeyMonitor] = None
@@ -54,7 +53,7 @@ class Application:
             config_file: Optional path to configuration file
         """
         # Load configuration
-        self.config = config.get_config(config_file)
+        self.config = ww.Config.get(config_file)
 
         # Setup logging
         logging_config.setup_logging(self.config)

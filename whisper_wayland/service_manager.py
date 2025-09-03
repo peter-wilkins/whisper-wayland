@@ -8,7 +8,6 @@ import logging
 import typing
 
 import whisper_wayland as ww
-import whisper_wayland.config as config
 
 _logger = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ class ServiceManager:
     to provide proper service lifecycle management.
     """
 
-    def __init__(self, config: config.Config) -> None:
+    def __init__(self, config: ww.Config) -> None:
         """Initialize service manager with configuration.
 
         Args:
@@ -95,7 +94,7 @@ class ServiceManager:
         _logger.debug("Service manager cleanup (placeholder)")
 
     @staticmethod
-    def new(config: config.Config) -> "ServiceManager":
+    def new(config: ww.Config) -> "ServiceManager":
         """Create and initialize service manager instance.
 
         Args:

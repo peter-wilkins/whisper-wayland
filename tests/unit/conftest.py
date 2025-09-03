@@ -10,21 +10,21 @@ import unittest.mock
 
 import pytest
 
-import whisper_wayland.config as config
+import whisper_wayland as ww
 
 
 @pytest.fixture
-def test_config() -> config.Config:
+def test_config() -> ww.Config:
     """Create test configuration."""
     with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-        return config.Config()
+        return ww.Config()
 
 
 @pytest.fixture
-def test_config_with_hotkey() -> config.Config:
+def test_config_with_hotkey() -> ww.Config:
     """Create test configuration with specific hotkey."""
     with unittest.mock.patch.dict(os.environ, {"HOTKEY": "compose"}):
-        return config.Config()
+        return ww.Config()
 
 
 @pytest.fixture
@@ -87,7 +87,7 @@ def mock_shutil_which() -> typing.Generator[unittest.mock.Mock, None, None]:
 
 
 @pytest.fixture
-def test_config_text_inserter() -> config.Config:
+def test_config_text_inserter() -> ww.Config:
     """Create test configuration for text inserter with specific settings."""
     with unittest.mock.patch.dict(
         os.environ,
@@ -97,12 +97,12 @@ def test_config_text_inserter() -> config.Config:
             "TEXT_INSERTION_DELAY": "0.1",
         },
     ):
-        return config.Config()
+        return ww.Config()
 
 
 @pytest.fixture
 def text_inserter(
-    test_config_text_inserter: config.Config, mock_shutil_which: unittest.mock.Mock
+    test_config_text_inserter: ww.Config, mock_shutil_which: unittest.mock.Mock
 ) -> typing.Any:
     """Create text inserter with mocked dependencies."""
     import whisper_wayland.text_inserter as text_inserter

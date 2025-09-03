@@ -212,21 +212,21 @@ class Config:
             return "ydotool"
         return method
 
+    @staticmethod
+    def get(env_file: typing.Optional[str] = None) -> "Config":
+        """Get configuration instance with optional environment file.
 
-def get_config(env_file: typing.Optional[str] = None) -> Config:
-    """Get configuration instance with optional environment file.
+        Args:
+            env_file: Optional path to .env file
 
-    Args:
-        env_file: Optional path to .env file
+        Returns:
+            Config instance
 
-    Returns:
-        Config instance
-
-    Raises:
-        ConfigError: If configuration is invalid
-    """
-    try:
-        return Config(env_file)
-    except Exception as e:
-        _logger.error(f"Failed to initialize configuration: {e}")
-        raise
+        Raises:
+            ConfigError: If configuration is invalid
+        """
+        try:
+            return Config(env_file)
+        except Exception as e:
+            _logger.error(f"Failed to initialize configuration: {e}")
+            raise
