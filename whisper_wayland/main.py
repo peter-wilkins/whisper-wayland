@@ -20,7 +20,7 @@ import whisper_wayland.logging_config as logging_config
 import whisper_wayland.text_inserter as text_inserter
 import whisper_wayland.transcription_client as transcription_client
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class WhisperClaudeApp:
@@ -47,9 +47,9 @@ class WhisperClaudeApp:
 
         try:
             self._initialize(config_file)
-            logger.info("Whisper Claude application initialized successfully")
+            _logger.info("Whisper Claude application initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize application: {e}")
+            _logger.error(f"Failed to initialize application: {e}")
             raise
 
     def _initialize(self, config_file: typing.Optional[str]) -> None:
@@ -77,14 +77,14 @@ class WhisperClaudeApp:
         self.text_inserter = text_inserter.create_text_inserter(self.config)
 
         # Test API connection
-        logger.info("Testing OpenAI API connection...")
+        _logger.info("Testing OpenAI API connection...")
         if not self.transcription_client.test_connection():
-            logger.warning("OpenAI API connection test failed, but continuing...")
+            _logger.warning("OpenAI API connection test failed, but continuing...")
 
         # Test text insertion capability
-        logger.info("Testing text insertion capability...")
+        _logger.info("Testing text insertion capability...")
         if not self.text_inserter.test_insertion():
-            logger.warning("Text insertion test failed, but continuing...")
+            _logger.warning("Text insertion test failed, but continuing...")
 
     def run(self) -> None:
         """Run the main application loop for Step 3.
@@ -93,23 +93,23 @@ class WhisperClaudeApp:
         and transcription with cursor position text insertion.
         """
         if not self._validate_components():
-            logger.error("Cannot start application - component validation failed")
+            _logger.error("Cannot start application - component validation failed")
             return
 
-        logger.info("Starting Whisper Claude service (Step 3: Text insertion at cursor)")
-        logger.info("Usage:")
+        _logger.info("Starting Whisper Claude service (Step 3: Text insertion at cursor)")
+        _logger.info("Usage:")
         if self.config:
-            logger.info(f"  - Press and hold {self.config.hotkey} to record audio")
-        logger.info("  - Release to stop recording and transcribe")
-        logger.info("  - Transcribed text will be inserted at cursor position")
-        logger.info("  - Press Ctrl+C to exit")
+            _logger.info(f"  - Press and hold {self.config.hotkey} to record audio")
+        _logger.info("  - Release to stop recording and transcribe")
+        _logger.info("  - Transcribed text will be inserted at cursor position")
+        _logger.info("  - Press Ctrl+C to exit")
 
         # Log available text insertion methods
         if self.text_inserter:
             available_methods = self.text_inserter.get_available_methods()
             preferred_method = self.text_inserter.get_preferred_method()
-            logger.info(f"  - Text insertion method: {preferred_method}")
-            logger.debug(f"  - Available methods: {available_methods}")
+            _logger.info(f"  - Text insertion method: {preferred_method}")
+            _logger.debug(f"  - Available methods: {available_methods}")
 
         self._setup_signal_handlers()
         self._setup_hotkey_callbacks()
@@ -118,9 +118,9 @@ class WhisperClaudeApp:
         try:
             self._main_loop()
         except KeyboardInterrupt:
-            logger.info("Received interrupt signal, shutting down...")
+            _logger.info("Received interrupt signal, shutting down...")
         except Exception as e:
-            logger.error(f"Application error: {e}")
+            _logger.error(f"Application error: {e}")
         finally:
             self.cleanup()
 
@@ -131,23 +131,23 @@ class WhisperClaudeApp:
             True if all components are valid, False otherwise
         """
         if not self.config:
-            logger.error("Configuration not initialized")
+            _logger.error("Configuration not initialized")
             return False
 
         if not self.audio_recorder:
-            logger.error("Audio recorder not initialized")
+            _logger.error("Audio recorder not initialized")
             return False
 
         if not self.transcription_client:
-            logger.error("Transcription client not initialized")
+            _logger.error("Transcription client not initialized")
             return False
 
         if not self.key_monitor:
-            logger.error("Key monitor not initialized")
+            _logger.error("Key monitor not initialized")
             return False
 
         if not self.text_inserter:
-            logger.error("Text inserter not initialized")
+            _logger.error("Text inserter not initialized")
             return False
 
         return True
@@ -156,7 +156,7 @@ class WhisperClaudeApp:
         """Setup signal handlers for graceful shutdown."""
 
         def signal_handler(signum: int, frame: typing.Any) -> None:
-            logger.info(f"Received signal {signum}, initiating shutdown...")
+            _logger.info(f"Received signal {signum}, initiating shutdown...")
             self._running = False
 
         signal.signal(signal.SIGINT, signal_handler)
@@ -165,7 +165,7 @@ class WhisperClaudeApp:
     def _setup_hotkey_callbacks(self) -> None:
         """Setup hotkey press and release callbacks."""
         if not self.key_monitor:
-            logger.error("Key monitor not available for callback setup")
+            _logger.error("Key monitor not available for callback setup")
             return
 
         # Set callback for hotkey press (start recording)
@@ -174,31 +174,31 @@ class WhisperClaudeApp:
         # Set callback for hotkey release (stop recording)
         self.key_monitor.set_release_callback(self._on_hotkey_release)
 
-        logger.debug("Hotkey callbacks configured")
+        _logger.debug("Hotkey callbacks configured")
 
     def _on_hotkey_press(self) -> None:
         """Handle hotkey press event - start recording."""
         if self._recording_active:
-            logger.debug("Recording already active, ignoring hotkey press")
+            _logger.debug("Recording already active, ignoring hotkey press")
             return
 
-        logger.info("Hotkey pressed - starting recording")
+        _logger.info("Hotkey pressed - starting recording")
         self._recording_active = True
 
         try:
             if self.audio_recorder:
                 self.audio_recorder.start_recording()
         except audio_recorder.AudioRecordingError as e:
-            logger.error(f"Failed to start recording: {e}")
+            _logger.error(f"Failed to start recording: {e}")
             self._recording_active = False
 
     def _on_hotkey_release(self) -> None:
         """Handle hotkey release event - stop recording and transcribe."""
         if not self._recording_active:
-            logger.debug("Recording not active, ignoring hotkey release")
+            _logger.debug("Recording not active, ignoring hotkey release")
             return
 
-        logger.info("Hotkey released - stopping recording")
+        _logger.info("Hotkey released - stopping recording")
         self._recording_active = False
 
         try:
@@ -213,9 +213,9 @@ class WhisperClaudeApp:
                         daemon=True,
                     ).start()
                 else:
-                    logger.warning("No audio data captured")
+                    _logger.warning("No audio data captured")
         except audio_recorder.AudioRecordingError as e:
-            logger.error(f"Failed to stop recording: {e}")
+            _logger.error(f"Failed to stop recording: {e}")
 
     def _process_transcription(self, audio_data: bytes) -> None:
         """Process transcription in background thread.
@@ -229,24 +229,24 @@ class WhisperClaudeApp:
             if transcribed_text:
                 self._insert_text(transcribed_text)
             else:
-                logger.info("No transcription result")
+                _logger.info("No transcription result")
         except Exception as e:
-            logger.error(f"Error processing transcription: {e}")
+            _logger.error(f"Error processing transcription: {e}")
 
     def _main_loop(self) -> None:
         """Main application loop for Step 2 functionality."""
         if self.config:
-            logger.info(f"Application ready - waiting for {self.config.hotkey}...")
+            _logger.info(f"Application ready - waiting for {self.config.hotkey}...")
         else:
-            logger.info("Application ready - waiting for hotkey...")
+            _logger.info("Application ready - waiting for hotkey...")
 
         # Start key monitoring
         try:
             if self.key_monitor:
                 self.key_monitor.start_monitoring()
-                logger.info("Global hotkey monitoring active")
+                _logger.info("Global hotkey monitoring active")
         except key_monitor.KeyMonitorError as e:
-            logger.error(f"Failed to start key monitoring: {e}")
+            _logger.error(f"Failed to start key monitoring: {e}")
             return
 
         # Keep application running while monitoring hotkeys
@@ -254,7 +254,7 @@ class WhisperClaudeApp:
             while self._running:
                 time.sleep(0.1)  # Small sleep to prevent busy waiting
         except Exception as e:
-            logger.error(f"Error in main loop: {e}")
+            _logger.error(f"Error in main loop: {e}")
 
     def _wait_for_recording_trigger(self) -> None:
         """Wait for recording trigger (Step 1: simple implementation).
@@ -276,11 +276,11 @@ class WhisperClaudeApp:
             Recorded audio data or None if recording failed
         """
         if not self.audio_recorder:
-            logger.error("Audio recorder not available")
+            _logger.error("Audio recorder not available")
             return None
 
         try:
-            logger.info("Starting audio recording... (speak now)")
+            _logger.info("Starting audio recording... (speak now)")
             self.audio_recorder.start_recording()
 
             # Simple Step 1 implementation: record for fixed time or until Enter
@@ -290,21 +290,21 @@ class WhisperClaudeApp:
             except (EOFError, KeyboardInterrupt):
                 pass
 
-            logger.info("Stopping audio recording...")
+            _logger.info("Stopping audio recording...")
             audio_data = self.audio_recorder.stop_recording()
 
             if audio_data:
-                logger.info(f"Audio recording completed: {len(audio_data)} bytes")
+                _logger.info(f"Audio recording completed: {len(audio_data)} bytes")
             else:
-                logger.warning("No audio data captured")
+                _logger.warning("No audio data captured")
 
             return audio_data
 
         except audio_recorder.AudioRecordingError as e:
-            logger.error(f"Audio recording error: {e}")
+            _logger.error(f"Audio recording error: {e}")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error during recording: {e}")
+            _logger.error(f"Unexpected error during recording: {e}")
             return None
 
     def _transcribe_audio(self, audio_data: bytes) -> typing.Optional[str]:
@@ -317,28 +317,28 @@ class WhisperClaudeApp:
             Transcribed text or None if transcription failed
         """
         if not self.transcription_client:
-            logger.error("Transcription client not available")
+            _logger.error("Transcription client not available")
             return None
 
         try:
-            logger.info("Starting audio transcription...")
+            _logger.info("Starting audio transcription...")
             transcribed_text = self.transcription_client.transcribe_audio(audio_data)
 
             if transcribed_text:
                 preview_len = constants.TRANSCRIPTION_PREVIEW_LENGTH
                 preview_text = transcribed_text[:preview_len]
                 ellipsis = "..." if len(transcribed_text) > preview_len else ""
-                logger.info(f"Transcription completed: '{preview_text}{ellipsis}'")
+                _logger.info(f"Transcription completed: '{preview_text}{ellipsis}'")
             else:
-                logger.warning("Transcription returned empty result")
+                _logger.warning("Transcription returned empty result")
 
             return transcribed_text
 
         except transcription_client.TranscriptionError as e:
-            logger.error(f"Transcription error: {e}")
+            _logger.error(f"Transcription error: {e}")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error during transcription: {e}")
+            _logger.error(f"Unexpected error during transcription: {e}")
             return None
 
     def _insert_text(self, text: str) -> None:
@@ -348,7 +348,7 @@ class WhisperClaudeApp:
             text: Transcribed text to insert
         """
         if not self.text_inserter:
-            logger.error("Text inserter not available")
+            _logger.error("Text inserter not available")
             print("Text insertion failed - inserter not available")
             print(f"Transcribed text: {text}")
             return
@@ -357,29 +357,29 @@ class WhisperClaudeApp:
             preview_len = constants.TEXT_PREVIEW_LENGTH
             preview_text = text[:preview_len]
             ellipsis = "..." if len(text) > preview_len else ""
-            logger.info(f"Inserting transcribed text: '{preview_text}{ellipsis}'")
+            _logger.info(f"Inserting transcribed text: '{preview_text}{ellipsis}'")
             success = self.text_inserter.insert_text(text)
 
             if success:
-                logger.info("Text insertion successful")
+                _logger.info("Text insertion successful")
                 print(f"✓ Inserted: {text}")
             else:
-                logger.error("Text insertion failed")
+                _logger.error("Text insertion failed")
                 print(f"✗ Failed to insert text: {text}")
                 print("Check that you have focus on a text input field")
 
         except text_inserter.TextInsertionError as e:
-            logger.error(f"Text insertion error: {e}")
+            _logger.error(f"Text insertion error: {e}")
             print(f"Text insertion error: {e}")
             print(f"Transcribed text: {text}")
         except Exception as e:
-            logger.error(f"Unexpected error during text insertion: {e}")
+            _logger.error(f"Unexpected error during text insertion: {e}")
             print(f"Unexpected error during text insertion: {e}")
             print(f"Transcribed text: {text}")
 
     def cleanup(self) -> None:
         """Clean up application resources."""
-        logger.info("Cleaning up application resources...")
+        _logger.info("Cleaning up application resources...")
 
         try:
             if self.key_monitor:
@@ -394,10 +394,10 @@ class WhisperClaudeApp:
             if self.text_inserter:
                 self.text_inserter.close()
 
-            logger.info("Application cleanup completed")
+            _logger.info("Application cleanup completed")
 
         except Exception as e:
-            logger.error(f"Error during cleanup: {e}")
+            _logger.error(f"Error during cleanup: {e}")
 
 
 def main() -> None:

@@ -19,7 +19,7 @@ except ImportError as e:
 
 import whisper_wayland.config as config
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class KeyMonitorError(Exception):
@@ -63,9 +63,9 @@ class KeyMonitor:
         # Parse hotkey configuration
         try:
             self._parse_hotkey_combination()
-            logger.info(f"Key monitor initialized with hotkey: {config.hotkey}")
+            _logger.info(f"Key monitor initialized with hotkey: {config.hotkey}")
         except Exception as e:
-            logger.error(f"Failed to initialize key monitor: {e}")
+            _logger.error(f"Failed to initialize key monitor: {e}")
             raise KeyMonitorError(f"Key monitor initialization failed: {e}") from e
 
     def _build_key_map(self) -> dict[int, str]:
@@ -184,10 +184,10 @@ class KeyMonitor:
                     # Function keys like f1, f2, etc.
                     self._hotkey_combination.add(part)
                 else:
-                    logger.warning(f"Unknown key in hotkey: {part}")
+                    _logger.warning(f"Unknown key in hotkey: {part}")
                     self._hotkey_combination.add(part)
 
-        logger.debug(f"Parsed hotkey combination: {self._hotkey_combination}")
+        _logger.debug(f"Parsed hotkey combination: {self._hotkey_combination}")
 
     def _find_keyboard_devices(self) -> bool:
         """Find and open keyboard input devices.
@@ -208,22 +208,22 @@ class KeyMonitor:
                     keys = capabilities[evdev.ecodes.EV_KEY]
                     if evdev.ecodes.KEY_SPACE in keys or evdev.ecodes.KEY_ENTER in keys:
                         devices_found.append(device)
-                        logger.debug(f"Found keyboard device: {device.name} ({device.path})")
+                        _logger.debug(f"Found keyboard device: {device.name} ({device.path})")
 
         except PermissionError as e:
-            logger.error(f"Permission denied accessing input devices: {e}")
-            logger.error("Try running with elevated permissions or add user to input group")
+            _logger.error(f"Permission denied accessing input devices: {e}")
+            _logger.error("Try running with elevated permissions or add user to input group")
             raise KeyMonitorError(f"Permission denied accessing input devices: {e}") from e
         except Exception as e:
-            logger.error(f"Error finding keyboard devices: {e}")
+            _logger.error(f"Error finding keyboard devices: {e}")
             raise KeyMonitorError(f"Error finding keyboard devices: {e}") from e
 
         if not devices_found:
-            logger.error("No keyboard devices found")
+            _logger.error("No keyboard devices found")
             raise KeyMonitorError("No keyboard devices found")
 
         self._devices = devices_found
-        logger.info(f"Monitoring {len(self._devices)} keyboard device(s)")
+        _logger.info(f"Monitoring {len(self._devices)} keyboard device(s)")
         return True
 
     def _get_key_name(self, keycode: int) -> typing.Optional[str]:
@@ -279,28 +279,28 @@ class KeyMonitor:
         if hotkey_active and not self._hotkey_pressed:
             # Hotkey just pressed
             self._hotkey_pressed = True
-            logger.debug("Hotkey combination pressed")
+            _logger.debug("Hotkey combination pressed")
             if self._callback:
                 try:
                     # Call callback in separate thread to avoid blocking key handling
                     threading.Thread(target=self._callback, daemon=True).start()
                 except Exception as e:
-                    logger.error(f"Error calling hotkey press callback: {e}")
+                    _logger.error(f"Error calling hotkey press callback: {e}")
 
         elif not hotkey_active and self._hotkey_pressed:
             # Hotkey just released
             self._hotkey_pressed = False
-            logger.debug("Hotkey combination released")
+            _logger.debug("Hotkey combination released")
             if self._release_callback:
                 try:
                     # Call callback in separate thread to avoid blocking key handling
                     threading.Thread(target=self._release_callback, daemon=True).start()
                 except Exception as e:
-                    logger.error(f"Error calling hotkey release callback: {e}")
+                    _logger.error(f"Error calling hotkey release callback: {e}")
 
     def _monitor_loop(self) -> None:
         """Main monitoring loop running in separate thread."""
-        logger.debug("Starting key monitoring loop")
+        _logger.debug("Starting key monitoring loop")
 
         try:
             # Create file descriptor mapping
@@ -324,13 +324,13 @@ class KeyMonitor:
                                 self._handle_key_event(event)
                     except OSError:
                         # Device disconnected
-                        logger.warning(f"Device {device.name} disconnected")
+                        _logger.warning(f"Device {device.name} disconnected")
                         continue
 
         except Exception as e:
-            logger.error(f"Error in monitoring loop: {e}")
+            _logger.error(f"Error in monitoring loop: {e}")
         finally:
-            logger.debug("Key monitoring loop stopped")
+            _logger.debug("Key monitoring loop stopped")
 
     def _handle_key_event(self, event: evdev.InputEvent) -> None:
         """Handle a keyboard event.
@@ -345,13 +345,13 @@ class KeyMonitor:
         with self._lock:
             if event.value == 1:  # Key press
                 self._pressed_keys.add(key_name)
-                logger.debug(f"Key pressed: {key_name}")
-                logger.debug(f"Currently pressed keys: {self._pressed_keys}")
+                _logger.debug(f"Key pressed: {key_name}")
+                _logger.debug(f"Currently pressed keys: {self._pressed_keys}")
 
             elif event.value == 0:  # Key release
                 self._pressed_keys.discard(key_name)
-                logger.debug(f"Key released: {key_name}")
-                logger.debug(f"Currently pressed keys: {self._pressed_keys}")
+                _logger.debug(f"Key released: {key_name}")
+                _logger.debug(f"Currently pressed keys: {self._pressed_keys}")
 
             # Check target combination after each event
             self._check_hotkey_state()
@@ -363,7 +363,7 @@ class KeyMonitor:
             callback: Function to call when hotkey is pressed
         """
         self._callback = callback
-        logger.debug("Key monitor press callback set")
+        _logger.debug("Key monitor press callback set")
 
     def set_release_callback(self, callback: typing.Callable[[], None]) -> None:
         """Set callback for hotkey release events.
@@ -372,7 +372,7 @@ class KeyMonitor:
             callback: Function to call when hotkey is released
         """
         self._release_callback = callback
-        logger.debug("Key monitor release callback set")
+        _logger.debug("Key monitor release callback set")
 
     def start_monitoring(self) -> None:
         """Start global hotkey monitoring.
@@ -382,7 +382,7 @@ class KeyMonitor:
         """
         with self._lock:
             if self._monitoring:
-                logger.warning("Key monitoring already active")
+                _logger.warning("Key monitoring already active")
                 return
 
             try:
@@ -400,10 +400,10 @@ class KeyMonitor:
                 self._monitor_thread.start()
 
                 self._monitoring = True
-                logger.info(f"Global hotkey monitoring started for: {self.config.hotkey}")
+                _logger.info(f"Global hotkey monitoring started for: {self.config.hotkey}")
 
             except Exception as e:
-                logger.error(f"Failed to start key monitoring: {e}")
+                _logger.error(f"Failed to start key monitoring: {e}")
                 self._cleanup_devices()
                 raise KeyMonitorError(f"Failed to start key monitoring: {e}") from e
 
@@ -426,10 +426,10 @@ class KeyMonitor:
                 self._monitoring = False
                 self._pressed_keys.clear()
                 self._hotkey_pressed = False
-                logger.info("Global hotkey monitoring stopped")
+                _logger.info("Global hotkey monitoring stopped")
 
             except Exception as e:
-                logger.error(f"Error stopping key monitoring: {e}")
+                _logger.error(f"Error stopping key monitoring: {e}")
 
     def _cleanup_devices(self) -> None:
         """Clean up input devices."""
@@ -437,7 +437,7 @@ class KeyMonitor:
             try:
                 device.close()
             except Exception as e:
-                logger.debug(f"Error closing device {device.name}: {e}")
+                _logger.debug(f"Error closing device {device.name}: {e}")
         self._devices.clear()
 
     def is_monitoring(self) -> bool:
@@ -469,7 +469,7 @@ class KeyMonitor:
 
     def close(self) -> None:
         """Clean up key monitor resources."""
-        logger.debug("Closing key monitor")
+        _logger.debug("Closing key monitor")
         self.stop_monitoring()
 
 

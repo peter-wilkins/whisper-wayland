@@ -15,7 +15,7 @@ import pyaudio
 
 import whisper_wayland.config as config
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class AudioRecordingError(Exception):
@@ -49,8 +49,8 @@ class AudioRecorder:
         self._lock = threading.Lock()
 
         self._initialize_audio()
-        logger.info("Audio recorder initialized successfully")
-        logger.debug(
+        _logger.info("Audio recorder initialized successfully")
+        _logger.debug(
             f"Audio config: sample_rate={config.audio_sample_rate}, "
             f"chunk_size={config.audio_chunk_size}, "
             f"max_duration={config.max_recording_duration}s"
@@ -61,9 +61,9 @@ class AudioRecorder:
         try:
             self._audio = pyaudio.PyAudio()
             self._validate_audio_system()
-            logger.debug("PyAudio initialized successfully")
+            _logger.debug("PyAudio initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize PyAudio: {e}")
+            _logger.error(f"Failed to initialize PyAudio: {e}")
             raise AudioRecordingError(f"PyAudio initialization failed: {e}") from e
 
     def _validate_audio_system(self) -> None:
@@ -84,7 +84,7 @@ class AudioRecorder:
             if not input_devices:
                 raise AudioRecordingError("No audio input devices found")
 
-            logger.debug(f"Found {len(input_devices)} audio input devices")
+            _logger.debug(f"Found {len(input_devices)} audio input devices")
 
             # Test audio format support
             try:
@@ -95,10 +95,10 @@ class AudioRecorder:
                     input_format=pyaudio.paInt16,
                 )
             except ValueError as e:
-                logger.warning(f"Audio format may not be fully supported: {e}")
+                _logger.warning(f"Audio format may not be fully supported: {e}")
 
         except Exception as e:
-            logger.error(f"Audio system validation failed: {e}")
+            _logger.error(f"Audio system validation failed: {e}")
             raise AudioRecordingError(f"Audio system validation failed: {e}") from e
 
     def start_recording(self) -> None:
@@ -109,7 +109,7 @@ class AudioRecorder:
         """
         with self._lock:
             if self._recording:
-                logger.warning("Recording already in progress")
+                _logger.warning("Recording already in progress")
                 return
 
             try:
@@ -117,10 +117,10 @@ class AudioRecorder:
                 self._audio_data = None
                 self._recording_thread = threading.Thread(target=self._record_audio, daemon=True)
                 self._recording_thread.start()
-                logger.info("Audio recording started")
+                _logger.info("Audio recording started")
             except Exception as e:
                 self._recording = False
-                logger.error(f"Failed to start recording: {e}")
+                _logger.error(f"Failed to start recording: {e}")
                 raise AudioRecordingError(f"Failed to start recording: {e}") from e
 
     def stop_recording(self) -> typing.Optional[bytes]:
@@ -134,18 +134,18 @@ class AudioRecorder:
         """
         with self._lock:
             if not self._recording:
-                logger.warning("No recording in progress")
+                _logger.warning("No recording in progress")
                 return None
 
             try:
                 self._recording = False
-                logger.debug("Stopping audio recording...")
+                _logger.debug("Stopping audio recording...")
 
                 # Wait for recording thread to finish
                 if self._recording_thread and self._recording_thread.is_alive():
                     self._recording_thread.join(timeout=5.0)
                     if self._recording_thread.is_alive():
-                        logger.error("Recording thread did not stop within timeout")
+                        _logger.error("Recording thread did not stop within timeout")
                         raise AudioRecordingError("Recording thread timeout")
 
                 self._cleanup_stream()
@@ -155,14 +155,14 @@ class AudioRecorder:
                 self._recording_thread = None
 
                 if audio_data:
-                    logger.info(f"Audio recording stopped, captured {len(audio_data)} bytes")
+                    _logger.info(f"Audio recording stopped, captured {len(audio_data)} bytes")
                 else:
-                    logger.warning("No audio data captured")
+                    _logger.warning("No audio data captured")
 
                 return audio_data
 
             except Exception as e:
-                logger.error(f"Failed to stop recording: {e}")
+                _logger.error(f"Failed to stop recording: {e}")
                 raise AudioRecordingError(f"Failed to stop recording: {e}") from e
 
     def _record_audio(self) -> None:
@@ -173,7 +173,7 @@ class AudioRecorder:
 
         try:
             if not self._audio:
-                logger.error("Audio system not initialized")
+                _logger.error("Audio system not initialized")
                 return
             self._stream = self._audio.open(
                 format=pyaudio.paInt16,
@@ -183,11 +183,11 @@ class AudioRecorder:
                 frames_per_buffer=self.config.audio_chunk_size,
             )
 
-            logger.debug(f"Audio stream opened, recording for up to {max_duration}s")
+            _logger.debug(f"Audio stream opened, recording for up to {max_duration}s")
 
             while self._recording:
                 if time.time() - start_time >= max_duration:
-                    logger.info(f"Maximum recording duration ({max_duration}s) reached")
+                    _logger.info(f"Maximum recording duration ({max_duration}s) reached")
                     break
 
                 try:
@@ -196,11 +196,11 @@ class AudioRecorder:
                     )
                     frames.append(data)
                 except Exception as e:
-                    logger.error(f"Error reading audio data: {e}")
+                    _logger.error(f"Error reading audio data: {e}")
                     break
 
         except Exception as e:
-            logger.error(f"Error setting up audio stream: {e}")
+            _logger.error(f"Error setting up audio stream: {e}")
             return
 
         finally:
@@ -210,9 +210,9 @@ class AudioRecorder:
         if frames:
             try:
                 self._audio_data = self._frames_to_wav(frames)
-                logger.debug(f"Converted {len(frames)} frames to WAV format")
+                _logger.debug(f"Converted {len(frames)} frames to WAV format")
             except Exception as e:
-                logger.error(f"Failed to convert audio frames to WAV: {e}")
+                _logger.error(f"Failed to convert audio frames to WAV: {e}")
 
     def _cleanup_stream(self) -> None:
         """Clean up audio stream resources."""
@@ -220,9 +220,9 @@ class AudioRecorder:
             try:
                 self._stream.stop_stream()
                 self._stream.close()
-                logger.debug("Audio stream cleaned up")
+                _logger.debug("Audio stream cleaned up")
             except Exception as e:
-                logger.error(f"Error cleaning up audio stream: {e}")
+                _logger.error(f"Error cleaning up audio stream: {e}")
             finally:
                 self._stream = None
 
@@ -239,7 +239,7 @@ class AudioRecorder:
 
         try:
             if not self._audio:
-                logger.error("Audio system not initialized")
+                _logger.error("Audio system not initialized")
                 return b""
             with wave.open(wav_buffer, "wb") as wav_file:
                 wav_file.setnchannels(1)  # Mono
@@ -251,7 +251,7 @@ class AudioRecorder:
             return wav_buffer.read()
 
         except Exception as e:
-            logger.error(f"Failed to create WAV data: {e}")
+            _logger.error(f"Failed to create WAV data: {e}")
             raise AudioRecordingError(f"WAV creation failed: {e}") from e
 
     def is_recording(self) -> bool:
@@ -286,9 +286,9 @@ class AudioRecorder:
                             "sample_rate": device_info["defaultSampleRate"],
                         }
                     )
-            logger.debug(f"Retrieved {len(devices)} audio input devices")
+            _logger.debug(f"Retrieved {len(devices)} audio input devices")
         except Exception as e:
-            logger.error(f"Failed to get audio devices: {e}")
+            _logger.error(f"Failed to get audio devices: {e}")
 
         return devices
 
@@ -307,10 +307,10 @@ class AudioRecorder:
             if self._audio:
                 self._audio.terminate()
                 self._audio = None
-                logger.debug("Audio recorder closed successfully")
+                _logger.debug("Audio recorder closed successfully")
 
         except Exception as e:
-            logger.error(f"Error closing audio recorder: {e}")
+            _logger.error(f"Error closing audio recorder: {e}")
 
 
 def create_audio_recorder(config: config.Config) -> AudioRecorder:
@@ -328,5 +328,5 @@ def create_audio_recorder(config: config.Config) -> AudioRecorder:
     try:
         return AudioRecorder(config)
     except Exception as e:
-        logger.error(f"Failed to create audio recorder: {e}")
+        _logger.error(f"Failed to create audio recorder: {e}")
         raise

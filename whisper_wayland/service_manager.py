@@ -13,7 +13,7 @@ import whisper_wayland.key_monitor as key_monitor
 import whisper_wayland.text_inserter as text_inserter
 import whisper_wayland.transcription_client as transcription_client
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class ServiceManagerError(Exception):
@@ -42,29 +42,29 @@ class ServiceManager:
         self._text_inserter: typing.Optional[text_inserter.TextInserter] = None
         self._running = False
 
-        logger.info("Service manager placeholder initialized (Step 4 implementation pending)")
+        _logger.info("Service manager placeholder initialized (Step 4 implementation pending)")
 
     def start_service(self) -> None:
         """Start the service with all components (placeholder)."""
         if self._running:
-            logger.warning("Service is already running")
+            _logger.warning("Service is already running")
             return
 
-        logger.info("Service would start here (Step 4 implementation)")
+        _logger.info("Service would start here (Step 4 implementation)")
         self._running = True
 
     def stop_service(self) -> None:
         """Stop the service and cleanup resources (placeholder)."""
         if not self._running:
-            logger.warning("Service is not running")
+            _logger.warning("Service is not running")
             return
 
-        logger.info("Service would stop here (Step 4 implementation)")
+        _logger.info("Service would stop here (Step 4 implementation)")
         self._running = False
 
     def restart_service(self) -> None:
         """Restart the service (placeholder)."""
-        logger.info("Service would restart here (Step 4 implementation)")
+        _logger.info("Service would restart here (Step 4 implementation)")
         self.stop_service()
         self.start_service()
 
@@ -95,7 +95,7 @@ class ServiceManager:
         if self._running:
             self.stop_service()
 
-        logger.debug("Service manager cleanup (placeholder)")
+        _logger.debug("Service manager cleanup (placeholder)")
 
 
 def create_service_manager(config: config.Config) -> ServiceManager:

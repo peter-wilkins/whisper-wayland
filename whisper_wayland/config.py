@@ -12,7 +12,7 @@ import dotenv
 
 import whisper_wayland.constants as constants
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class ConfigError(Exception):
@@ -36,8 +36,8 @@ class Config:
         """
         self._load_env_file(env_file)
         self._validate_required_config()
-        logger.info("Configuration loaded successfully")
-        logger.debug(f"Configuration: {self._get_safe_config_summary()}")
+        _logger.info("Configuration loaded successfully")
+        _logger.debug(f"Configuration: {self._get_safe_config_summary()}")
 
     def _load_env_file(self, env_file: typing.Optional[str]) -> None:
         """Load environment variables from .env file if it exists."""
@@ -45,18 +45,18 @@ class Config:
             if env_file:
                 if os.path.exists(env_file):
                     dotenv.load_dotenv(env_file)
-                    logger.debug(f"Loaded environment from {env_file}")
+                    _logger.debug(f"Loaded environment from {env_file}")
                 else:
-                    logger.warning(f"Environment file {env_file} not found")
+                    _logger.warning(f"Environment file {env_file} not found")
             else:
                 # Try to load from default locations
                 for default_env in [".env", ".env.local"]:
                     if os.path.exists(default_env):
                         dotenv.load_dotenv(default_env)
-                        logger.debug(f"Loaded environment from {default_env}")
+                        _logger.debug(f"Loaded environment from {default_env}")
                         break
         except Exception as e:
-            logger.error(f"Failed to load environment file: {e}")
+            _logger.error(f"Failed to load environment file: {e}")
             raise ConfigError(f"Environment file loading failed: {e}") from e
 
     def _validate_required_config(self) -> None:
@@ -70,7 +70,7 @@ class Config:
 
         if missing_vars:
             error_msg = f"Missing required environment variables: {', '.join(missing_vars)}"
-            logger.error(error_msg)
+            _logger.error(error_msg)
             raise ConfigError(error_msg)
 
     def _get_safe_config_summary(self) -> dict:
@@ -95,7 +95,7 @@ class Config:
         """OpenAI API key for Whisper service."""
         key = os.getenv("OPENAI_API_KEY", "").strip()
         if not key:
-            logger.error("OPENAI_API_KEY is required but not set")
+            _logger.error("OPENAI_API_KEY is required but not set")
             raise ConfigError("OPENAI_API_KEY environment variable is required")
         return key
 
@@ -114,7 +114,7 @@ class Config:
                 raise ValueError("Sample rate must be positive")
             return rate
         except ValueError as e:
-            logger.error(f"Invalid AUDIO_SAMPLE_RATE: {e}")
+            _logger.error(f"Invalid AUDIO_SAMPLE_RATE: {e}")
             raise ConfigError(f"Invalid AUDIO_SAMPLE_RATE: {e}") from e
 
     @property
@@ -126,7 +126,7 @@ class Config:
                 raise ValueError("Chunk size must be positive")
             return chunk_size
         except ValueError as e:
-            logger.error(f"Invalid AUDIO_CHUNK_SIZE: {e}")
+            _logger.error(f"Invalid AUDIO_CHUNK_SIZE: {e}")
             raise ConfigError(f"Invalid AUDIO_CHUNK_SIZE: {e}") from e
 
     @property
@@ -140,7 +140,7 @@ class Config:
                 raise ValueError("Recording duration must be positive")
             return duration
         except ValueError as e:
-            logger.error(f"Invalid MAX_RECORDING_DURATION: {e}")
+            _logger.error(f"Invalid MAX_RECORDING_DURATION: {e}")
             raise ConfigError(f"Invalid MAX_RECORDING_DURATION: {e}") from e
 
     # Logging Configuration
@@ -150,7 +150,9 @@ class Config:
         level = os.getenv("LOG_LEVEL", "INFO").upper().strip()
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if level not in valid_levels:
-            logger.warning(f"Invalid LOG_LEVEL '{level}', using INFO. Valid levels: {valid_levels}")
+            _logger.warning(
+                f"Invalid LOG_LEVEL '{level}', using INFO. Valid levels: {valid_levels}"
+            )
             return "INFO"
         return level
 
@@ -194,7 +196,7 @@ class Config:
                 raise ValueError("Text insertion delay must be non-negative")
             return delay
         except ValueError as e:
-            logger.error(f"Invalid TEXT_INSERTION_DELAY: {e}")
+            _logger.error(f"Invalid TEXT_INSERTION_DELAY: {e}")
             raise ConfigError(f"Invalid TEXT_INSERTION_DELAY: {e}") from e
 
     @property
@@ -203,7 +205,7 @@ class Config:
         method = os.getenv("TEXT_INSERTION_METHOD", "ydotool").strip().lower()
         valid_methods = ["wtype", "ydotool", "xdotool", "clipboard"]
         if method not in valid_methods:
-            logger.warning(
+            _logger.warning(
                 f"Invalid TEXT_INSERTION_METHOD '{method}', using ydotool. "
                 f"Valid methods: {valid_methods}"
             )
@@ -226,5 +228,5 @@ def get_config(env_file: typing.Optional[str] = None) -> Config:
     try:
         return Config(env_file)
     except Exception as e:
-        logger.error(f"Failed to initialize configuration: {e}")
+        _logger.error(f"Failed to initialize configuration: {e}")
         raise

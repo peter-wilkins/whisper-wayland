@@ -15,7 +15,7 @@ import openai
 import whisper_wayland.config as config
 import whisper_wayland.constants as constants
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class TranscriptionError(Exception):
@@ -44,17 +44,17 @@ class TranscriptionClient:
         self._client: typing.Optional[openai.OpenAI] = None
 
         self._initialize_client()
-        logger.info("Transcription client initialized successfully")
-        logger.debug(f"Using Whisper model: {config.whisper_model}")
+        _logger.info("Transcription client initialized successfully")
+        _logger.debug(f"Using Whisper model: {config.whisper_model}")
 
     def _initialize_client(self) -> None:
         """Initialize OpenAI client with error handling."""
         try:
             self._client = openai.OpenAI(api_key=self.config.openai_api_key)
             self._validate_client()
-            logger.debug("OpenAI client initialized successfully")
+            _logger.debug("OpenAI client initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize OpenAI client: {e}")
+            _logger.error(f"Failed to initialize OpenAI client: {e}")
             raise TranscriptionError(f"OpenAI client initialization failed: {e}") from e
 
     def _validate_client(self) -> None:
@@ -69,7 +69,7 @@ class TranscriptionClient:
         # Validate API key format (basic check)
         api_key = self.config.openai_api_key
         if not api_key.startswith("sk-"):
-            logger.warning("API key may not be in expected format")
+            _logger.warning("API key may not be in expected format")
 
         # Validate model name
         valid_models = [
@@ -85,7 +85,7 @@ class TranscriptionClient:
 
         model = self.config.whisper_model
         if model not in valid_models:
-            logger.warning(
+            _logger.warning(
                 f"Model '{model}' may not be supported. Supported models: {', '.join(valid_models)}"
             )
 
@@ -106,11 +106,11 @@ class TranscriptionClient:
             TranscriptionError: If transcription fails after all retries
         """
         if not audio_data:
-            logger.warning("No audio data provided for transcription")
+            _logger.warning("No audio data provided for transcription")
             return None
 
-        logger.info(f"Starting transcription of {len(audio_data)} bytes audio data")
-        logger.debug(
+        _logger.info(f"Starting transcription of {len(audio_data)} bytes audio data")
+        _logger.debug(
             f"Transcription params: model={self.config.whisper_model}, "
             f"language={language}, max_retries={max_retries}"
         )
@@ -121,13 +121,13 @@ class TranscriptionClient:
             except Exception as e:
                 if attempt < max_retries:
                     retry_delay = 2**attempt  # Exponential backoff
-                    logger.warning(
+                    _logger.warning(
                         f"Transcription attempt {attempt + 1} failed: {e}. "
                         f"Retrying in {retry_delay} seconds..."
                     )
                     time.sleep(retry_delay)
                 else:
-                    logger.error(f"Transcription failed after {max_retries + 1} attempts: {e}")
+                    _logger.error(f"Transcription failed after {max_retries + 1} attempts: {e}")
                     raise TranscriptionError(f"Transcription failed: {e}") from e
 
         return None
@@ -165,37 +165,37 @@ class TranscriptionClient:
             transcribed_text = response.strip()
 
             if not transcribed_text:
-                logger.warning("Empty transcription result received")
+                _logger.warning("Empty transcription result received")
                 return ""
 
-            logger.info(
+            _logger.info(
                 f"Transcription successful: '{transcribed_text[: constants.TEXT_PREVIEW_LENGTH]}"
                 f"{'...' if len(transcribed_text) > constants.TEXT_PREVIEW_LENGTH else ''}'"
             )
-            logger.debug(f"Full transcription: '{transcribed_text}'")
+            _logger.debug(f"Full transcription: '{transcribed_text}'")
 
             return transcribed_text
 
         except openai.RateLimitError as e:
-            logger.error(f"OpenAI API rate limit exceeded: {e}")
+            _logger.error(f"OpenAI API rate limit exceeded: {e}")
             raise TranscriptionError(f"API rate limit exceeded: {e}") from e
         except openai.BadRequestError as e:
             # Handle bad request errors (like invalid file format) as expected failures
             error_msg = str(e)
             if "Invalid file format" in error_msg or "Supported formats" in error_msg:
-                logger.warning(f"Invalid audio format provided: {e}")
+                _logger.warning(f"Invalid audio format provided: {e}")
                 return ""  # Return empty string for invalid audio format
             else:
-                logger.error(f"OpenAI API bad request error: {e}")
+                _logger.error(f"OpenAI API bad request error: {e}")
                 raise TranscriptionError(f"API bad request error: {e}") from e
         except openai.APIError as e:
-            logger.error(f"OpenAI API error: {e}")
+            _logger.error(f"OpenAI API error: {e}")
             raise TranscriptionError(f"API error: {e}") from e
         except openai.AuthenticationError as e:
-            logger.error(f"OpenAI authentication error: {e}")
+            _logger.error(f"OpenAI authentication error: {e}")
             raise TranscriptionError(f"Authentication error: {e}") from e
         except Exception as e:
-            logger.error(f"Unexpected transcription error: {e}")
+            _logger.error(f"Unexpected transcription error: {e}")
             raise TranscriptionError(f"Unexpected error: {e}") from e
 
     def _map_model_name(self, model: str) -> str:
@@ -222,7 +222,7 @@ class TranscriptionClient:
 
         api_model = model_mapping.get(model, "whisper-1")
         if api_model != model:
-            logger.debug(f"Mapped model '{model}' to API model '{api_model}'")
+            _logger.debug(f"Mapped model '{model}' to API model '{api_model}'")
 
         return api_model
 
@@ -238,14 +238,14 @@ class TranscriptionClient:
             result = self.transcribe_audio(test_audio_data, max_retries=1)
 
             if result is not None:
-                logger.info("OpenAI API connection test successful")
+                _logger.info("OpenAI API connection test successful")
                 return True
             else:
-                logger.warning("OpenAI API connection test returned no result")
+                _logger.warning("OpenAI API connection test returned no result")
                 return False
 
         except Exception as e:
-            logger.error(f"OpenAI API connection test failed: {e}")
+            _logger.error(f"OpenAI API connection test failed: {e}")
             return False
 
     def _create_test_audio(self) -> bytes:
@@ -325,9 +325,9 @@ class TranscriptionClient:
             if self._client:
                 # OpenAI client doesn't require explicit cleanup
                 self._client = None
-                logger.debug("Transcription client closed successfully")
+                _logger.debug("Transcription client closed successfully")
         except Exception as e:
-            logger.error(f"Error closing transcription client: {e}")
+            _logger.error(f"Error closing transcription client: {e}")
 
     def __del__(self) -> None:
         """Cleanup resources on object destruction."""
@@ -349,5 +349,5 @@ def create_transcription_client(config: config.Config) -> TranscriptionClient:
     try:
         return TranscriptionClient(config)
     except Exception as e:
-        logger.error(f"Failed to create transcription client: {e}")
+        _logger.error(f"Failed to create transcription client: {e}")
         raise
