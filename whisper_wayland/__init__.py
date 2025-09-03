@@ -8,6 +8,7 @@ __version__ = "0.1.0"
 __author__ = "Roland Tritsch"
 __email__ = "roland@tritsch.org"
 
+import whisper_wayland.application as application
 import whisper_wayland.main as main
 
-__all__ = ["main"]
+__all__ = ["main", "application"]

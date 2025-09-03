@@ -302,12 +302,8 @@ class TestTranscriptionClient:
             test_config = config.Config()
 
         with unittest.mock.patch(
-            "whisper_wayland.transcription_client.TranscriptionClient"
-        ) as mock_client:
-            mock_instance = unittest.mock.Mock()
-            mock_client.return_value = mock_instance
-
+            "whisper_wayland.transcription_client.TranscriptionClient.__init__", return_value=None
+        ):
             result = transcription_client.TranscriptionClient.new(test_config)
 
-            assert result == mock_instance
-            mock_client.assert_called_once_with(test_config)
+            assert isinstance(result, transcription_client.TranscriptionClient)

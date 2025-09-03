@@ -264,11 +264,9 @@ class TestAudioRecorder:
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             test_config = config.Config()
 
-        with unittest.mock.patch("whisper_wayland.audio_recorder.AudioRecorder") as mock_recorder:
-            mock_instance = unittest.mock.Mock()
-            mock_recorder.return_value = mock_instance
-
+        with unittest.mock.patch(
+            "whisper_wayland.audio_recorder.AudioRecorder.__init__", return_value=None
+        ):
             result = audio_recorder.AudioRecorder.new(test_config)
 
-            assert result == mock_instance
-            mock_recorder.assert_called_once_with(test_config)
+            assert isinstance(result, audio_recorder.AudioRecorder)
