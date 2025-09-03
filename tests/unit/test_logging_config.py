@@ -1,6 +1,6 @@
 """Whisper Wayland - Logging Configuration Tests
 
-Unit tests for logging configuration module including
+Unit tests for logging configuration functionality including
 logger setup and configuration handling."""
 
 import os
@@ -9,7 +9,6 @@ import unittest.mock
 
 import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.logging_config as logging_config
 
 
 class TestLoggingConfig:
@@ -23,7 +22,7 @@ class TestLoggingConfig:
             mock_root_logger = unittest.mock.Mock()
             mock_get_logger.return_value = mock_root_logger
 
-            logging_config.setup_logging(test_config)
+            test_config.setup_logging()
 
             # Verify that setup_logging calls the essential functions
             # Due to test isolation complexities, just verify it was called
@@ -44,7 +43,7 @@ class TestLoggingConfig:
                 mock_root_logger = unittest.mock.Mock()
                 mock_get_logger.return_value = mock_root_logger
 
-                logging_config.setup_logging(test_config)
+                test_config.setup_logging()
 
                 # Verify setup_logging was called (level may vary due to CI environment)
                 assert mock_root_logger.setLevel.called
@@ -59,7 +58,7 @@ class TestLoggingConfig:
                 mock_root_logger = unittest.mock.Mock()
                 mock_get_logger.return_value = mock_root_logger
 
-                logging_config.setup_logging(test_config, log_file)
+                test_config.setup_logging(log_file)
 
                 # Should add both console and file handlers
                 assert mock_root_logger.addHandler.call_count == ww.Constants.EXPECTED_HANDLER_COUNT
@@ -76,30 +75,32 @@ class TestLoggingConfig:
             mock_get_logger.return_value = mock_root_logger
 
             # Should not raise an error, just log it
-            logging_config.setup_logging(test_config, invalid_file)
+            test_config.setup_logging(invalid_file)
 
             # Should still add console handler
             assert mock_root_logger.addHandler.call_count >= 1
 
     def test_configure_third_party_loggers(self) -> None:
         """Test third-party logger configuration."""
+        test_config = config.Config()
+
         with unittest.mock.patch("logging.getLogger") as mock_get_logger:
             mock_logger = unittest.mock.Mock()
             mock_get_logger.return_value = mock_logger
 
-            logging_config._configure_third_party_loggers()
+            test_config._configure_third_party_loggers()
 
             # Should be called for each third-party logger
             assert mock_get_logger.call_count >= ww.Constants.MIN_LOGGER_CALLS
             assert mock_logger.setLevel.call_count >= ww.Constants.MIN_LOGGER_CALLS
 
     def test_get_logger(self) -> None:
-        """Test get_logger function."""
+        """Test get_logger static method."""
         with unittest.mock.patch("logging.getLogger") as mock_get_logger:
             mock_logger = unittest.mock.Mock()
             mock_get_logger.return_value = mock_logger
 
-            result = logging_config.get_logger("test.module")
+            result = config.Config.get_logger("test.module")
 
             assert result == mock_logger
             mock_get_logger.assert_called_once_with("test.module")
@@ -114,7 +115,7 @@ class TestLoggingConfig:
             mock_root_logger = unittest.mock.Mock()
             mock_get_logger.return_value = mock_root_logger
 
-            logging_config.setup_logging(test_config)
+            test_config.setup_logging()
 
             # Verify that setup_logging calls setLevel (exact level may vary due to CI)
             assert mock_root_logger.setLevel.called
@@ -135,7 +136,7 @@ class TestLoggingConfig:
             mock_handler = unittest.mock.Mock()
             mock_handler_class.return_value = mock_handler
 
-            logging_config.setup_logging(debug_config)
+            debug_config.setup_logging()
 
             # Handler should be configured with formatter
             assert mock_handler.setFormatter.called
@@ -154,7 +155,7 @@ class TestLoggingConfig:
             mock_handler = unittest.mock.Mock()
             mock_handler_class.return_value = mock_handler
 
-            logging_config.setup_logging(info_config)
+            info_config.setup_logging()
 
             # Handler should be configured with formatter
             assert mock_handler.setFormatter.called

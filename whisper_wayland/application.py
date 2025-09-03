@@ -11,7 +11,6 @@ import time
 import typing
 
 import whisper_wayland as ww
-import whisper_wayland.logging_config as logging_config
 
 _logger = logging.getLogger(__name__)
 
@@ -55,7 +54,7 @@ class Application:
         self.config = ww.Config.get(config_file)
 
         # Setup logging
-        logging_config.setup_logging(self.config)
+        self.config.setup_logging()
 
         # Initialize audio recorder
         self.audio_recorder = ww.AudioRecorder.new(self.config)

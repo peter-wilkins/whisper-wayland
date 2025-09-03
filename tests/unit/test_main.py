@@ -18,7 +18,7 @@ class TestApplication:
     @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_app_initialization_success(  # noqa: PLR0913
         self,
@@ -50,7 +50,7 @@ class TestApplication:
         assert app.transcription_client == mock_client
         assert app.key_monitor == mock_key_monitor
         assert app.text_inserter == mock_text_inserter
-        mock_setup_logging.assert_called_once_with(test_config)
+        mock_setup_logging.assert_called_once_with()
         mock_client.test_connection.assert_called_once()
         mock_text_inserter.test_insertion.assert_called_once()
 
@@ -66,7 +66,7 @@ class TestApplication:
     @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_app_initialization_with_config_file(  # noqa: PLR0913
         self,
@@ -97,7 +97,7 @@ class TestApplication:
     @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_validate_components_success(  # noqa: PLR0913
         self,
@@ -127,7 +127,7 @@ class TestApplication:
     @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_validate_components_missing_config(  # noqa: PLR0913
         self,
@@ -157,7 +157,7 @@ class TestApplication:
 
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_record_audio_session(
         self,
@@ -189,7 +189,7 @@ class TestApplication:
 
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_record_audio_session_no_recorder(
         self,
@@ -215,7 +215,7 @@ class TestApplication:
 
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_transcribe_audio(
         self,
@@ -243,7 +243,7 @@ class TestApplication:
 
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_transcribe_audio_no_client(
         self,
@@ -268,7 +268,7 @@ class TestApplication:
     @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_insert_text(  # noqa: PLR0913
         self,
@@ -305,7 +305,7 @@ class TestApplication:
     @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_cleanup(  # noqa: PLR0913
         self,
@@ -340,7 +340,7 @@ class TestApplication:
 
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
     @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch("whisper_wayland.application.logging_config.setup_logging")
+    @unittest.mock.patch.object(ww.Config, "setup_logging")
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_wait_for_recording_trigger_keyboard_interrupt(
         self,
