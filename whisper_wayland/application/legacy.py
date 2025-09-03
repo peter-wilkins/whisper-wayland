@@ -1,6 +1,6 @@
-"""Whisper Wayland - Legacy Step 1 Functionality
+"""Whisper Wayland - Legacy Simple Recording Functionality
 
-Provides backward compatibility for Step 1 simple recording mode.
+Provides backward compatibility for simple recording mode.
 """
 
 import logging
@@ -12,7 +12,7 @@ _logger = logging.getLogger(__name__)
 
 
 class LegacyRecorder:
-    """Legacy Step 1 recording functionality."""
+    """Legacy simple recording functionality."""
 
     def __init__(self, audio_recorder: "ww.AudioRecorder") -> None:
         """Initialize legacy recorder.
@@ -23,14 +23,14 @@ class LegacyRecorder:
         self.audio_recorder = audio_recorder
 
     def wait_for_recording_trigger(self) -> bool:
-        """Wait for recording trigger (Step 1: simple implementation).
+        """Wait for recording trigger (simple implementation).
 
-        In Step 1, this is a simple prompt for demonstration.
+        This is a simple prompt for demonstration purposes.
 
         Returns:
             True to continue, False to exit
         """
-        # Simple Step 1 implementation: wait for Enter key
+        # Simple implementation: wait for Enter key
         print("\nPress Enter to simulate Ctrl+Space recording trigger (or Ctrl+C to exit)...")
         try:
             input()
@@ -39,7 +39,7 @@ class LegacyRecorder:
             return False
 
     def record_audio_session(self) -> typing.Optional[bytes]:
-        """Record an audio session (Step 1 functionality).
+        """Record an audio session (simple functionality).
 
         Returns:
             Recorded audio data or None if recording failed
@@ -48,7 +48,7 @@ class LegacyRecorder:
             _logger.info("Starting audio recording... (speak now)")
             self.audio_recorder.start_recording()
 
-            # Simple Step 1 implementation: record for fixed time or until Enter
+            # Simple implementation: record for fixed time or until Enter
             print("Recording... Press Enter to stop recording")
             try:
                 input()

@@ -70,12 +70,11 @@ class RuntimeManager:
             _logger.error(f"Error in main loop: {e}")
 
     def wait_for_recording_trigger(self) -> None:
-        """Wait for recording trigger (Step 1: simple implementation).
+        """Wait for recording trigger (simple implementation).
 
-        In Step 1, this is a simple prompt for demonstration.
-        In Step 2, this will be replaced with proper hotkey detection.
+        This is a simple prompt for demonstration purposes.
         """
-        # Simple Step 1 implementation: wait for Enter key
+        # Simple implementation: wait for Enter key
         print("\nPress Enter to simulate Ctrl+Space recording trigger (or Ctrl+C to exit)...")
         try:
             input()
@@ -83,7 +82,7 @@ class RuntimeManager:
             self.app._running = False
 
     def record_audio_session(self) -> bytes | None:
-        """Record an audio session (Step 1 functionality).
+        """Record an audio session.
 
         Returns:
             Recorded audio data or None if recording failed
@@ -96,7 +95,7 @@ class RuntimeManager:
             _logger.info("Starting audio recording... (speak now)")
             self.app.component_manager.audio_recorder.start_recording()
 
-            # Simple Step 1 implementation: record for fixed time or until Enter
+            # Simple implementation: record for fixed time or until Enter
             print("Recording... Press Enter to stop recording")
             try:
                 input()

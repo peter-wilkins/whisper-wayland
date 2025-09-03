@@ -148,13 +148,13 @@ class Application:
 
     # Legacy methods for backward compatibility
     def _wait_for_recording_trigger(self) -> None:
-        """Legacy Step 1 compatibility method."""
+        """Legacy simple recording compatibility method."""
         if self.legacy_recorder:
             if not self.legacy_recorder.wait_for_recording_trigger():
                 self._running = False
 
     def _record_audio_session(self) -> typing.Optional[bytes]:
-        """Legacy Step 1 compatibility method."""
+        """Legacy simple recording compatibility method."""
         if self.legacy_recorder:
             return self.legacy_recorder.record_audio_session()
         return None
