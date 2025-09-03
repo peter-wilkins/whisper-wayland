@@ -12,8 +12,8 @@ import subprocess
 import time
 import typing
 
+import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants
 
 _logger = logging.getLogger(__name__)
 
@@ -144,8 +144,8 @@ class TextInserter:
             _logger.warning("Text became empty after cleaning")
             return False
 
-        preview_text = cleaned_text[: constants.TEXT_PREVIEW_LENGTH]
-        ellipsis = "..." if len(cleaned_text) > constants.TEXT_PREVIEW_LENGTH else ""
+        preview_text = cleaned_text[: ww.Constants.TEXT_PREVIEW_LENGTH]
+        ellipsis = "..." if len(cleaned_text) > ww.Constants.TEXT_PREVIEW_LENGTH else ""
         _logger.info(
             f"Inserting text using {self._preferred_method.value}: '{preview_text}{ellipsis}'"
         )

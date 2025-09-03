@@ -9,8 +9,8 @@ import unittest.mock
 
 import pytest
 
+import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants
 
 
 class TestConfig:
@@ -26,9 +26,9 @@ class TestConfig:
 
                 assert test_config.openai_api_key == "sk-test123"
                 assert test_config.whisper_model == "base"
-                assert test_config.audio_sample_rate == constants.DEFAULT_SAMPLE_RATE
-                assert test_config.audio_chunk_size == constants.DEFAULT_CHUNK_SIZE
-                assert test_config.max_recording_duration == constants.DEFAULT_RECORDING_DURATION
+                assert test_config.audio_sample_rate == ww.Constants.DEFAULT_SAMPLE_RATE
+                assert test_config.audio_chunk_size == ww.Constants.DEFAULT_CHUNK_SIZE
+                assert test_config.max_recording_duration == ww.Constants.DEFAULT_RECORDING_DURATION
                 assert test_config.log_level == "INFO"
                 assert test_config.hotkey == "ctrl+compose"
         finally:
@@ -66,9 +66,9 @@ class TestConfig:
 
             assert test_config.openai_api_key == "sk-custom123"
             assert test_config.whisper_model == "large"
-            assert test_config.audio_sample_rate == constants.HIGH_QUALITY_SAMPLE_RATE
-            assert test_config.audio_chunk_size == constants.LARGE_CHUNK_SIZE
-            assert test_config.max_recording_duration == constants.LONG_RECORDING_DURATION
+            assert test_config.audio_sample_rate == ww.Constants.HIGH_QUALITY_SAMPLE_RATE
+            assert test_config.audio_chunk_size == ww.Constants.LARGE_CHUNK_SIZE
+            assert test_config.max_recording_duration == ww.Constants.LONG_RECORDING_DURATION
             assert test_config.log_level == "DEBUG"
             assert test_config.hotkey == "alt+space"
 
@@ -108,12 +108,12 @@ class TestConfig:
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             # Default value
             test_config = config.Config()
-            assert test_config.text_insertion_delay == constants.DEFAULT_TEXT_INSERTION_DELAY
+            assert test_config.text_insertion_delay == ww.Constants.DEFAULT_TEXT_INSERTION_DELAY
 
             # Custom value
             with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "0.5"}):
                 test_config = config.Config()
-                assert test_config.text_insertion_delay == constants.CUSTOM_TEXT_INSERTION_DELAY
+                assert test_config.text_insertion_delay == ww.Constants.CUSTOM_TEXT_INSERTION_DELAY
 
             # Invalid value
             with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "invalid"}):

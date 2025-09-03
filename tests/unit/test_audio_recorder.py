@@ -11,9 +11,9 @@ import unittest.mock
 import pytest
 
 import tests.unit.conftest as conftest
+import whisper_wayland as ww
 import whisper_wayland.audio_recorder as audio_recorder
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants
 
 
 class TestAudioRecorder:
@@ -200,11 +200,11 @@ class TestAudioRecorder:
 
         devices = recorder.get_audio_devices()
 
-        assert len(devices) == constants.EXPECTED_DEVICE_COUNT  # Only input devices
+        assert len(devices) == ww.Constants.EXPECTED_DEVICE_COUNT  # Only input devices
         assert devices[0]["name"] == "Microphone 1"
-        assert devices[0]["channels"] == constants.EXPECTED_CHANNELS_MONO
+        assert devices[0]["channels"] == ww.Constants.EXPECTED_CHANNELS_MONO
         assert devices[1]["name"] == "Microphone 2"
-        assert devices[1]["channels"] == constants.EXPECTED_CHANNELS_STEREO
+        assert devices[1]["channels"] == ww.Constants.EXPECTED_CHANNELS_STEREO
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recorder_close(

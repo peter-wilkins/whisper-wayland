@@ -10,7 +10,7 @@ import typing
 
 import dotenv
 
-import whisper_wayland.constants as constants
+import whisper_wayland as ww
 
 _logger = logging.getLogger(__name__)
 
@@ -109,7 +109,7 @@ class Config:
     def audio_sample_rate(self) -> int:
         """Audio recording sample rate in Hz."""
         try:
-            rate = int(os.getenv("AUDIO_SAMPLE_RATE", str(constants.DEFAULT_SAMPLE_RATE)))
+            rate = int(os.getenv("AUDIO_SAMPLE_RATE", str(ww.Constants.DEFAULT_SAMPLE_RATE)))
             if rate <= 0:
                 raise ValueError("Sample rate must be positive")
             return rate
@@ -121,7 +121,7 @@ class Config:
     def audio_chunk_size(self) -> int:
         """Audio buffer chunk size in samples."""
         try:
-            chunk_size = int(os.getenv("AUDIO_CHUNK_SIZE", str(constants.DEFAULT_CHUNK_SIZE)))
+            chunk_size = int(os.getenv("AUDIO_CHUNK_SIZE", str(ww.Constants.DEFAULT_CHUNK_SIZE)))
             if chunk_size <= 0:
                 raise ValueError("Chunk size must be positive")
             return chunk_size
@@ -134,7 +134,7 @@ class Config:
         """Maximum recording duration in seconds."""
         try:
             duration = int(
-                os.getenv("MAX_RECORDING_DURATION", str(constants.DEFAULT_RECORDING_DURATION))
+                os.getenv("MAX_RECORDING_DURATION", str(ww.Constants.DEFAULT_RECORDING_DURATION))
             )
             if duration <= 0:
                 raise ValueError("Recording duration must be positive")
@@ -190,7 +190,7 @@ class Config:
         """Delay before text insertion in seconds."""
         try:
             delay = float(
-                os.getenv("TEXT_INSERTION_DELAY", str(constants.DEFAULT_TEXT_INSERTION_DELAY))
+                os.getenv("TEXT_INSERTION_DELAY", str(ww.Constants.DEFAULT_TEXT_INSERTION_DELAY))
             )
             if delay < 0:
                 raise ValueError("Text insertion delay must be non-negative")

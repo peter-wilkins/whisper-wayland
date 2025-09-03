@@ -8,8 +8,8 @@ import subprocess
 import typing
 import unittest.mock
 
+import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants
 import whisper_wayland.text_inserter as text_inserter
 import whisper_wayland.text_inserter as text_inserter_module
 
@@ -293,7 +293,9 @@ class TestTextInserter:
                 result = text_inserter._insert_with_clipboard("test text")
 
             assert result is True
-            assert mock_run.call_count == constants.EXPECTED_DEVICE_COUNT  # wl-copy + ydotool paste
+            assert (
+                mock_run.call_count == ww.Constants.EXPECTED_DEVICE_COUNT
+            )  # wl-copy + ydotool paste
 
     def test_insert_with_clipboard_xclip(
         self, text_inserter: text_inserter_module.TextInserter
@@ -319,7 +321,9 @@ class TestTextInserter:
                 result = text_inserter._insert_with_clipboard("test text")
 
             assert result is True
-            assert mock_run.call_count == constants.EXPECTED_DEVICE_COUNT  # xclip + xdotool paste
+            assert (
+                mock_run.call_count == ww.Constants.EXPECTED_DEVICE_COUNT
+            )  # xclip + xdotool paste
 
     def test_insert_method_failure(self, text_inserter: text_inserter_module.TextInserter) -> None:
         """Test handling of subprocess failures."""
@@ -364,7 +368,7 @@ class TestTextInserter:
             result = text_inserter._try_fallback_methods("test")
 
             assert result is True
-            assert mock_insert.call_count == constants.EXPECTED_DEVICE_COUNT
+            assert mock_insert.call_count == ww.Constants.EXPECTED_DEVICE_COUNT
 
     def test_try_fallback_methods_all_fail(
         self, text_inserter: text_inserter_module.TextInserter

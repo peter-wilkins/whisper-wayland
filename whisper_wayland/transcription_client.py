@@ -12,8 +12,8 @@ import typing
 
 import openai
 
+import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants
 
 _logger = logging.getLogger(__name__)
 
@@ -169,8 +169,8 @@ class TranscriptionClient:
                 return ""
 
             _logger.info(
-                f"Transcription successful: '{transcribed_text[: constants.TEXT_PREVIEW_LENGTH]}"
-                f"{'...' if len(transcribed_text) > constants.TEXT_PREVIEW_LENGTH else ''}'"
+                f"Transcription successful: '{transcribed_text[: ww.Constants.TEXT_PREVIEW_LENGTH]}"
+                f"{'...' if len(transcribed_text) > ww.Constants.TEXT_PREVIEW_LENGTH else ''}'"
             )
             _logger.debug(f"Full transcription: '{transcribed_text}'")
 

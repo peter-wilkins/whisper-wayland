@@ -11,7 +11,6 @@ import time
 import typing
 
 import whisper_wayland as ww
-import whisper_wayland.constants as constants
 import whisper_wayland.logging_config as logging_config
 
 _logger = logging.getLogger(__name__)
@@ -319,7 +318,7 @@ class Application:
             transcribed_text = self.transcription_client.transcribe_audio(audio_data)
 
             if transcribed_text:
-                preview_len = constants.TRANSCRIPTION_PREVIEW_LENGTH
+                preview_len = ww.Constants.TRANSCRIPTION_PREVIEW_LENGTH
                 preview_text = transcribed_text[:preview_len]
                 ellipsis = "..." if len(transcribed_text) > preview_len else ""
                 _logger.info(f"Transcription completed: '{preview_text}{ellipsis}'")
@@ -348,7 +347,7 @@ class Application:
             return
 
         try:
-            preview_len = constants.TEXT_PREVIEW_LENGTH
+            preview_len = ww.Constants.TEXT_PREVIEW_LENGTH
             preview_text = text[:preview_len]
             ellipsis = "..." if len(text) > preview_len else ""
             _logger.info(f"Inserting transcribed text: '{preview_text}{ellipsis}'")

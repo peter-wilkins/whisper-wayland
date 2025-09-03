@@ -7,8 +7,8 @@ import os
 import tempfile
 import unittest.mock
 
+import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants
 import whisper_wayland.logging_config as logging_config
 
 
@@ -62,7 +62,7 @@ class TestLoggingConfig:
                 logging_config.setup_logging(test_config, log_file)
 
                 # Should add both console and file handlers
-                assert mock_root_logger.addHandler.call_count == constants.EXPECTED_HANDLER_COUNT
+                assert mock_root_logger.addHandler.call_count == ww.Constants.EXPECTED_HANDLER_COUNT
 
         finally:
             os.unlink(log_file)
@@ -90,8 +90,8 @@ class TestLoggingConfig:
             logging_config._configure_third_party_loggers()
 
             # Should be called for each third-party logger
-            assert mock_get_logger.call_count >= constants.MIN_LOGGER_CALLS
-            assert mock_logger.setLevel.call_count >= constants.MIN_LOGGER_CALLS
+            assert mock_get_logger.call_count >= ww.Constants.MIN_LOGGER_CALLS
+            assert mock_logger.setLevel.call_count >= ww.Constants.MIN_LOGGER_CALLS
 
     def test_get_logger(self) -> None:
         """Test get_logger function."""

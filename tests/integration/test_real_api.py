@@ -11,8 +11,8 @@ import unittest.mock
 
 import pytest
 
+import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants
 import whisper_wayland.transcription_client as transcription_client
 
 
@@ -144,7 +144,7 @@ class TestConfigurationIntegration:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write(f"OPENAI_API_KEY={api_key}\n")
             f.write("WHISPER_MODEL=large\n")
-            f.write(f"AUDIO_SAMPLE_RATE={constants.HIGH_QUALITY_SAMPLE_RATE}\n")
+            f.write(f"AUDIO_SAMPLE_RATE={ww.Constants.HIGH_QUALITY_SAMPLE_RATE}\n")
             f.write("LOG_LEVEL=DEBUG\n")
             env_file_path = f.name
 
@@ -161,7 +161,7 @@ class TestConfigurationIntegration:
 
             assert test_config.openai_api_key == api_key
             assert test_config.whisper_model == "large"
-            assert test_config.audio_sample_rate == constants.HIGH_QUALITY_SAMPLE_RATE
+            assert test_config.audio_sample_rate == ww.Constants.HIGH_QUALITY_SAMPLE_RATE
             assert test_config.log_level == "DEBUG"
 
         finally:

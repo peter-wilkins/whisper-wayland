@@ -9,8 +9,8 @@ import unittest.mock
 
 import pytest
 
+import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants
 import whisper_wayland.key_monitor as key_monitor
 
 
@@ -135,7 +135,7 @@ class TestKeyMonitor:
         monitor.start_monitoring()
 
         assert monitor.is_monitoring()
-        assert len(monitor._devices) == constants.EXPECTED_DEVICE_COUNT  # Two mock devices
+        assert len(monitor._devices) == ww.Constants.EXPECTED_DEVICE_COUNT  # Two mock devices
 
     def test_start_monitoring_already_active(
         self, test_config_with_hotkey: config.Config, mock_evdev: unittest.mock.Mock

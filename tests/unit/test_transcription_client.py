@@ -9,8 +9,8 @@ import unittest.mock
 import openai
 import pytest
 
+import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants
 import whisper_wayland.transcription_client as transcription_client
 
 
@@ -150,7 +150,7 @@ class TestTranscriptionClient:
             result = client.transcribe_audio(test_audio, max_retries=2)
 
         assert result == "Transcription successful"
-        assert mock_transcription.create.call_count == constants.EXPECTED_DEVICE_COUNT
+        assert mock_transcription.create.call_count == ww.Constants.EXPECTED_DEVICE_COUNT
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcribe_audio_max_retries_exceeded(
@@ -234,7 +234,7 @@ class TestTranscriptionClient:
         test_audio = client._create_test_audio()
 
         assert isinstance(test_audio, bytes)
-        assert len(test_audio) > constants.WAV_HEADER_SIZE  # Should include WAV header
+        assert len(test_audio) > ww.Constants.WAV_HEADER_SIZE  # Should include WAV header
 
         # Check WAV header magic
         assert test_audio.startswith(b"RIFF")

@@ -13,6 +13,7 @@ from whisper_wayland.audio_recorder import AudioRecorder as AudioRecorder
 from whisper_wayland.audio_recorder import AudioRecordingError as AudioRecordingError
 from whisper_wayland.config import Config as Config
 from whisper_wayland.config import ConfigError as ConfigError
+from whisper_wayland.constants import Constants as Constants
 from whisper_wayland.key_monitor import KeyMonitor as KeyMonitor
 from whisper_wayland.key_monitor import KeyMonitorError as KeyMonitorError
 from whisper_wayland.main import main as main
