@@ -11,6 +11,4 @@ __email__ = "roland@tritsch.org"
 
 import whisper_wayland.main as main
 
-main_function = main.main
-
-__all__ = ["main", "main_function"]
+__all__ = ["main"]
