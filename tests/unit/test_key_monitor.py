@@ -6,7 +6,9 @@ import unittest.mock
 
 import pytest
 
-from whisper_wayland import config, constants, key_monitor
+import whisper_wayland.config as config
+import whisper_wayland.constants as constants
+import whisper_wayland.key_monitor as key_monitor
 
 
 class TestKeyMonitor:

@@ -7,9 +7,10 @@ import unittest.mock
 
 import pytest
 
-from whisper_wayland import audio_recorder, config, constants
-
-from .conftest import create_mock_audio_instance, create_mock_stream
+import tests.unit.conftest as conftest
+import whisper_wayland.audio_recorder as audio_recorder
+import whisper_wayland.config as config
+import whisper_wayland.constants as constants
 
 
 class TestAudioRecorder:
@@ -63,7 +64,7 @@ class TestAudioRecorder:
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_start_recording_success(self, mock_pyaudio, test_config):
         """Test successful recording start."""
-        mock_audio_instance = create_mock_audio_instance()
+        mock_audio_instance = conftest.create_mock_audio_instance()
         mock_pyaudio.return_value = mock_audio_instance
 
         recorder = audio_recorder.AudioRecorder(test_config)
@@ -78,7 +79,7 @@ class TestAudioRecorder:
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_start_recording_already_recording(self, mock_pyaudio, test_config):
         """Test starting recording when already recording."""
-        mock_audio_instance = create_mock_audio_instance()
+        mock_audio_instance = conftest.create_mock_audio_instance()
         mock_pyaudio.return_value = mock_audio_instance
 
         recorder = audio_recorder.AudioRecorder(test_config)
@@ -94,8 +95,8 @@ class TestAudioRecorder:
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_stop_recording_success(self, mock_pyaudio, test_config):
         """Test successful recording stop with audio data."""
-        mock_audio_instance = create_mock_audio_instance()
-        mock_stream = create_mock_stream()
+        mock_audio_instance = conftest.create_mock_audio_instance()
+        mock_stream = conftest.create_mock_stream()
         mock_audio_instance.open.return_value = mock_stream
         mock_pyaudio.return_value = mock_audio_instance
 
@@ -114,7 +115,7 @@ class TestAudioRecorder:
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_stop_recording_not_recording(self, mock_pyaudio, test_config):
         """Test stopping recording when not recording."""
-        mock_audio_instance = create_mock_audio_instance()
+        mock_audio_instance = conftest.create_mock_audio_instance()
         mock_pyaudio.return_value = mock_audio_instance
 
         recorder = audio_recorder.AudioRecorder(test_config)
@@ -132,8 +133,8 @@ class TestAudioRecorder:
         ):
             short_config = config.Config()
 
-        mock_audio_instance = create_mock_audio_instance()
-        mock_stream = create_mock_stream()
+        mock_audio_instance = conftest.create_mock_audio_instance()
+        mock_stream = conftest.create_mock_stream()
         mock_audio_instance.open.return_value = mock_stream
         mock_pyaudio.return_value = mock_audio_instance
 
@@ -187,7 +188,7 @@ class TestAudioRecorder:
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recorder_close(self, mock_pyaudio, test_config):
         """Test audio recorder cleanup."""
-        mock_audio_instance = create_mock_audio_instance()
+        mock_audio_instance = conftest.create_mock_audio_instance()
         mock_pyaudio.return_value = mock_audio_instance
 
         recorder = audio_recorder.AudioRecorder(test_config)
@@ -200,7 +201,7 @@ class TestAudioRecorder:
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_frames_to_wav_conversion(self, mock_pyaudio, test_config):
         """Test audio frames to WAV conversion."""
-        mock_audio_instance = create_mock_audio_instance()
+        mock_audio_instance = conftest.create_mock_audio_instance()
         mock_pyaudio.return_value = mock_audio_instance
 
         recorder = audio_recorder.AudioRecorder(test_config)
@@ -216,7 +217,7 @@ class TestAudioRecorder:
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recording_thread_exception_handling(self, mock_pyaudio, test_config):
         """Test recording thread handles exceptions gracefully."""
-        mock_audio_instance = create_mock_audio_instance()
+        mock_audio_instance = conftest.create_mock_audio_instance()
         mock_stream = unittest.mock.Mock()
         mock_stream.read.side_effect = Exception("Stream read error")
         mock_audio_instance.open.return_value = mock_stream

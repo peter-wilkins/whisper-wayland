@@ -6,7 +6,8 @@ import unittest.mock
 
 import pytest
 
-from whisper_wayland import config, constants
+import whisper_wayland.config as config
+import whisper_wayland.constants as constants
 
 
 class TestConfig:

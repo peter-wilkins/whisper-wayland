@@ -1,8 +1,6 @@
 """Unit tests for service manager module (placeholder for Step 4)."""
 
-
-
-from whisper_wayland import service_manager
+import whisper_wayland.service_manager as service_manager
 
 
 class TestServiceManager:

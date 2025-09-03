@@ -4,7 +4,9 @@ import os
 import tempfile
 import unittest.mock
 
-from whisper_wayland import config, constants, logging_config
+import whisper_wayland.config as config
+import whisper_wayland.constants as constants
+import whisper_wayland.logging_config as logging_config
 
 
 class TestLoggingConfig:
