@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [trunk]
 
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  LOG_LEVEL: INFO
+
 jobs:
   setup:
     name: Setup Environment
@@ -60,22 +64,10 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.13"]
-    
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      LOG_LEVEL: INFO
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-        
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
       
     - name: Restore environment cache
       uses: actions/cache/restore@v4
@@ -84,23 +76,7 @@ jobs:
           ~/.cache/uv
           .venv
         key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
-        
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          alsa-utils \
-          libasound2-dev \
-          libportaudio2 \
-          portaudio19-dev \
-          pulseaudio \
-          wl-clipboard \
-          wtype \
-          xclip \
-          ydotool
-      
-    - name: Install dependencies (if cache miss)
-      run: uv sync --frozen
+        fail-on-cache-miss: true
       
     - name: Run complete pipeline
       run: make all
@@ -108,27 +84,15 @@ jobs:
   coverage:
     name: Coverage Report
     runs-on: ubuntu-latest
-    needs: [setup]
+    needs: [test]
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.13"]
 
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      LOG_LEVEL: INFO
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-        
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
       
     - name: Restore environment cache
       uses: actions/cache/restore@v4
@@ -137,23 +101,7 @@ jobs:
           ~/.cache/uv
           .venv
         key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
-        
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          alsa-utils \
-          libasound2-dev \
-          libportaudio2 \
-          portaudio19-dev \
-          pulseaudio \
-          wl-clipboard \
-          wtype \
-          xclip \
-          ydotool
-      
-    - name: Install dependencies (if cache miss)
-      run: uv sync --frozen
+        fail-on-cache-miss: true
       
     - name: Run tests with coverage
       run: |
@@ -186,7 +134,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [setup]
+    needs: [test]
     strategy:
       fail-fast: false
       matrix:
@@ -196,14 +144,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-        
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
-      
     - name: Restore environment cache
       uses: actions/cache/restore@v4
       with:
@@ -211,18 +151,7 @@ jobs:
           ~/.cache/uv
           .venv
         key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
-        
-    - name: Install system dependencies (minimal for security scan)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libasound2-dev \
-          libportaudio2 \
-          portaudio19-dev \
-          wtype
-      
-    - name: Install dependencies (if cache miss)
-      run: uv sync --frozen
+        fail-on-cache-miss: true
       
     - name: Run bandit security linter
       run: uv run bandit -r whisper_wayland/ -f json -o bandit-report.json
