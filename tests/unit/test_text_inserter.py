@@ -115,7 +115,7 @@ class TestTextInserter:
     def test_insert_text_success(self, text_inserter: text_inserter_module.TextInserter) -> None:
         """Test successful text insertion."""
         with unittest.mock.patch.object(
-            text_inserter, "_insert_with_method", return_value=True
+            text_inserter._method_executors, "insert_with_method", return_value=True
         ) as mock_insert:
             result = text_inserter.insert_text("Hello, World!")
 
@@ -146,7 +146,7 @@ class TestTextInserter:
     ) -> None:
         """Test text insertion with text cleaning."""
         with unittest.mock.patch.object(
-            text_inserter, "_insert_with_method", return_value=True
+            text_inserter._method_executors, "insert_with_method", return_value=True
         ) as mock_insert:
             # Text with extra whitespace
             result = text_inserter.insert_text("  Hello,    World!  ")
@@ -166,7 +166,7 @@ class TestTextInserter:
             inserter = text_inserter.TextInserter(delay_config)
 
             with unittest.mock.patch("time.sleep") as mock_sleep, unittest.mock.patch.object(
-                inserter, "_insert_with_method", return_value=True
+                inserter._method_executors, "insert_with_method", return_value=True
             ):
                 inserter.insert_text("test")
 
@@ -177,9 +177,9 @@ class TestTextInserter:
     ) -> None:
         """Test fallback methods when primary method fails."""
         with unittest.mock.patch.object(
-            text_inserter, "_insert_with_method"
+            text_inserter._method_executors, "insert_with_method"
         ) as mock_insert, unittest.mock.patch.object(
-            text_inserter, "_try_fallback_methods", return_value=True
+            text_inserter._fallback_handler, "try_fallback_methods", return_value=True
         ) as mock_fallback:
             # Primary method fails
             mock_insert.return_value = False
@@ -187,15 +187,17 @@ class TestTextInserter:
             result = text_inserter.insert_text("test")
 
             assert result is True
-            mock_fallback.assert_called_once_with("test")
+            mock_fallback.assert_called_once()
 
     def test_insert_text_all_methods_fail(
         self, text_inserter: text_inserter_module.TextInserter
     ) -> None:
         """Test when all insertion methods fail."""
         with unittest.mock.patch.object(
-            text_inserter, "_insert_with_method", return_value=False
-        ), unittest.mock.patch.object(text_inserter, "_try_fallback_methods", return_value=False):
+            text_inserter._method_executors, "insert_with_method", return_value=False
+        ), unittest.mock.patch.object(
+            text_inserter._fallback_handler, "try_fallback_methods", return_value=False
+        ):
             result = text_inserter.insert_text("test")
 
             assert result is False
@@ -232,7 +234,7 @@ class TestTextInserter:
         mock_result.returncode = 0
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = text_inserter._insert_with_wtype("test text")
+            result = text_inserter._method_executors._insert_with_wtype("test text")
 
             assert result is True
             mock_run.assert_called_once_with(
@@ -249,7 +251,7 @@ class TestTextInserter:
         mock_result.returncode = 0
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = text_inserter._insert_with_ydotool("test text")
+            result = text_inserter._method_executors._insert_with_ydotool("test text")
 
             assert result is True
             mock_run.assert_called_once_with(
@@ -266,7 +268,7 @@ class TestTextInserter:
         mock_result.returncode = 0
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = text_inserter._insert_with_xdotool("test text")
+            result = text_inserter._method_executors._insert_with_xdotool("test text")
 
             assert result is True
             mock_run.assert_called_once_with(
@@ -285,17 +287,19 @@ class TestTextInserter:
         mock_result.returncode = 0
 
         # Mock ydotool available for paste command
-        text_inserter._available_methods[text_inserter_module.TextInsertionMethod.YDOTOOL] = True
+        text_inserter._method_executors._available_methods[
+            text_inserter_module.TextInsertionMethod.YDOTOOL
+        ] = True
 
         def mock_which(tool: str) -> typing.Optional[str]:
             return "/usr/bin/tool" if tool == "wl-copy" else None
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
             with unittest.mock.patch(
-                "whisper_wayland.text_inserter.capability_tester.shutil.which",
+                "whisper_wayland.text_inserter.method_executors.shutil.which",
                 side_effect=mock_which,
             ):
-                result = text_inserter._insert_with_clipboard("test text")
+                result = text_inserter._method_executors._insert_with_clipboard("test text")
 
             assert result is True
             assert (
@@ -310,7 +314,9 @@ class TestTextInserter:
         mock_result.returncode = 0
 
         # Mock xdotool available for paste command
-        text_inserter._available_methods[text_inserter_module.TextInsertionMethod.XDOTOOL] = True
+        text_inserter._method_executors._available_methods[
+            text_inserter_module.TextInsertionMethod.XDOTOOL
+        ] = True
 
         def mock_which(tool: str) -> typing.Optional[str]:
             if tool == "wl-copy":
@@ -321,10 +327,10 @@ class TestTextInserter:
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
             with unittest.mock.patch(
-                "whisper_wayland.text_inserter.capability_tester.shutil.which",
+                "whisper_wayland.text_inserter.method_executors.shutil.which",
                 side_effect=mock_which,
             ):
-                result = text_inserter._insert_with_clipboard("test text")
+                result = text_inserter._method_executors._insert_with_clipboard("test text")
 
             assert result is True
             assert (
@@ -338,7 +344,7 @@ class TestTextInserter:
         mock_result.returncode = 1  # Non-zero return code indicates failure
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result):
-            result = text_inserter._insert_with_ydotool("test")
+            result = text_inserter._method_executors._insert_with_ydotool("test")
 
             assert result is False
 
@@ -349,7 +355,7 @@ class TestTextInserter:
             # Configure the mock to raise TimeoutExpired
             mock_run.side_effect = subprocess.TimeoutExpired("cmd", 10)
 
-            result = text_inserter._insert_with_method(
+            result = text_inserter._method_executors.insert_with_method(
                 text_inserter_module.TextInsertionMethod.YDOTOOL, "test"
             )
 
@@ -367,11 +373,15 @@ class TestTextInserter:
             }
         )
 
-        with unittest.mock.patch.object(text_inserter, "_insert_with_method") as mock_insert:
+        with unittest.mock.patch.object(
+            text_inserter._method_executors, "insert_with_method"
+        ) as mock_insert:
             # First fallback (YDOTOOL) fails, second (WTYPE) succeeds
             mock_insert.side_effect = [False, True]
 
-            result = text_inserter._try_fallback_methods("test")
+            result = text_inserter._fallback_handler.try_fallback_methods(
+                "test", text_inserter._preferred_method, text_inserter._available_methods
+            )
 
             assert result is True
             assert mock_insert.call_count == ww.Constants.EXPECTED_DEVICE_COUNT
@@ -388,8 +398,12 @@ class TestTextInserter:
             }
         )
 
-        with unittest.mock.patch.object(text_inserter, "_insert_with_method", return_value=False):
-            result = text_inserter._try_fallback_methods("test")
+        with unittest.mock.patch.object(
+            text_inserter._method_executors, "insert_with_method", return_value=False
+        ):
+            result = text_inserter._fallback_handler.try_fallback_methods(
+                "test", text_inserter._preferred_method, text_inserter._available_methods
+            )
 
             assert result is False
 

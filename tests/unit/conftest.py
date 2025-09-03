@@ -80,7 +80,9 @@ def mock_evdev(
 @pytest.fixture
 def mock_shutil_which() -> typing.Generator[unittest.mock.Mock, None, None]:
     """Mock shutil.which to control available tools."""
-    with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock:
+    with unittest.mock.patch(
+        "whisper_wayland.text_inserter.capability_tester.shutil.which"
+    ) as mock:
         # By default, make ydotool available
         mock.side_effect = lambda tool: tool == "ydotool"
         yield mock

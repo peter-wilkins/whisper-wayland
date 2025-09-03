@@ -133,7 +133,11 @@ class KeyMonitor:
 
     def _check_hotkey_state(self) -> None:
         """Legacy interface for hotkey state checking."""
+        # Sync backward compatibility state with event handler
+        self._event_handler._pressed_keys = self._pressed_keys.copy()
         self._event_handler._check_hotkey_state()
+        # Update backward compatibility state from event handler
+        self._hotkey_pressed = self._event_handler._hotkey_pressed
 
     def _handle_key_event(self, event: typing.Any) -> None:
         """Legacy interface for key event handling."""
