@@ -58,7 +58,7 @@ jobs:
         key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ github.sha }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
 
   test:
-    name: Build and Test
+    name: Runs Tests
     runs-on: ubuntu-latest
     needs: [setup]
     strategy:
@@ -81,7 +81,7 @@ jobs:
       run: make all
 
   coverage:
-    name: Coverage Report
+    name: Create Coverage Report
     runs-on: ubuntu-latest
     needs: [test]
     strategy:
@@ -129,7 +129,7 @@ jobs:
         retention-days: 30
 
   security:
-    name: Security Scan
+    name: Create Security Report
     runs-on: ubuntu-latest
     needs: [test]
     strategy:
