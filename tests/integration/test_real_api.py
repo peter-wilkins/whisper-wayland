@@ -30,7 +30,7 @@ class TestRealAPIIntegration:
 
     def test_real_api_connection(self, test_config: config.Config) -> None:
         """Test connection to real OpenAI API."""
-        client = transcription_client.create_transcription_client(test_config)
+        client = transcription_client.TranscriptionClient.new(test_config)
 
         # Test connection
         result = client.test_connection()
@@ -40,7 +40,7 @@ class TestRealAPIIntegration:
 
     def test_real_api_transcription_with_test_audio(self, test_config: config.Config) -> None:
         """Test transcription with minimal test audio."""
-        client = transcription_client.create_transcription_client(test_config)
+        client = transcription_client.TranscriptionClient.new(test_config)
 
         try:
             # Use the client's test audio (minimal silence)
@@ -64,7 +64,7 @@ class TestRealAPIIntegration:
             with unittest.mock.patch.dict(os.environ, {"WHISPER_MODEL": model}):
                 model_config = config.Config()
 
-                client = transcription_client.create_transcription_client(model_config)
+                client = transcription_client.TranscriptionClient.new(model_config)
 
                 try:
                     # Test connection with this model
@@ -77,7 +77,7 @@ class TestRealAPIIntegration:
     def test_real_api_error_handling(self, test_config: config.Config) -> None:
         """Test error handling with real API."""
         # Create client with invalid model to test validation
-        client = transcription_client.create_transcription_client(test_config)
+        client = transcription_client.TranscriptionClient.new(test_config)
 
         try:
             # Test with empty audio (should handle gracefully)
@@ -94,7 +94,7 @@ class TestRealAPIIntegration:
 
     def test_real_api_language_parameter(self, test_config: config.Config) -> None:
         """Test transcription with language parameter."""
-        client = transcription_client.create_transcription_client(test_config)
+        client = transcription_client.TranscriptionClient.new(test_config)
 
         try:
             test_audio = client._create_test_audio()
@@ -112,7 +112,7 @@ class TestRealAPIIntegration:
 
     def test_real_api_supported_features(self, test_config: config.Config) -> None:
         """Test supported models and languages."""
-        client = transcription_client.create_transcription_client(test_config)
+        client = transcription_client.TranscriptionClient.new(test_config)
 
         try:
             # Test supported models list
@@ -178,7 +178,7 @@ class TestConfigurationIntegration:
             assert invalid_config.openai_api_key == "invalid-key-format"
 
             # But transcription client should fail on API calls
-            client = transcription_client.create_transcription_client(invalid_config)
+            client = transcription_client.TranscriptionClient.new(invalid_config)
 
             try:
                 # Connection test should fail
@@ -203,7 +203,7 @@ class TestEndToEndIntegration:
         test_config = config.Config()
 
         # Create transcription client
-        trans_client = transcription_client.create_transcription_client(test_config)
+        trans_client = transcription_client.TranscriptionClient.new(test_config)
 
         try:
             # Test connection

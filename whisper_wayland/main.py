@@ -65,16 +65,16 @@ class WhisperClaudeApp:
         logging_config.setup_logging(self.config)
 
         # Initialize audio recorder
-        self.audio_recorder = audio_recorder.create_audio_recorder(self.config)
+        self.audio_recorder = audio_recorder.AudioRecorder.new(self.config)
 
         # Initialize transcription client
-        self.transcription_client = transcription_client.create_transcription_client(self.config)
+        self.transcription_client = transcription_client.TranscriptionClient.new(self.config)
 
         # Initialize key monitor
-        self.key_monitor = key_monitor.create_key_monitor(self.config)
+        self.key_monitor = key_monitor.KeyMonitor.new(self.config)
 
         # Initialize text inserter
-        self.text_inserter = text_inserter.create_text_inserter(self.config)
+        self.text_inserter = text_inserter.TextInserter.new(self.config)
 
         # Test API connection
         _logger.info("Testing OpenAI API connection...")

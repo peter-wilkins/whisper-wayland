@@ -481,14 +481,14 @@ class TestTextInserter:
 
 
 class TestCreateTextInserter:
-    """Test cases for create_text_inserter factory function."""
+    """Test cases for TextInserter.new static method."""
 
     def test_create_text_inserter_success(self, test_config: config.Config) -> None:
         """Test successful text inserter creation."""
         with unittest.mock.patch(
             "whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"
         ):
-            inserter = text_inserter.create_text_inserter(test_config)
+            inserter = text_inserter.TextInserter.new(test_config)
 
             assert isinstance(inserter, text_inserter.TextInserter)
             assert inserter.config == test_config
@@ -500,5 +500,5 @@ class TestCreateTextInserter:
             mock_which.return_value = None
 
             # Even with no tools, clipboard should be available as fallback
-            inserter = text_inserter.create_text_inserter(test_config)
+            inserter = text_inserter.TextInserter.new(test_config)
             assert isinstance(inserter, text_inserter.TextInserter)

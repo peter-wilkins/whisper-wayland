@@ -434,17 +434,17 @@ class TextInserter:
         """Clean up text inserter resources."""
         _logger.debug("Text inserter cleanup completed")
 
+    @staticmethod
+    def new(config: config.Config) -> "TextInserter":
+        """Create and initialize text inserter instance.
 
-def create_text_inserter(config: config.Config) -> TextInserter:
-    """Create and initialize text inserter instance.
+        Args:
+            config: Configuration instance
 
-    Args:
-        config: Configuration instance
+        Returns:
+            TextInserter instance
 
-    Returns:
-        TextInserter instance
-
-    Raises:
-        TextInsertionError: If no text insertion methods are available
-    """
-    return TextInserter(config)
+        Raises:
+            TextInsertionError: If no text insertion methods are available
+        """
+        return TextInserter(config)

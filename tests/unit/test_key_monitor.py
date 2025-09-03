@@ -312,8 +312,8 @@ class TestKeyMonitor:
             assert not monitor.is_monitoring()
 
     def test_create_key_monitor(self, test_config_with_hotkey: config.Config) -> None:
-        """Test create_key_monitor factory function."""
-        monitor = key_monitor.create_key_monitor(test_config_with_hotkey)
+        """Test KeyMonitor.new static method."""
+        monitor = key_monitor.KeyMonitor.new(test_config_with_hotkey)
 
         assert isinstance(monitor, key_monitor.KeyMonitor)
         assert monitor.config == test_config_with_hotkey

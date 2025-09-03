@@ -97,14 +97,14 @@ class ServiceManager:
 
         _logger.debug("Service manager cleanup (placeholder)")
 
+    @staticmethod
+    def new(config: config.Config) -> "ServiceManager":
+        """Create and initialize service manager instance.
 
-def create_service_manager(config: config.Config) -> ServiceManager:
-    """Create and initialize service manager instance.
+        Args:
+            config: Configuration instance
 
-    Args:
-        config: Configuration instance
-
-    Returns:
-        ServiceManager instance
-    """
-    return ServiceManager(config)
+        Returns:
+            ServiceManager instance
+        """
+        return ServiceManager(config)

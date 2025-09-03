@@ -472,14 +472,14 @@ class KeyMonitor:
         _logger.debug("Closing key monitor")
         self.stop_monitoring()
 
+    @staticmethod
+    def new(config: config.Config) -> "KeyMonitor":
+        """Create and initialize key monitor instance.
 
-def create_key_monitor(config: config.Config) -> KeyMonitor:
-    """Create and initialize key monitor instance.
+        Args:
+            config: Configuration instance
 
-    Args:
-        config: Configuration instance
-
-    Returns:
-        KeyMonitor instance
-    """
-    return KeyMonitor(config)
+        Returns:
+            KeyMonitor instance
+        """
+        return KeyMonitor(config)

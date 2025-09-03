@@ -333,21 +333,21 @@ class TranscriptionClient:
         """Cleanup resources on object destruction."""
         self.close()
 
+    @staticmethod
+    def new(config: config.Config) -> "TranscriptionClient":
+        """Create and initialize transcription client instance.
 
-def create_transcription_client(config: config.Config) -> TranscriptionClient:
-    """Create and initialize transcription client instance.
+        Args:
+            config: Configuration instance
 
-    Args:
-        config: Configuration instance
+        Returns:
+            TranscriptionClient instance
 
-    Returns:
-        TranscriptionClient instance
-
-    Raises:
-        TranscriptionError: If client creation fails
-    """
-    try:
-        return TranscriptionClient(config)
-    except Exception as e:
-        _logger.error(f"Failed to create transcription client: {e}")
-        raise
+        Raises:
+            TranscriptionError: If client creation fails
+        """
+        try:
+            return TranscriptionClient(config)
+        except Exception as e:
+            _logger.error(f"Failed to create transcription client: {e}")
+            raise

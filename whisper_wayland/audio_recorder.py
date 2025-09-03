@@ -312,21 +312,21 @@ class AudioRecorder:
         except Exception as e:
             _logger.error(f"Error closing audio recorder: {e}")
 
+    @staticmethod
+    def new(config: config.Config) -> "AudioRecorder":
+        """Create and initialize audio recorder instance.
 
-def create_audio_recorder(config: config.Config) -> AudioRecorder:
-    """Create and initialize audio recorder instance.
+        Args:
+            config: Configuration instance
 
-    Args:
-        config: Configuration instance
+        Returns:
+            AudioRecorder instance
 
-    Returns:
-        AudioRecorder instance
-
-    Raises:
-        AudioRecordingError: If recorder creation fails
-    """
-    try:
-        return AudioRecorder(config)
-    except Exception as e:
-        _logger.error(f"Failed to create audio recorder: {e}")
-        raise
+        Raises:
+            AudioRecordingError: If recorder creation fails
+        """
+        try:
+            return AudioRecorder(config)
+        except Exception as e:
+            _logger.error(f"Failed to create audio recorder: {e}")
+            raise

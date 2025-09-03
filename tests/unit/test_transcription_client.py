@@ -297,7 +297,7 @@ class TestTranscriptionClient:
         assert call_args.kwargs["language"] == "es"
 
     def test_create_transcription_client(self) -> None:
-        """Test create_transcription_client factory function."""
+        """Test TranscriptionClient.new static method."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             test_config = config.Config()
 
@@ -307,7 +307,7 @@ class TestTranscriptionClient:
             mock_instance = unittest.mock.Mock()
             mock_client.return_value = mock_instance
 
-            result = transcription_client.create_transcription_client(test_config)
+            result = transcription_client.TranscriptionClient.new(test_config)
 
             assert result == mock_instance
             mock_client.assert_called_once_with(test_config)

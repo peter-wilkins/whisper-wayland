@@ -260,7 +260,7 @@ class TestAudioRecorder:
         assert audio_data is None or isinstance(audio_data, bytes)
 
     def test_create_audio_recorder(self) -> None:
-        """Test create_audio_recorder factory function."""
+        """Test AudioRecorder.new static method."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             test_config = config.Config()
 
@@ -268,7 +268,7 @@ class TestAudioRecorder:
             mock_instance = unittest.mock.Mock()
             mock_recorder.return_value = mock_instance
 
-            result = audio_recorder.create_audio_recorder(test_config)
+            result = audio_recorder.AudioRecorder.new(test_config)
 
             assert result == mock_instance
             mock_recorder.assert_called_once_with(test_config)

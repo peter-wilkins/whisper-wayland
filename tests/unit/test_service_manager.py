@@ -133,8 +133,8 @@ class TestServiceManager:
         assert not manager.is_running()
 
     def test_create_service_manager(self, test_config: config.Config) -> None:
-        """Test create_service_manager factory function."""
-        manager = service_manager.create_service_manager(test_config)
+        """Test ServiceManager.new static method."""
+        manager = service_manager.ServiceManager.new(test_config)
 
         assert isinstance(manager, service_manager.ServiceManager)
         assert manager.config == test_config
