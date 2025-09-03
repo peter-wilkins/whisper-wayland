@@ -7,7 +7,7 @@ import openai
 import pytest
 
 import whisper_wayland.config as config
-import whisper_wayland.constants as constants  
+import whisper_wayland.constants as constants
 import whisper_wayland.transcription_client as transcription_client
 
 

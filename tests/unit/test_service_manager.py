@@ -1,21 +1,12 @@
 """Unit tests for service manager module (placeholder for Step 4)."""
 
-import os
-import unittest.mock
 
-import pytest
 
-from whisper_wayland import config, service_manager
+from whisper_wayland import service_manager
 
 
 class TestServiceManager:
     """Test cases for ServiceManager placeholder class."""
-
-    @pytest.fixture
-    def test_config(self):
-        """Create test configuration."""
-        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-            return config.Config()
 
     def test_service_manager_initialization(self, test_config):
         """Test service manager placeholder initialization."""

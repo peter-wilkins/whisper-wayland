@@ -4,8 +4,6 @@ import os
 import subprocess
 import unittest.mock
 
-import pytest
-
 import whisper_wayland.config as config
 import whisper_wayland.constants as constants
 import whisper_wayland.text_inserter as text_inserter
@@ -26,37 +24,13 @@ class TestTextInsertionMethod:
 class TestTextInserter:
     """Test cases for TextInserter class."""
 
-    @pytest.fixture
-    def test_config(self):
-        """Create test configuration."""
-        with unittest.mock.patch.dict(
-            os.environ,
-            {
-                "OPENAI_API_KEY": "sk-test123",
-                "TEXT_INSERTION_METHOD": "ydotool",
-                "TEXT_INSERTION_DELAY": "0.1",
-            },
-        ):
-            return config.Config()
-
-    @pytest.fixture
-    def mock_shutil_which(self):
-        """Mock shutil.which to control available tools."""
-        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock:
-            # By default, make ydotool available
-            mock.side_effect = lambda tool: tool == "ydotool"
-            yield mock
-
-    @pytest.fixture
-    def text_inserter(self, test_config, mock_shutil_which):
-        """Create text inserter with mocked dependencies."""
-        return text_inserter.TextInserter(test_config)
-
-    def test_initialization_with_available_method(self, test_config, mock_shutil_which):
+    def test_initialization_with_available_method(
+        self, test_config_text_inserter, mock_shutil_which
+    ):
         """Test successful initialization with available method."""
-        inserter = text_inserter.TextInserter(test_config)
+        inserter = text_inserter.TextInserter(test_config_text_inserter)
 
-        assert inserter.config == test_config
+        assert inserter.config == test_config_text_inserter
         assert inserter._preferred_method == text_inserter.TextInsertionMethod.YDOTOOL
         assert inserter._available_methods[text_inserter.TextInsertionMethod.YDOTOOL] is True
         assert inserter._available_methods[text_inserter.TextInsertionMethod.CLIPBOARD] is True
@@ -477,12 +451,6 @@ class TestTextInserter:
 
 class TestCreateTextInserter:
     """Test cases for create_text_inserter factory function."""
-
-    @pytest.fixture
-    def config(self):
-        """Create test configuration."""
-        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-            return config.Config()
 
     def test_create_text_inserter_success(self, test_config):
         """Test successful text inserter creation."""
