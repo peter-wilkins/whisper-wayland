@@ -16,7 +16,7 @@ class LegacyRecorder:
 
     def __init__(self, audio_recorder: "ww.AudioRecorder") -> None:
         """Initialize legacy recorder.
-        
+
         Args:
             audio_recorder: Audio recorder instance
         """
@@ -26,7 +26,7 @@ class LegacyRecorder:
         """Wait for recording trigger (Step 1: simple implementation).
 
         In Step 1, this is a simple prompt for demonstration.
-        
+
         Returns:
             True to continue, False to exit
         """
@@ -75,10 +75,10 @@ class LegacyRecorder:
     @staticmethod
     def new(audio_recorder: "ww.AudioRecorder") -> "LegacyRecorder":
         """Create legacy recorder instance.
-        
+
         Args:
             audio_recorder: Audio recorder instance
-            
+
         Returns:
             LegacyRecorder instance
         """

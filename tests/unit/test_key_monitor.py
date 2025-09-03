@@ -155,9 +155,7 @@ class TestKeyMonitor:
             with pytest.raises(key_monitor.KeyMonitorError, match="No keyboard devices found"):
                 monitor.start_monitoring()
 
-    def test_start_monitoring_permission_error(
-        self, test_config_with_hotkey: "ww.Config"
-    ) -> None:
+    def test_start_monitoring_permission_error(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test handling of permission errors."""
         with unittest.mock.patch(
             "whisper_wayland.key_monitor.evdev.list_devices",

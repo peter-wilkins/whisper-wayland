@@ -21,7 +21,7 @@ class TranscriptionProcessor:
         text_inserter: "ww.TextInserter",
     ) -> None:
         """Initialize transcription processor.
-        
+
         Args:
             transcription_client: Transcription client instance
             text_inserter: Text inserter instance
@@ -31,7 +31,7 @@ class TranscriptionProcessor:
 
     def process_audio(self, audio_data: bytes) -> None:
         """Process audio data through transcription and text insertion.
-        
+
         Args:
             audio_data: Audio data to process
         """
@@ -59,11 +59,11 @@ class TranscriptionProcessor:
         text_inserter: "ww.TextInserter",
     ) -> "TranscriptionProcessor":
         """Create transcription processor instance.
-        
+
         Args:
             transcription_client: Transcription client instance
             text_inserter: Text inserter instance
-            
+
         Returns:
             TranscriptionProcessor instance
         """

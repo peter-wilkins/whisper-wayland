@@ -21,7 +21,7 @@ class HotkeyHandler:
         transcription_processor: typing.Any,  # Forward reference to avoid circular import
     ) -> None:
         """Initialize hotkey handler.
-        
+
         Args:
             audio_recorder: Audio recorder instance
             transcription_processor: Transcription processor instance
@@ -32,16 +32,16 @@ class HotkeyHandler:
 
     def setup_callbacks(self, key_monitor: "ww.KeyMonitor") -> None:
         """Setup hotkey press and release callbacks.
-        
+
         Args:
             key_monitor: Key monitor instance to configure
         """
         # Set callback for hotkey press (start recording)
         key_monitor.set_callback(self._on_hotkey_press)
-        
+
         # Set callback for hotkey release (stop recording)
         key_monitor.set_release_callback(self._on_hotkey_release)
-        
+
         _logger.debug("Hotkey callbacks configured")
 
     def _on_hotkey_press(self) -> None:
@@ -86,7 +86,7 @@ class HotkeyHandler:
     @property
     def is_recording_active(self) -> bool:
         """Check if recording is currently active.
-        
+
         Returns:
             True if recording is active, False otherwise
         """
@@ -98,11 +98,11 @@ class HotkeyHandler:
         transcription_processor: typing.Any,  # Forward reference
     ) -> "HotkeyHandler":
         """Create hotkey handler instance.
-        
+
         Args:
             audio_recorder: Audio recorder instance
             transcription_processor: Transcription processor instance
-            
+
         Returns:
             HotkeyHandler instance
         """

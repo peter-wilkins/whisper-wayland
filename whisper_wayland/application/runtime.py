@@ -18,7 +18,7 @@ class RuntimeManager:
 
     def __init__(self, app_instance: typing.Any) -> None:  # Forward reference
         """Initialize runtime manager.
-        
+
         Args:
             app_instance: Application instance
         """

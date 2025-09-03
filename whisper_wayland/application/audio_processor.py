@@ -16,7 +16,7 @@ class AudioProcessor:
 
     def __init__(self, transcription_client: "ww.TranscriptionClient") -> None:
         """Initialize audio processor.
-        
+
         Args:
             transcription_client: Transcription client instance
         """
@@ -55,10 +55,10 @@ class AudioProcessor:
     @staticmethod
     def new(transcription_client: "ww.TranscriptionClient") -> "AudioProcessor":
         """Create audio processor instance.
-        
+
         Args:
             transcription_client: Transcription client instance
-            
+
         Returns:
             AudioProcessor instance
         """

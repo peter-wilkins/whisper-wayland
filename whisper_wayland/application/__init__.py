@@ -10,4 +10,6 @@ from whisper_wayland.application.hotkey_handler import HotkeyHandler as HotkeyHa
 from whisper_wayland.application.legacy import LegacyRecorder as LegacyRecorder
 from whisper_wayland.application.runtime import RuntimeManager as RuntimeManager
 from whisper_wayland.application.text_handler import TextHandler as TextHandler
-from whisper_wayland.application.transcription_processor import TranscriptionProcessor as TranscriptionProcessor
+from whisper_wayland.application.transcription_processor import (
+    TranscriptionProcessor as TranscriptionProcessor,
+)

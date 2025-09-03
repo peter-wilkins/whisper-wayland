@@ -16,32 +16,32 @@ class ComponentManager:
 
     def __init__(self, config: "ww.Config") -> None:
         """Initialize component manager.
-        
+
         Args:
             config: Configuration instance
         """
         self.config = config
-        self.audio_recorder: typing.Optional["ww.AudioRecorder"] = None
-        self.transcription_client: typing.Optional["ww.TranscriptionClient"] = None
-        self.key_monitor: typing.Optional["ww.KeyMonitor"] = None
-        self.text_inserter: typing.Optional["ww.TextInserter"] = None
+        self.audio_recorder: typing.Optional[ww.AudioRecorder] = None
+        self.transcription_client: typing.Optional[ww.TranscriptionClient] = None
+        self.key_monitor: typing.Optional[ww.KeyMonitor] = None
+        self.text_inserter: typing.Optional[ww.TextInserter] = None
 
     def initialize_components(self) -> None:
         """Initialize all application components."""
         _logger.info("Initializing application components...")
-        
+
         # Initialize audio recorder
         self.audio_recorder = ww.AudioRecorder.new(self.config)
-        
+
         # Initialize transcription client
         self.transcription_client = ww.TranscriptionClient.new(self.config)
-        
+
         # Initialize key monitor
         self.key_monitor = ww.KeyMonitor.new(self.config)
-        
+
         # Initialize text inserter
         self.text_inserter = ww.TextInserter.new(self.config)
-        
+
         _logger.info("All components initialized successfully")
 
     def test_components(self) -> None:
@@ -50,7 +50,7 @@ class ComponentManager:
         _logger.info("Testing OpenAI API connection...")
         if self.transcription_client and not self.transcription_client.test_connection():
             _logger.warning("OpenAI API connection test failed, but continuing...")
-        
+
         # Test text insertion capability
         _logger.info("Testing text insertion capability...")
         if self.text_inserter and not self.text_inserter.test_insertion():
@@ -58,7 +58,7 @@ class ComponentManager:
 
     def validate_components(self) -> bool:
         """Validate that all required components are initialized.
-        
+
         Returns:
             True if all components are valid, False otherwise
         """
@@ -83,7 +83,7 @@ class ComponentManager:
     def cleanup(self) -> None:
         """Clean up all component resources."""
         _logger.info("Cleaning up application components...")
-        
+
         try:
             if self.key_monitor:
                 self.key_monitor.close()
@@ -105,10 +105,10 @@ class ComponentManager:
     @staticmethod
     def new(config: "ww.Config") -> "ComponentManager":
         """Create and initialize component manager.
-        
+
         Args:
             config: Configuration instance
-            
+
         Returns:
             ComponentManager instance
         """

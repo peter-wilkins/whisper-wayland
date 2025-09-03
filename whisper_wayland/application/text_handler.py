@@ -15,7 +15,7 @@ class TextHandler:
 
     def __init__(self, text_inserter: "ww.TextInserter") -> None:
         """Initialize text handler.
-        
+
         Args:
             text_inserter: Text inserter instance
         """
@@ -54,10 +54,10 @@ class TextHandler:
     @staticmethod
     def new(text_inserter: "ww.TextInserter") -> "TextHandler":
         """Create text handler instance.
-        
+
         Args:
             text_inserter: Text inserter instance
-            
+
         Returns:
             TextHandler instance
         """

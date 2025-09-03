@@ -38,10 +38,10 @@ class Application:
         self._running = False
 
         # Backward compatibility attributes (delegate to component_manager)
-        self.audio_recorder: typing.Optional["ww.AudioRecorder"] = None
-        self.transcription_client: typing.Optional["ww.TranscriptionClient"] = None
-        self.key_monitor: typing.Optional["ww.KeyMonitor"] = None
-        self.text_inserter: typing.Optional["ww.TextInserter"] = None
+        self.audio_recorder: typing.Optional[ww.AudioRecorder] = None
+        self.transcription_client: typing.Optional[ww.TranscriptionClient] = None
+        self.key_monitor: typing.Optional[ww.KeyMonitor] = None
+        self.text_inserter: typing.Optional[ww.TextInserter] = None
 
         try:
             self._initialize(config_file)
@@ -66,16 +66,14 @@ class Application:
         self.component_manager = ComponentManager.new(self.config)
 
         # Initialize transcription processor
-        if (self.component_manager.transcription_client and 
-            self.component_manager.text_inserter):
+        if self.component_manager.transcription_client and self.component_manager.text_inserter:
             self.transcription_processor = TranscriptionProcessor.new(
                 self.component_manager.transcription_client,
                 self.component_manager.text_inserter,
             )
 
         # Initialize hotkey handler
-        if (self.component_manager.audio_recorder and 
-            self.transcription_processor):
+        if self.component_manager.audio_recorder and self.transcription_processor:
             self.hotkey_handler = HotkeyHandler.new(
                 self.component_manager.audio_recorder,
                 self.transcription_processor,
@@ -86,9 +84,7 @@ class Application:
 
         # Initialize legacy recorder for backward compatibility
         if self.component_manager.audio_recorder:
-            self.legacy_recorder = LegacyRecorder.new(
-                self.component_manager.audio_recorder
-            )
+            self.legacy_recorder = LegacyRecorder.new(self.component_manager.audio_recorder)
 
         # Set backward compatibility attributes
         self.audio_recorder = self.component_manager.audio_recorder
