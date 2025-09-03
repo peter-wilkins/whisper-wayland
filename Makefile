@@ -29,7 +29,7 @@ clean: ## Clean up generated files and cache
 .PHONY: coverage
 coverage: check ## Run tests with detailed coverage report
 	@echo "Running tests with detailed coverage..."
-	uv run pytest --cov=whisper_wayland --cov-report=html --cov-report=term-missing --cov-fail-under=50
+	uv run pytest --cov=whisper_wayland --cov-report=html --cov-report=term-missing --cov-fail-under=80
 	@echo "📊 Coverage report generated in htmlcov/"
 
 .PHONY: format-check
@@ -80,9 +80,6 @@ lint-fix: ## Lint code with ruff (fix issues)
 
 .PHONY: tests
 tests: tests-unit tests-integration ## Run all tests with coverage
-	@echo "Running all tests..."
-	uv run pytest --cov=whisper_wayland --cov-report=term --cov-report=html --cov-fail-under= -v
-	@echo "✅ All tests passed with required coverage"
 
 .PHONY: tests-integration
 tests-integration: ## Run only integration tests (requires OPENAI_API_KEY)
@@ -92,7 +89,7 @@ tests-integration: ## Run only integration tests (requires OPENAI_API_KEY)
 .PHONY: tests-unit
 tests-unit: ## Run only unit tests
 	@echo "Running unit tests..."
-	uv run pytest tests/unit --cov=whisper_wayland --cov-report=term --cov-report=html --cov-fail-under=50 -v
+	uv run pytest tests/unit --cov=whisper_wayland --cov-report=term --cov-report=html --cov-fail-under=80 -v
 
 .PHONY: type-check
 type-check: ## Run type checking with mypy
