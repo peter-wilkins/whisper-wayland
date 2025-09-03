@@ -6,84 +6,91 @@ This file contains development context and guidelines for AI assistants working 
 
 ## Project Architecture
 
-**Whisper Wayland** is a push-to-talk voice transcription service built with Python and designed for Wayland environments. The architecture follows a modular design with clear separation of concerns.
+**Whisper Wayland** is a push-to-talk voice transcription service built with Python and designed for Wayland environments. The architecture follows a modular design with clear separation of concerns and clean API boundaries.
 
 ### Core Components
 
-The service consists of six main components that work together:
+The service consists of seven main components that work together:
 
-1. **Audio Recorder** (`whisper_wayland/audio_recorder.py`)
+1. **Application** (`whisper_wayland/application.py`)
+   - Main application orchestration and lifecycle management
+   - Real-time global hotkey detection with push-to-talk functionality
+   - Coordinates all service components with proper error handling
+   - Manages hotkey callbacks and audio session processing
+
+2. **Audio Recorder** (`whisper_wayland/audio_recorder.py`)
    - PyAudio integration for cross-platform audio capture
    - Configurable sample rate, chunk size, recording duration
-   - Buffer management and audio format handling
-   - Handles audio device selection and error recovery
+   - Buffer management and WAV format conversion
+   - Device selection and audio format validation
 
-2. **Key Monitor** (`whisper_wayland/key_monitor.py`)
-   - Global hotkey detection using evdev
-   - Full Wayland/X11 compatibility (requires input group membership)
+3. **Key Monitor** (`whisper_wayland/key_monitor.py`)
+   - Global hotkey detection using evdev for Wayland/X11
    - Configurable key combinations and modifier support
-   - Thread-safe event handling
+   - Thread-safe event handling with press/release callbacks
+   - Device discovery and permission handling
 
-3. **Transcription Client** (`whisper_wayland/transcription_client.py`)
+4. **Transcription Client** (`whisper_wayland/transcription_client.py`)
    - OpenAI Whisper API integration with retry logic
    - Error handling for network/API failures and rate limiting
-   - Model selection and parameter configuration
-   - Audio format validation for API compatibility
+   - Model selection and audio format validation
+   - Connection testing and authentication validation
 
-4. **Text Inserter** (`whisper_wayland/text_inserter.py`)
-   - Cross-platform text insertion using wtype for Wayland
-   - Handles various application contexts and focus states
-   - Error recovery for insertion failures
-   - Clipboard fallback mechanisms
-
-5. **Service Manager** (`whisper_wayland/service_manager.py`)
-   - Coordinates all components with thread orchestration
-   - Manages service lifecycle and graceful shutdown
-   - Central error handling and logging coordination
-   - Component state management
+5. **Text Inserter** (`whisper_wayland/text_inserter.py`)
+   - Cross-platform text insertion using multiple methods
+   - Supports wtype, ydotool, xdotool, and clipboard fallback
+   - Automatic method detection and preference handling
+   - Text cleaning and insertion delay support
 
 6. **Configuration** (`whisper_wayland/config.py`)
-   - Environment variable management with validation
-   - Default value handling and type conversion
-   - Configuration validation and error reporting
-   - Centralized settings access
+   - Environment variable management with comprehensive validation
+   - `.env` file loading with fallback locations
+   - Type-safe property access with descriptive error messages
+   - Centralized configuration with masked logging for security
+
+7. **Constants** (`whisper_wayland/constants.py`)
+   - Static Constants class containing all application constants
+   - Organized categories: audio, text processing, system limits, testing
+   - Centralized constant management accessible via `ww.Constants`
+   - Type-safe constant access throughout the codebase
 
 ## Repository Structure
 
 ```
 whisper-wayland/
 ├── whisper_wayland/           # Main package
-│   ├── __init__.py           # Package initialization
-│   ├── main.py               # Entry point and CLI
+│   ├── __init__.py           # Package initialization & clean API exports
+│   ├── main.py               # CLI entry point
+│   ├── application.py        # Main application orchestration
 │   ├── config.py             # Configuration management
-│   ├── service_manager.py    # Main service coordination
+│   ├── constants.py          # Application constants (Constants class)
+│   ├── service_manager.py    # Service lifecycle management
 │   ├── audio_recorder.py     # Audio capture component
-│   ├── key_monitor.py        # Hotkey detection component
-│   ├── transcription_client.py # OpenAI API integration
-│   └── text_inserter.py      # Text insertion component
-├── tests/                     # Test suite
+│   ├── key_monitor.py        # Global hotkey detection
+│   ├── transcription_client.py # OpenAI Whisper API integration
+│   ├── text_inserter.py      # Cross-platform text insertion
+│   └── logging_config.py     # Centralized logging configuration
+├── tests/                     # Comprehensive test suite
+│   ├── conftest.py           # Shared test configuration
 │   ├── unit/                 # Unit tests (isolated components)
+│   │   ├── conftest.py       # Unit test configuration
 │   │   ├── test_config.py    # Configuration tests
 │   │   ├── test_audio_recorder.py
 │   │   ├── test_key_monitor.py
 │   │   ├── test_transcription_client.py
 │   │   ├── test_text_inserter.py
-│   │   └── test_service_manager.py
+│   │   ├── test_service_manager.py
+│   │   ├── test_main.py      # CLI and application tests
+│   │   └── test_logging_config.py
 │   └── integration/          # Integration tests (full workflows)
-│       ├── test_full_workflow.py
-│       └── test_api_integration.py
-├── docker/                   # Container configuration
-│   └── Dockerfile           # Multi-stage Docker build
-├── systemd/                  # Service configuration
-│   └── whisper-wayland.service # systemd unit file
-├── .github/                  # GitHub configuration
-│   └── workflows/
-│       └── ci.yml           # Comprehensive CI pipeline
+│       └── test_real_api.py  # Real OpenAI API integration tests
+├── htmlcov/                  # Coverage reports (generated)
 ├── pyproject.toml           # uv configuration and dependencies
+├── uv.lock                  # Dependency lock file
 ├── Makefile                 # Development automation
-├── .env.example             # Environment template
 ├── README.md                # User documentation
-└── CLAUDE.md               # This development context file
+├── CLAUDE.md               # This development context file
+└── WARP.md                 # Additional project documentation
 ```
 
 ## Development Environment
@@ -121,24 +128,29 @@ The project uses a Makefile-driven workflow for consistency and automation:
 
 ```bash
 # Complete development pipeline (recommended)
-make all              # Install deps, format, lint, typecheck, test
+make all               # Install deps, run all checks, and run tests
+
+# Quality check workflows
+make check             # Run all quality checks (format-check, lint-check, type-check)
+make check-fix         # Run and fix all quality checks (format-fix, lint-fix, type-check)
 
 # Individual development steps
-make install          # Install all dependencies with uv
-make format           # Format code with ruff
-make lint             # Lint and fix issues with ruff
-make typecheck        # Run mypy type checking
-make check            # Run all quality checks (format, lint, typecheck)
+make install           # Install all dependencies with uv
+make format-fix        # Format code with ruff
+make format-check      # Check code formatting (CI-friendly)
+make lint-fix          # Lint and fix issues with ruff
+make lint-check        # Check linting without fixes (CI-friendly)
+make type-check        # Run mypy type checking
 
 # Testing workflows
-make test             # Run all tests with coverage (after quality checks)
-make test-unit        # Run only unit tests
-make test-integration # Run only integration tests (requires API key)
-make coverage         # Generate detailed coverage report
+make tests             # Run all tests (unit + integration) with coverage
+make tests-unit        # Run only unit tests with coverage
+make tests-integration # Run only integration tests (requires OPENAI_API_KEY)
+make coverage          # Run tests with detailed coverage report
 
 # Utility commands
-make clean            # Clean up generated files (.pyc, __pycache__, etc.)
-make help             # Show all available commands
+make clean             # Clean up generated files (.pyc, __pycache__, htmlcov, etc.)
+make help              # Show all available commands with descriptions
 ```
 
 **Manual commands** (when Makefile is not available):
@@ -149,25 +161,32 @@ uv run whisper-wayland
 # Development quality checks
 uv run ruff format .                    # Format code
 uv run ruff check . --fix               # Lint and fix issues
-uv run mypy whisper_wayland/            # Type checking
+uv run mypy .                           # Type checking (note: uses . not whisper_wayland/)
 
 # Testing
-uv run pytest --cov=whisper_wayland --cov-report=html --cov-report=term
+uv run pytest --cov=whisper_wayland --cov-report=html --cov-report=term-missing --cov-fail-under=50
+uv run pytest tests/unit -v             # Unit tests only
+uv run pytest tests/integration -v      # Integration tests only (requires API key)
 ```
 
 ## Code Style and Standards
 
 ### Language Guidelines
 
-- **Python Version**: Use Python 3.11+ features appropriately
-- **Type Hints**: Required throughout codebase (enforced by mypy)
-- **Code Organization**: Prefer functions over classes unless classes provide clear benefits
+- **Python Version**: Use Python 3.11+ features appropriately (tested on 3.11, 3.12, 3.13)
+- **Type Hints**: Required throughout codebase (enforced by strict mypy configuration)
+- **Code Organization**: Clean class-based design with static factory methods
 - **Naming**: Use descriptive names following PEP 8 conventions
-- **Documentation**: Comprehensive docstrings for public APIs
+- **Documentation**: Comprehensive docstrings for all public APIs and components
 - **Import Style**: 
-  - Strongly prefer using 'import ... as ...' over 'from ... import ...'
-  - For instance, prefer 'import typing' (and then 'typing.Any') over 'from typing import Any'
-  - Enforce this throughout the code base
+  - **Package Imports**: Use `import whisper_wayland as ww` for internal imports
+  - **Constants**: Access via `ww.Constants.CONSTANT_NAME` (never direct imports)
+  - **External Libraries**: Prefer `import library` over `from library import item`
+  - **Standard Library**: Use full imports (`import typing`) over selective imports
+- **API Design**: 
+  - All classes exposed through clean package namespace in `__init__.py`
+  - Static factory methods (`.new()`) for component creation
+  - Consistent error handling with specific exception types
 
 ### Code Quality Standards
 
@@ -180,9 +199,122 @@ uv run pytest --cov=whisper_wayland --cov-report=html --cov-report=term
 ### Architecture Principles
 
 - **Separation of Concerns**: Each component has a single, well-defined responsibility
+- **Clean API Design**: All classes exposed through package namespace with consistent interfaces
 - **Dependency Injection**: Components receive dependencies rather than creating them
 - **Error Boundaries**: Comprehensive error handling with specific exception types
-- **Logging Strategy**: Structured logging with appropriate levels
-- **Thread Safety**: Proper synchronization for multi-threaded components
+- **Logging Strategy**: Centralized logging configuration with structured output
+- **Thread Safety**: Proper synchronization for multi-threaded components (key monitoring, audio recording)
+- **Configuration Management**: Type-safe environment variable handling with validation
+- **Constant Organization**: All constants centralized in static `Constants` class
 
-[Remaining content continues as in the original file...]
+## Recent Architectural Improvements
+
+The codebase has undergone significant architectural improvements to enhance maintainability and developer experience:
+
+### Package Organization (Recent Changes)
+- **Clean API Exports**: All classes exposed through `whisper_wayland` namespace
+- **Constants Encapsulation**: All constants wrapped in static `Constants` class
+- **Consistent Import Pattern**: Standardized `import whisper_wayland as ww` usage
+- **Static Factory Methods**: All components use `.new()` class methods for creation
+- **Separated Concerns**: Application logic separated from CLI entry point
+
+### Import and Access Patterns
+```python
+# ✅ Correct import pattern
+import whisper_wayland as ww
+
+# ✅ Correct constant access
+sample_rate = ww.Constants.DEFAULT_SAMPLE_RATE
+
+# ✅ Correct component creation
+config = ww.Config.get()
+recorder = ww.AudioRecorder.new(config)
+client = ww.TranscriptionClient.new(config)
+
+# ❌ Avoid direct imports
+from whisper_wayland.constants import DEFAULT_SAMPLE_RATE  # Don't do this
+```
+
+### Component Integration
+- **Unified Error Handling**: All components have specific exception types
+- **Configuration Validation**: Comprehensive type checking and validation
+- **Logging Integration**: Centralized logging setup with proper formatting
+- **Testing Infrastructure**: Complete unit and integration test coverage
+
+## Development Guidelines
+
+### Code Quality Requirements
+- **100% Type Coverage**: All functions and methods must have proper type hints
+- **Documentation**: All public APIs require comprehensive docstrings
+- **Testing**: New features require both unit and integration tests
+- **Error Handling**: All error conditions must be properly handled and logged
+
+### Making Changes
+1. **Follow Import Patterns**: Always use `import whisper_wayland as ww`
+2. **Use Constants Class**: Access constants via `ww.Constants.CONSTANT_NAME`
+3. **Add Type Hints**: All new code must include proper type annotations
+4. **Write Tests**: Both unit and integration tests for new functionality
+5. **Update Documentation**: Keep CLAUDE.md and README.md synchronized
+
+### Testing Requirements
+- **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test full workflows (require `OPENAI_API_KEY`)
+- **Coverage**: Maintain minimum 50% test coverage
+- **Quality Checks**: All changes must pass `make check` before commit
+
+## Environment Setup
+
+### Required Environment Variables
+- `OPENAI_API_KEY`: Your OpenAI API key for Whisper transcription service
+- `LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `AUDIO_SAMPLE_RATE`: Audio recording sample rate (default: 16000)
+- `AUDIO_CHUNK_SIZE`: Audio buffer chunk size (default: 1024)
+- `MAX_RECORDING_DURATION`: Maximum recording duration in seconds (default: 30)
+- `TEXT_INSERTION_DELAY`: Delay before text insertion (default: 0.1)
+- `TEXT_INSERTION_METHOD`: Preferred text insertion method (wtype, ydotool, xdotool, clipboard)
+- `HOTKEY`: Push-to-talk key combination (default: ctrl+compose)
+
+### Environment File Setup
+Create `.env` file in project root:
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+LOG_LEVEL=INFO
+HOTKEY=ctrl+compose
+```
+
+## Quick Start for Development
+
+1. **Clone and Setup**:
+   ```bash
+   git clone <repository>
+   cd whisper-wayland
+   make install
+   ```
+
+2. **Configure Environment**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your OpenAI API key
+   ```
+
+3. **Run Quality Checks**:
+   ```bash
+   make check-fix    # Format, lint, and type-check
+   ```
+
+4. **Run Tests**:
+   ```bash
+   make tests-unit           # Unit tests only
+   make tests-integration    # Integration tests (needs API key)
+   make tests               # All tests
+   ```
+
+5. **Run Application**:
+   ```bash
+   uv run whisper-wayland
+   ```
+
+## Links and References
+
+[readme-md]: README.md
+[uv-docs]: https://docs.astral.sh/uv/
