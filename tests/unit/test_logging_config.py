@@ -12,7 +12,7 @@ import whisper_wayland.logging_config as logging_config
 class TestLoggingConfig:
     """Test cases for logging configuration."""
 
-    def test_setup_logging_functionality(self):
+    def test_setup_logging_functionality(self) -> None:
         """Test logging setup functionality - handlers and basic configuration."""
         test_config = config.Config()
 
@@ -27,7 +27,7 @@ class TestLoggingConfig:
             assert mock_root_logger.setLevel.called  # Called with some level
             assert mock_root_logger.addHandler.call_count >= 1  # Adds at least one handler
 
-    def test_setup_logging_debug_level(self):
+    def test_setup_logging_debug_level(self) -> None:
         """Test logging setup with DEBUG level."""
         test_config = config.Config()
 
@@ -46,7 +46,7 @@ class TestLoggingConfig:
                 # Verify setup_logging was called (level may vary due to CI environment)
                 assert mock_root_logger.setLevel.called
 
-    def test_setup_logging_with_file(self, test_config):
+    def test_setup_logging_with_file(self, test_config: config.Config) -> None:
         """Test logging setup with file handler."""
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             log_file = temp_file.name
@@ -64,7 +64,7 @@ class TestLoggingConfig:
         finally:
             os.unlink(log_file)
 
-    def test_setup_logging_file_error(self, test_config):
+    def test_setup_logging_file_error(self, test_config: config.Config) -> None:
         """Test logging setup with file handler error."""
         invalid_file = "/invalid/path/log.txt"
 
@@ -78,7 +78,7 @@ class TestLoggingConfig:
             # Should still add console handler
             assert mock_root_logger.addHandler.call_count >= 1
 
-    def test_configure_third_party_loggers(self):
+    def test_configure_third_party_loggers(self) -> None:
         """Test third-party logger configuration."""
         with unittest.mock.patch("logging.getLogger") as mock_get_logger:
             mock_logger = unittest.mock.Mock()
@@ -90,7 +90,7 @@ class TestLoggingConfig:
             assert mock_get_logger.call_count >= constants.MIN_LOGGER_CALLS
             assert mock_logger.setLevel.call_count >= constants.MIN_LOGGER_CALLS
 
-    def test_get_logger(self):
+    def test_get_logger(self) -> None:
         """Test get_logger function."""
         with unittest.mock.patch("logging.getLogger") as mock_get_logger:
             mock_logger = unittest.mock.Mock()
@@ -101,7 +101,7 @@ class TestLoggingConfig:
             assert result == mock_logger
             mock_get_logger.assert_called_once_with("test.module")
 
-    def test_logging_levels_mapping(self, test_config):
+    def test_logging_levels_mapping(self, test_config: config.Config) -> None:
         """Test that string log levels are properly mapped."""
 
         # Test just one level to verify the functionality works
@@ -116,7 +116,7 @@ class TestLoggingConfig:
             # Verify that setup_logging calls setLevel (exact level may vary due to CI)
             assert mock_root_logger.setLevel.called
 
-    def test_logging_formatter_selection(self, test_config):
+    def test_logging_formatter_selection(self, test_config: config.Config) -> None:
         """Test that appropriate formatters are selected."""
         # Test DEBUG level gets detailed formatter
         with unittest.mock.patch.dict(

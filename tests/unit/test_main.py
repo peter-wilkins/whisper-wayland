@@ -19,14 +19,14 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_app_initialization_success(  # noqa: PLR0913
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        mock_create_key_monitor,
-        mock_create_text_inserter,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        mock_create_key_monitor: unittest.mock.Mock,
+        mock_create_text_inserter: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test successful app initialization."""
         mock_get_config.return_value = test_config
         mock_recorder = unittest.mock.Mock()
@@ -52,7 +52,7 @@ class TestWhisperClaudeApp:
         mock_text_inserter.test_insertion.assert_called_once()
 
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
-    def test_app_initialization_config_error(self, mock_get_config):
+    def test_app_initialization_config_error(self, mock_get_config: unittest.mock.Mock) -> None:
         """Test app initialization with configuration error."""
         mock_get_config.side_effect = config.ConfigError("Missing API key")
 
@@ -67,14 +67,14 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_app_initialization_with_config_file(  # noqa: PLR0913
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        mock_create_key_monitor,
-        mock_create_text_inserter,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        mock_create_key_monitor: unittest.mock.Mock,
+        mock_create_text_inserter: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test app initialization with custom config file."""
         mock_get_config.return_value = test_config
         mock_client = unittest.mock.Mock()
@@ -98,14 +98,14 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_validate_components_success(  # noqa: PLR0913
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        mock_create_key_monitor,
-        mock_create_text_inserter,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        mock_create_key_monitor: unittest.mock.Mock,
+        mock_create_text_inserter: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test successful component validation."""
         mock_get_config.return_value = test_config
         mock_client = unittest.mock.Mock()
@@ -128,14 +128,14 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_validate_components_missing_config(  # noqa: PLR0913
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        mock_create_key_monitor,
-        mock_create_text_inserter,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        mock_create_key_monitor: unittest.mock.Mock,
+        mock_create_text_inserter: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test component validation with missing config."""
         mock_get_config.return_value = test_config
         mock_client = unittest.mock.Mock()
@@ -158,12 +158,12 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_record_audio_session(
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test audio recording session."""
         mock_get_config.return_value = test_config
         mock_recorder = unittest.mock.Mock()
@@ -190,12 +190,12 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_record_audio_session_no_recorder(
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test audio recording session without recorder."""
         mock_get_config.return_value = test_config
         mock_create_recorder.return_value = unittest.mock.Mock()
@@ -216,12 +216,12 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_transcribe_audio(
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test audio transcription."""
         mock_get_config.return_value = test_config
         mock_create_recorder.return_value = unittest.mock.Mock()
@@ -244,12 +244,12 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_transcribe_audio_no_client(
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test audio transcription without client."""
         mock_get_config.return_value = test_config
         mock_create_recorder.return_value = unittest.mock.Mock()
@@ -269,14 +269,14 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_insert_text(  # noqa: PLR0913
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        mock_create_key_monitor,
-        mock_create_text_inserter,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        mock_create_key_monitor: unittest.mock.Mock,
+        mock_create_text_inserter: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test text insertion functionality."""
         mock_get_config.return_value = test_config
         mock_create_recorder.return_value = unittest.mock.Mock()
@@ -306,14 +306,14 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_cleanup(  # noqa: PLR0913
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        mock_create_key_monitor,
-        mock_create_text_inserter,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        mock_create_key_monitor: unittest.mock.Mock,
+        mock_create_text_inserter: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test application cleanup."""
         mock_get_config.return_value = test_config
         mock_recorder = unittest.mock.Mock()
@@ -341,12 +341,12 @@ class TestWhisperClaudeApp:
     @unittest.mock.patch("whisper_wayland.main.config.get_config")
     def test_wait_for_recording_trigger_keyboard_interrupt(
         self,
-        mock_get_config,
-        mock_setup_logging,
-        mock_create_recorder,
-        mock_create_client,
-        test_config,
-    ):
+        mock_get_config: unittest.mock.Mock,
+        mock_setup_logging: unittest.mock.Mock,
+        mock_create_recorder: unittest.mock.Mock,
+        mock_create_client: unittest.mock.Mock,
+        test_config: config.Config,
+    ) -> None:
         """Test recording trigger with keyboard interrupt."""
         mock_get_config.return_value = test_config
         mock_create_recorder.return_value = unittest.mock.Mock()
@@ -368,7 +368,7 @@ class TestMainFunction:
     """Test cases for main function."""
 
     @unittest.mock.patch("whisper_wayland.main.WhisperClaudeApp")
-    def test_main_success(self, mock_app_class):
+    def test_main_success(self, mock_app_class: unittest.mock.MagicMock) -> None:
         """Test successful main function execution."""
         mock_app = unittest.mock.Mock()
         mock_app_class.return_value = mock_app
@@ -381,7 +381,9 @@ class TestMainFunction:
 
     @unittest.mock.patch("whisper_wayland.main.WhisperClaudeApp")
     @unittest.mock.patch("os.path.exists")
-    def test_main_with_config_file(self, mock_exists, mock_app_class):
+    def test_main_with_config_file(
+        self, mock_exists: unittest.mock.Mock, mock_app_class: unittest.mock.MagicMock
+    ) -> None:
         """Test main function with config file argument."""
         mock_exists.return_value = True
         mock_app = unittest.mock.Mock()
@@ -395,7 +397,9 @@ class TestMainFunction:
 
     @unittest.mock.patch("whisper_wayland.main.WhisperClaudeApp")
     @unittest.mock.patch("os.path.exists")
-    def test_main_with_nonexistent_config_file(self, mock_exists, mock_app_class):
+    def test_main_with_nonexistent_config_file(
+        self, mock_exists: unittest.mock.Mock, mock_app_class: unittest.mock.MagicMock
+    ) -> None:
         """Test main function with nonexistent config file."""
         mock_exists.return_value = False
 
@@ -411,7 +415,7 @@ class TestMainFunction:
         mock_app_class.assert_not_called()
 
     @unittest.mock.patch("whisper_wayland.main.WhisperClaudeApp")
-    def test_main_config_error(self, mock_app_class):
+    def test_main_config_error(self, mock_app_class: unittest.mock.MagicMock) -> None:
         """Test main function with configuration error."""
         mock_app_class.side_effect = config.ConfigError("Missing API key")
 
@@ -425,7 +429,7 @@ class TestMainFunction:
         mock_print.assert_any_call("Please check your environment variables or .env file")
 
     @unittest.mock.patch("whisper_wayland.main.WhisperClaudeApp")
-    def test_main_general_error(self, mock_app_class):
+    def test_main_general_error(self, mock_app_class: unittest.mock.MagicMock) -> None:
         """Test main function with general error."""
         mock_app_class.side_effect = Exception("Unexpected error")
 

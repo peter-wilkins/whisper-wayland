@@ -10,14 +10,16 @@ import unittest.mock
 
 import pytest
 
-from whisper_wayland import config, constants, transcription_client
+import whisper_wayland.config as config
+import whisper_wayland.constants as constants
+import whisper_wayland.transcription_client as transcription_client
 
 
 class TestRealAPIIntegration:
     """Integration tests with real OpenAI API."""
 
     @pytest.fixture
-    def test_config(self):
+    def test_config(self) -> config.Config:
         """Create configuration for real API testing."""
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
@@ -25,7 +27,7 @@ class TestRealAPIIntegration:
 
         return config.Config()
 
-    def test_real_api_connection(self, test_config):
+    def test_real_api_connection(self, test_config: config.Config) -> None:
         """Test connection to real OpenAI API."""
         client = transcription_client.create_transcription_client(test_config)
 
@@ -35,7 +37,7 @@ class TestRealAPIIntegration:
         assert result is True
         client.close()
 
-    def test_real_api_transcription_with_test_audio(self, test_config):
+    def test_real_api_transcription_with_test_audio(self, test_config: config.Config) -> None:
         """Test transcription with minimal test audio."""
         client = transcription_client.create_transcription_client(test_config)
 
@@ -52,7 +54,7 @@ class TestRealAPIIntegration:
         finally:
             client.close()
 
-    def test_real_api_with_various_models(self, test_config):
+    def test_real_api_with_various_models(self, test_config: config.Config) -> None:
         """Test transcription with different model configurations."""
         models_to_test = ["base", "tiny", "whisper-1"]
 
@@ -71,7 +73,7 @@ class TestRealAPIIntegration:
                 finally:
                     client.close()
 
-    def test_real_api_error_handling(self, test_config):
+    def test_real_api_error_handling(self, test_config: config.Config) -> None:
         """Test error handling with real API."""
         # Create client with invalid model to test validation
         client = transcription_client.create_transcription_client(test_config)
@@ -89,7 +91,7 @@ class TestRealAPIIntegration:
         finally:
             client.close()
 
-    def test_real_api_language_parameter(self, test_config):
+    def test_real_api_language_parameter(self, test_config: config.Config) -> None:
         """Test transcription with language parameter."""
         client = transcription_client.create_transcription_client(test_config)
 
@@ -107,7 +109,7 @@ class TestRealAPIIntegration:
         finally:
             client.close()
 
-    def test_real_api_supported_features(self, test_config):
+    def test_real_api_supported_features(self, test_config: config.Config) -> None:
         """Test supported models and languages."""
         client = transcription_client.create_transcription_client(test_config)
 
@@ -131,7 +133,7 @@ class TestRealAPIIntegration:
 class TestConfigurationIntegration:
     """Integration tests for configuration loading."""
 
-    def test_config_with_real_env_file(self):
+    def test_config_with_real_env_file(self) -> None:
         """Test configuration loading from real .env file."""
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
@@ -167,7 +169,7 @@ class TestConfigurationIntegration:
                 os.environ[var] = value
             os.unlink(env_file_path)
 
-    def test_config_validation_with_invalid_api_key(self):
+    def test_config_validation_with_invalid_api_key(self) -> None:
         """Test configuration validation with invalid API key format."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "invalid-key-format"}):
             # Should still create config (validation happens at API level)
@@ -190,7 +192,7 @@ class TestConfigurationIntegration:
 class TestEndToEndIntegration:
     """End-to-end integration tests (marked as slow)."""
 
-    def test_full_audio_workflow_simulation(self):
+    def test_full_audio_workflow_simulation(self) -> None:
         """Test full workflow simulation without actual audio recording."""
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:

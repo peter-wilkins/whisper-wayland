@@ -13,7 +13,7 @@ import whisper_wayland.constants as constants
 class TestConfig:
     """Test cases for Config class."""
 
-    def test_config_initialization_with_defaults(self):
+    def test_config_initialization_with_defaults(self) -> None:
         """Test config initialization with default values."""
         # Temporarily remove LOG_LEVEL to test default
         old_log_level = os.environ.pop("LOG_LEVEL", None)
@@ -33,20 +33,20 @@ class TestConfig:
             if old_log_level:
                 os.environ["LOG_LEVEL"] = old_log_level
 
-    def test_config_missing_required_api_key(self):
+    def test_config_missing_required_api_key(self) -> None:
         """Test config fails when required API key is missing."""
         # Temporarily remove API key to test validation
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
             with pytest.raises(config.ConfigError, match="OPENAI_API_KEY"):
                 config.Config()
 
-    def test_config_empty_api_key(self):
+    def test_config_empty_api_key(self) -> None:
         """Test config fails when API key is empty."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
             with pytest.raises(config.ConfigError, match="OPENAI_API_KEY"):
                 config.Config()
 
-    def test_config_custom_values(self):
+    def test_config_custom_values(self) -> None:
         """Test config with custom environment values."""
         env_vars = {
             "OPENAI_API_KEY": "sk-custom123",
@@ -69,7 +69,7 @@ class TestConfig:
             assert test_config.log_level == "DEBUG"
             assert test_config.hotkey == "alt+space"
 
-    def test_config_invalid_numeric_values(self):
+    def test_config_invalid_numeric_values(self) -> None:
         """Test config validation of numeric values."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             # Invalid sample rate
@@ -92,7 +92,7 @@ class TestConfig:
                 with pytest.raises(config.ConfigError, match="MAX_RECORDING_DURATION"):
                     config.Config()
 
-    def test_config_invalid_log_level(self):
+    def test_config_invalid_log_level(self) -> None:
         """Test config handles invalid log levels gracefully."""
         with unittest.mock.patch.dict(
             os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "INVALID_LEVEL"}
@@ -100,7 +100,7 @@ class TestConfig:
             test_config = config.Config()
             assert test_config.log_level == "INFO"  # Should fallback to default
 
-    def test_config_text_insertion_delay(self):
+    def test_config_text_insertion_delay(self) -> None:
         """Test text insertion delay configuration."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             # Default value
@@ -122,7 +122,7 @@ class TestConfig:
                 with pytest.raises(config.ConfigError, match="TEXT_INSERTION_DELAY"):
                     config.Config()
 
-    def test_config_text_insertion_method(self):
+    def test_config_text_insertion_method(self) -> None:
         """Test text insertion method configuration."""
         # Temporarily remove TEXT_INSERTION_METHOD to test default
         old_method = os.environ.pop("TEXT_INSERTION_METHOD", None)
@@ -150,7 +150,7 @@ class TestConfig:
                     test_config.text_insertion_method == "ydotool"
                 )  # Fallback per config.py line 210
 
-    def test_config_service_properties(self):
+    def test_config_service_properties(self) -> None:
         """Test service-related configuration properties."""
         with unittest.mock.patch.dict(
             os.environ,
@@ -169,7 +169,7 @@ class TestConfig:
             assert test_config.docker_audio_device == "/dev/audio"
             assert test_config.docker_display_var == "WAYLAND_DISPLAY"
 
-    def test_config_load_env_file(self):
+    def test_config_load_env_file(self) -> None:
         """Test loading configuration from .env file."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("OPENAI_API_KEY=sk-envfile123\n")
@@ -197,14 +197,14 @@ class TestConfig:
                 os.environ["LOG_LEVEL"] = old_log_level
             os.unlink(env_file_path)
 
-    def test_config_load_nonexistent_env_file(self):
+    def test_config_load_nonexistent_env_file(self) -> None:
         """Test handling of nonexistent .env file."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             # Should not raise an error, just log a warning
             test_config = config.Config("/nonexistent/file.env")
             assert test_config.openai_api_key == "sk-test123"
 
-    def test_config_safe_summary(self):
+    def test_config_safe_summary(self) -> None:
         """Test safe configuration summary masks sensitive data."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-sensitive123"}):
             test_config = config.Config()
@@ -214,14 +214,14 @@ class TestConfig:
             assert summary["whisper_model"] == "base"
             assert "sk-sensitive123" not in str(summary)
 
-    def test_get_config_function(self):
+    def test_get_config_function(self) -> None:
         """Test get_config helper function."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
             test_config = config.get_config()
             assert isinstance(test_config, config.Config)
             assert test_config.openai_api_key == "sk-test123"
 
-    def test_get_config_with_file(self):
+    def test_get_config_with_file(self) -> None:
         """Test get_config with environment file."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("OPENAI_API_KEY=sk-filetest123\n")

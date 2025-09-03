@@ -21,7 +21,6 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Speech",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-
 dependencies = [
     "evdev>=1.9.2",
     "openai>=1.0.0",
@@ -29,7 +28,6 @@ dependencies = [
     "pynput>=1.7.6",
     "python-dotenv>=1.0.0",
 ]
-
 
 [project.urls]
 Homepage = "https://github.com/whisper-wayland/whisper-wayland"

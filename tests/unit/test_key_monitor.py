@@ -14,7 +14,7 @@ import whisper_wayland.key_monitor as key_monitor
 class TestKeyMonitor:
     """Test cases for KeyMonitor class with evdev implementation."""
 
-    def test_key_monitor_initialization(self, test_config_with_hotkey):
+    def test_key_monitor_initialization(self, test_config_with_hotkey: config.Config) -> None:
         """Test key monitor initialization with valid config."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
@@ -25,7 +25,7 @@ class TestKeyMonitor:
         assert not monitor._hotkey_pressed
         assert monitor._hotkey_combination == {"ctrl", "compose"}
 
-    def test_key_monitor_initialization_custom_hotkey(self):
+    def test_key_monitor_initialization_custom_hotkey(self) -> None:
         """Test key monitor initialization with custom hotkey."""
         with unittest.mock.patch.dict(os.environ, {"HOTKEY": "ctrl+shift+f1"}):
             hotkey_config = config.Config()
@@ -33,7 +33,7 @@ class TestKeyMonitor:
 
             assert monitor._hotkey_combination == {"ctrl", "shift", "f1"}
 
-    def test_key_monitor_initialization_single_key(self):
+    def test_key_monitor_initialization_single_key(self) -> None:
         """Test key monitor initialization with single key."""
         with unittest.mock.patch.dict(os.environ, {"HOTKEY": "f10"}):
             f10_config = config.Config()
@@ -41,14 +41,14 @@ class TestKeyMonitor:
 
             assert monitor._hotkey_combination == {"f10"}
 
-    def test_key_monitor_initialization_invalid_hotkey(self):
+    def test_key_monitor_initialization_invalid_hotkey(self) -> None:
         """Test key monitor initialization with invalid hotkey."""
         with unittest.mock.patch.dict(os.environ, {"HOTKEY": ""}):
             empty_config = config.Config()
             with pytest.raises(key_monitor.KeyMonitorError, match="Hotkey cannot be empty"):
                 key_monitor.KeyMonitor(empty_config)
 
-    def test_parse_hotkey_combination_various_formats(self):
+    def test_parse_hotkey_combination_various_formats(self) -> None:
         """Test hotkey parsing with various input formats."""
         test_cases = [
             ("compose", {"compose"}),
@@ -66,29 +66,29 @@ class TestKeyMonitor:
                 monitor = key_monitor.KeyMonitor(test_hotkey_config)
                 assert monitor._hotkey_combination == expected
 
-    def test_set_callback(self, test_config_with_hotkey):
+    def test_set_callback(self, test_config_with_hotkey: config.Config) -> None:
         """Test setting press callback for key monitor."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
-        def callback():
+        def callback() -> None:
             """Test callback function."""
             return None
 
         monitor.set_callback(callback)
         assert monitor._callback == callback
 
-    def test_set_release_callback(self, test_config_with_hotkey):
+    def test_set_release_callback(self, test_config_with_hotkey: config.Config) -> None:
         """Test setting release callback for key monitor."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
-        def release_callback():
+        def release_callback() -> None:
             """Test release callback function."""
             return None
 
         monitor.set_release_callback(release_callback)
         assert monitor._release_callback == release_callback
 
-    def test_build_key_map(self, test_config_with_hotkey):
+    def test_build_key_map(self, test_config_with_hotkey: config.Config) -> None:
         """Test building of key code mapping."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
         key_map = monitor._key_map
@@ -106,7 +106,7 @@ class TestKeyMonitor:
         assert key_map[2] == "1"  # KEY_1
         assert key_map[11] == "0"  # KEY_0
 
-    def test_get_key_name(self, test_config_with_hotkey):
+    def test_get_key_name(self, test_config_with_hotkey: config.Config) -> None:
         """Test key name resolution."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
@@ -119,7 +119,12 @@ class TestKeyMonitor:
         assert monitor._get_key_name(999) is None
 
     @unittest.mock.patch("whisper_wayland.key_monitor.select.select")
-    def test_start_monitoring_success(self, mock_select, test_config_with_hotkey, mock_evdev):
+    def test_start_monitoring_success(
+        self,
+        mock_select: unittest.mock.Mock,
+        test_config_with_hotkey: config.Config,
+        mock_evdev: unittest.mock.Mock,
+    ) -> None:
         """Test successful start of key monitoring."""
         mock_select.return_value = ([], [], [])
 
@@ -129,7 +134,9 @@ class TestKeyMonitor:
         assert monitor.is_monitoring()
         assert len(monitor._devices) == constants.EXPECTED_DEVICE_COUNT  # Two mock devices
 
-    def test_start_monitoring_already_active(self, test_config_with_hotkey, mock_evdev):
+    def test_start_monitoring_already_active(
+        self, test_config_with_hotkey: config.Config, mock_evdev: unittest.mock.Mock
+    ) -> None:
         """Test starting monitoring when already active."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
         monitor._monitoring = True
@@ -138,7 +145,7 @@ class TestKeyMonitor:
         monitor.start_monitoring()
         assert monitor.is_monitoring()
 
-    def test_start_monitoring_no_devices(self, test_config_with_hotkey):
+    def test_start_monitoring_no_devices(self, test_config_with_hotkey: config.Config) -> None:
         """Test handling when no devices are found."""
         with unittest.mock.patch("whisper_wayland.key_monitor.evdev.list_devices", return_value=[]):
             monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
@@ -146,7 +153,9 @@ class TestKeyMonitor:
             with pytest.raises(key_monitor.KeyMonitorError, match="No keyboard devices found"):
                 monitor.start_monitoring()
 
-    def test_start_monitoring_permission_error(self, test_config_with_hotkey):
+    def test_start_monitoring_permission_error(
+        self, test_config_with_hotkey: config.Config
+    ) -> None:
         """Test handling of permission errors."""
         with unittest.mock.patch(
             "whisper_wayland.key_monitor.evdev.list_devices",
@@ -157,7 +166,9 @@ class TestKeyMonitor:
             with pytest.raises(key_monitor.KeyMonitorError, match="Permission denied"):
                 monitor.start_monitoring()
 
-    def test_stop_monitoring(self, test_config_with_hotkey, mock_evdev):
+    def test_stop_monitoring(
+        self, test_config_with_hotkey: config.Config, mock_evdev: unittest.mock.Mock
+    ) -> None:
         """Test stopping key monitoring."""
         with unittest.mock.patch(
             "whisper_wayland.key_monitor.select.select", return_value=([], [], [])
@@ -172,7 +183,7 @@ class TestKeyMonitor:
             assert not monitor.is_monitoring()
             assert len(monitor._devices) == 0
 
-    def test_stop_monitoring_not_active(self, test_config_with_hotkey):
+    def test_stop_monitoring_not_active(self, test_config_with_hotkey: config.Config) -> None:
         """Test stopping monitoring when not active."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
@@ -180,7 +191,7 @@ class TestKeyMonitor:
         monitor.stop_monitoring()
         assert not monitor.is_monitoring()
 
-    def test_check_hotkey_state_press_release(self, test_config_with_hotkey):
+    def test_check_hotkey_state_press_release(self, test_config_with_hotkey: config.Config) -> None:
         """Test hotkey state detection with press and release."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
         press_callback = unittest.mock.Mock()
@@ -208,9 +219,9 @@ class TestKeyMonitor:
         # Small delay to allow callback thread to execute
         time.sleep(0.1)
         assert not monitor._hotkey_pressed
-        release_callback.assert_called_once()
+        release_callback.assert_called_once()  # type: ignore[unreachable]
 
-    def test_check_hotkey_state_combination(self):
+    def test_check_hotkey_state_combination(self) -> None:
         """Test hotkey state with key combination."""
         with unittest.mock.patch.dict(os.environ, {"HOTKEY": "ctrl+alt"}):
             combo_config = config.Config()
@@ -234,9 +245,9 @@ class TestKeyMonitor:
 
             time.sleep(0.1)
             assert monitor._hotkey_pressed
-            press_callback.assert_called_once()
+            press_callback.assert_called_once()  # type: ignore[unreachable]
 
-    def test_is_hotkey_pressed(self, test_config_with_hotkey):
+    def test_is_hotkey_pressed(self, test_config_with_hotkey: config.Config) -> None:
         """Test checking if hotkey is currently pressed."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
@@ -245,7 +256,7 @@ class TestKeyMonitor:
         monitor._hotkey_pressed = True
         assert monitor.is_hotkey_pressed()
 
-    def test_get_pressed_keys(self, test_config_with_hotkey):
+    def test_get_pressed_keys(self, test_config_with_hotkey: config.Config) -> None:
         """Test getting currently pressed keys."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
@@ -263,12 +274,12 @@ class TestKeyMonitor:
         pressed.add("alt")
         assert monitor._pressed_keys == {"ctrl", "space"}
 
-    def test_callback_error_handling(self, test_config_with_hotkey):
+    def test_callback_error_handling(self, test_config_with_hotkey: config.Config) -> None:
         """Test error handling in callbacks."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
         # Create callback that raises an error
-        def failing_callback():
+        def failing_callback() -> None:
             raise Exception("Callback error")
 
         monitor.set_callback(failing_callback)
@@ -281,7 +292,9 @@ class TestKeyMonitor:
         # Allow time for callback thread
         time.sleep(0.1)
 
-    def test_close(self, test_config_with_hotkey, mock_evdev):
+    def test_close(
+        self, test_config_with_hotkey: config.Config, mock_evdev: unittest.mock.Mock
+    ) -> None:
         """Test key monitor cleanup."""
         with unittest.mock.patch(
             "whisper_wayland.key_monitor.select.select", return_value=([], [], [])
@@ -295,14 +308,16 @@ class TestKeyMonitor:
 
             assert not monitor.is_monitoring()
 
-    def test_create_key_monitor(self, test_config_with_hotkey):
+    def test_create_key_monitor(self, test_config_with_hotkey: config.Config) -> None:
         """Test create_key_monitor factory function."""
         monitor = key_monitor.create_key_monitor(test_config_with_hotkey)
 
         assert isinstance(monitor, key_monitor.KeyMonitor)
         assert monitor.config == test_config_with_hotkey
 
-    def test_device_cleanup(self, test_config_with_hotkey, mock_evdev_devices):
+    def test_device_cleanup(
+        self, test_config_with_hotkey: config.Config, mock_evdev_devices: unittest.mock.Mock
+    ) -> None:
         """Test device cleanup functionality."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
         monitor._devices = mock_evdev_devices.copy()
@@ -315,7 +330,7 @@ class TestKeyMonitor:
 
         assert len(monitor._devices) == 0
 
-    def test_handle_key_event_press_release(self, test_config_with_hotkey):
+    def test_handle_key_event_press_release(self, test_config_with_hotkey: config.Config) -> None:
         """Test key event handling."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 

@@ -25,7 +25,7 @@ def test_config_with_hotkey() -> config.Config:
 
 
 @pytest.fixture
-def mock_evdev_devices():
+def mock_evdev_devices() -> typing.List[unittest.mock.Mock]:
     """Create mock evdev devices."""
     mock_device1 = unittest.mock.Mock()
     mock_device1.name = "Test Keyboard 1"
@@ -51,7 +51,9 @@ def mock_evdev_devices():
 
 
 @pytest.fixture
-def mock_evdev(mock_evdev_devices):
+def mock_evdev(
+    mock_evdev_devices: typing.List[unittest.mock.Mock],
+) -> typing.Generator[unittest.mock.Mock, None, None]:
     """Mock evdev module."""
     with unittest.mock.patch("whisper_wayland.key_monitor.evdev") as mock_evdev:
         # Mock list_devices to return device paths
@@ -73,7 +75,7 @@ def mock_evdev(mock_evdev_devices):
 
 
 @pytest.fixture
-def mock_shutil_which():
+def mock_shutil_which() -> typing.Generator[unittest.mock.Mock, None, None]:
     """Mock shutil.which to control available tools."""
     with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock:
         # By default, make ydotool available
@@ -96,14 +98,16 @@ def test_config_text_inserter() -> config.Config:
 
 
 @pytest.fixture
-def text_inserter(test_config_text_inserter, mock_shutil_which):
+def text_inserter(
+    test_config_text_inserter: config.Config, mock_shutil_which: unittest.mock.Mock
+) -> typing.Any:
     """Create text inserter with mocked dependencies."""
     import whisper_wayland.text_inserter as text_inserter
 
     return text_inserter.TextInserter(test_config_text_inserter)
 
 
-def create_mock_audio_instance():
+def create_mock_audio_instance() -> unittest.mock.Mock:
     """Create mock PyAudio instance with required methods."""
     mock_audio = unittest.mock.Mock()
     mock_audio.get_device_count.return_value = 1
@@ -117,7 +121,7 @@ def create_mock_audio_instance():
     return mock_audio
 
 
-def create_mock_stream():
+def create_mock_stream() -> unittest.mock.Mock:
     """Create mock audio stream with required methods."""
     mock_stream = unittest.mock.Mock()
     mock_stream.read.return_value = b"\x00\x01" * 512  # Mock audio data

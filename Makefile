@@ -97,5 +97,5 @@ tests-unit: ## Run only unit tests
 .PHONY: type-check
 type-check: ## Run type checking with mypy
 	@echo "Check type checks with mypy..."
-	uv run mypy whisper_wayland/
+	uv run mypy .
 	@echo "✅ Type checking complete"
