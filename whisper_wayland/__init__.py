@@ -8,7 +8,9 @@ __version__ = "0.1.0"
 __author__ = "Roland Tritsch"
 __email__ = "roland@tritsch.org"
 
-import whisper_wayland.application as application
-import whisper_wayland.main as main
-
-__all__ = ["main", "application"]
+from whisper_wayland.application import Application as Application
+from whisper_wayland.audio_recorder import AudioRecorder as AudioRecorder
+from whisper_wayland.key_monitor import KeyMonitor as KeyMonitor
+from whisper_wayland.main import main as main
+from whisper_wayland.text_inserter import TextInserter as TextInserter
+from whisper_wayland.transcription_client import TranscriptionClient as TranscriptionClient

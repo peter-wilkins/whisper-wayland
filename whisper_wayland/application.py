@@ -10,13 +10,10 @@ import threading
 import time
 import typing
 
-import whisper_wayland.audio_recorder as audio_recorder
+import whisper_wayland as ww
 import whisper_wayland.config as config
 import whisper_wayland.constants as constants
-import whisper_wayland.key_monitor as key_monitor
 import whisper_wayland.logging_config as logging_config
-import whisper_wayland.text_inserter as text_inserter
-import whisper_wayland.transcription_client as transcription_client
 
 _logger = logging.getLogger(__name__)
 
@@ -36,16 +33,16 @@ class Application:
             config_file: Optional path to configuration file
         """
         self.config: typing.Optional[config.Config] = None
-        self.audio_recorder: typing.Optional[audio_recorder.AudioRecorder] = None
-        self.transcription_client: typing.Optional[transcription_client.TranscriptionClient] = None
-        self.key_monitor: typing.Optional[key_monitor.KeyMonitor] = None
-        self.text_inserter: typing.Optional[text_inserter.TextInserter] = None
+        self.audio_recorder: typing.Optional[ww.AudioRecorder] = None
+        self.transcription_client: typing.Optional[ww.TranscriptionClient] = None
+        self.key_monitor: typing.Optional[ww.KeyMonitor] = None
+        self.text_inserter: typing.Optional[ww.TextInserter] = None
         self._running = False
         self._recording_active = False
 
         try:
             self._initialize(config_file)
-            _logger.info("Whisper Claude application initialized successfully")
+            _logger.info("Whisper Wayland application initialized successfully")
         except Exception as e:
             _logger.error(f"Failed to initialize application: {e}")
             raise
@@ -63,16 +60,16 @@ class Application:
         logging_config.setup_logging(self.config)
 
         # Initialize audio recorder
-        self.audio_recorder = audio_recorder.AudioRecorder.new(self.config)
+        self.audio_recorder = ww.AudioRecorder.new(self.config)
 
         # Initialize transcription client
-        self.transcription_client = transcription_client.TranscriptionClient.new(self.config)
+        self.transcription_client = ww.TranscriptionClient.new(self.config)
 
         # Initialize key monitor
-        self.key_monitor = key_monitor.KeyMonitor.new(self.config)
+        self.key_monitor = ww.KeyMonitor.new(self.config)
 
         # Initialize text inserter
-        self.text_inserter = text_inserter.TextInserter.new(self.config)
+        self.text_inserter = ww.TextInserter.new(self.config)
 
         # Test API connection
         _logger.info("Testing OpenAI API connection...")
@@ -94,7 +91,7 @@ class Application:
             _logger.error("Cannot start application - component validation failed")
             return
 
-        _logger.info("Starting Whisper Claude service (Step 3: Text insertion at cursor)")
+        _logger.info("Starting Whisper Wayland service (Step 3: Text insertion at cursor)")
         _logger.info("Usage:")
         if self.config:
             _logger.info(f"  - Press and hold {self.config.hotkey} to record audio")
@@ -186,7 +183,7 @@ class Application:
         try:
             if self.audio_recorder:
                 self.audio_recorder.start_recording()
-        except audio_recorder.AudioRecordingError as e:
+        except ww.AudioRecordingError as e:
             _logger.error(f"Failed to start recording: {e}")
             self._recording_active = False
 
@@ -212,7 +209,7 @@ class Application:
                     ).start()
                 else:
                     _logger.warning("No audio data captured")
-        except audio_recorder.AudioRecordingError as e:
+        except ww.AudioRecordingError as e:
             _logger.error(f"Failed to stop recording: {e}")
 
     def _process_transcription(self, audio_data: bytes) -> None:
@@ -243,7 +240,7 @@ class Application:
             if self.key_monitor:
                 self.key_monitor.start_monitoring()
                 _logger.info("Global hotkey monitoring active")
-        except key_monitor.KeyMonitorError as e:
+        except ww.KeyMonitorError as e:
             _logger.error(f"Failed to start key monitoring: {e}")
             return
 
@@ -298,7 +295,7 @@ class Application:
 
             return audio_data
 
-        except audio_recorder.AudioRecordingError as e:
+        except ww.AudioRecordingError as e:
             _logger.error(f"Audio recording error: {e}")
             return None
         except Exception as e:
@@ -332,7 +329,7 @@ class Application:
 
             return transcribed_text
 
-        except transcription_client.TranscriptionError as e:
+        except ww.TranscriptionError as e:
             _logger.error(f"Transcription error: {e}")
             return None
         except Exception as e:
@@ -366,7 +363,7 @@ class Application:
                 print(f"✗ Failed to insert text: {text}")
                 print("Check that you have focus on a text input field")
 
-        except text_inserter.TextInsertionError as e:
+        except ww.TextInsertionError as e:
             _logger.error(f"Text insertion error: {e}")
             print(f"Text insertion error: {e}")
             print(f"Transcribed text: {text}")

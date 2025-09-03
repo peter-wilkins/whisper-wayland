@@ -7,7 +7,7 @@ and inserts it at the cursor position in any application.
 import os
 import sys
 
-import whisper_wayland.application as application
+import whisper_wayland as ww
 import whisper_wayland.config as config
 
 
@@ -23,7 +23,7 @@ def main() -> None:
                 sys.exit(1)
 
         # Create and run application
-        app = application.Application(config_file)
+        app = ww.Application(config_file)
         app.run()
         sys.exit(0)
 

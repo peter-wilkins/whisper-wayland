@@ -7,11 +7,8 @@ management and coordination between audio, transcription, and text insertion.
 import logging
 import typing
 
-import whisper_wayland.audio_recorder as audio_recorder
+import whisper_wayland as ww
 import whisper_wayland.config as config
-import whisper_wayland.key_monitor as key_monitor
-import whisper_wayland.text_inserter as text_inserter
-import whisper_wayland.transcription_client as transcription_client
 
 _logger = logging.getLogger(__name__)
 
@@ -36,10 +33,10 @@ class ServiceManager:
             config: Configuration instance
         """
         self.config = config
-        self._audio_recorder: typing.Optional[audio_recorder.AudioRecorder] = None
-        self._transcription_client: typing.Optional[transcription_client.TranscriptionClient] = None
-        self._key_monitor: typing.Optional[key_monitor.KeyMonitor] = None
-        self._text_inserter: typing.Optional[text_inserter.TextInserter] = None
+        self._audio_recorder: typing.Optional[ww.AudioRecorder] = None
+        self._transcription_client: typing.Optional[ww.TranscriptionClient] = None
+        self._key_monitor: typing.Optional[ww.KeyMonitor] = None
+        self._text_inserter: typing.Optional[ww.TextInserter] = None
         self._running = False
 
         _logger.info("Service manager placeholder initialized (Step 4 implementation pending)")
