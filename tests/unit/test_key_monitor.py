@@ -120,7 +120,7 @@ class TestKeyMonitor:
         # Test unmapped key
         assert monitor._get_key_name(999) is None
 
-    @unittest.mock.patch("whisper_wayland.key_monitor.select.select")
+    @unittest.mock.patch("whisper_wayland.key_monitor.monitor_loop.select.select")
     def test_start_monitoring_success(
         self,
         mock_select: unittest.mock.Mock,
@@ -149,7 +149,9 @@ class TestKeyMonitor:
 
     def test_start_monitoring_no_devices(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test handling when no devices are found."""
-        with unittest.mock.patch("whisper_wayland.key_monitor.evdev.list_devices", return_value=[]):
+        with unittest.mock.patch(
+            "whisper_wayland.key_monitor.device_manager.evdev.list_devices", return_value=[]
+        ):
             monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
             with pytest.raises(key_monitor.KeyMonitorError, match="No keyboard devices found"):
@@ -158,7 +160,7 @@ class TestKeyMonitor:
     def test_start_monitoring_permission_error(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test handling of permission errors."""
         with unittest.mock.patch(
-            "whisper_wayland.key_monitor.evdev.list_devices",
+            "whisper_wayland.key_monitor.device_manager.evdev.list_devices",
             side_effect=PermissionError("Access denied"),
         ):
             monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
@@ -171,7 +173,7 @@ class TestKeyMonitor:
     ) -> None:
         """Test stopping key monitoring."""
         with unittest.mock.patch(
-            "whisper_wayland.key_monitor.select.select", return_value=([], [], [])
+            "whisper_wayland.key_monitor.monitor_loop.select.select", return_value=([], [], [])
         ):
             monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
             monitor.start_monitoring()
@@ -297,7 +299,7 @@ class TestKeyMonitor:
     ) -> None:
         """Test key monitor cleanup."""
         with unittest.mock.patch(
-            "whisper_wayland.key_monitor.select.select", return_value=([], [], [])
+            "whisper_wayland.key_monitor.monitor_loop.select.select", return_value=([], [], [])
         ):
             monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
             monitor.start_monitoring()

@@ -58,7 +58,7 @@ def mock_evdev(
     mock_evdev_devices: typing.List[unittest.mock.Mock],
 ) -> typing.Generator[unittest.mock.Mock, None, None]:
     """Mock evdev module."""
-    with unittest.mock.patch("whisper_wayland.key_monitor.evdev") as mock_evdev:
+    with unittest.mock.patch("whisper_wayland.key_monitor.device_manager.evdev") as mock_evdev:
         # Mock list_devices to return device paths
         mock_evdev.list_devices.return_value = [
             "/dev/input/event0",

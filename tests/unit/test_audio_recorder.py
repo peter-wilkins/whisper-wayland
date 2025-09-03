@@ -18,7 +18,7 @@ import whisper_wayland.audio_recorder as audio_recorder
 class TestAudioRecorder:
     """Test cases for AudioRecorder class."""
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_audio_recorder_initialization(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -39,7 +39,7 @@ class TestAudioRecorder:
         mock_pyaudio.assert_called_once()
         mock_audio_instance.get_device_count.assert_called()
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_audio_recorder_initialization_failure(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -51,7 +51,7 @@ class TestAudioRecorder:
         ):
             audio_recorder.AudioRecorder(test_config)
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_audio_recorder_no_input_devices(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -69,7 +69,7 @@ class TestAudioRecorder:
         ):
             audio_recorder.AudioRecorder(test_config)
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_start_recording_success(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -86,7 +86,7 @@ class TestAudioRecorder:
         # Cleanup
         recorder.stop_recording()
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_start_recording_already_recording(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -104,7 +104,7 @@ class TestAudioRecorder:
         # Cleanup
         recorder.stop_recording()
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_stop_recording_success(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -126,7 +126,7 @@ class TestAudioRecorder:
         assert audio_data is not None
         assert isinstance(audio_data, bytes)
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_stop_recording_not_recording(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -140,7 +140,7 @@ class TestAudioRecorder:
         result = recorder.stop_recording()
         assert result is None
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_recording_max_duration(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -170,7 +170,7 @@ class TestAudioRecorder:
 
         assert audio_data is not None or audio_data is None  # May be None if no frames captured
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_get_audio_devices(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -205,7 +205,7 @@ class TestAudioRecorder:
         assert devices[1]["name"] == "Microphone 2"
         assert devices[1]["channels"] == ww.Constants.EXPECTED_CHANNELS_STEREO
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_recorder_close(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -220,7 +220,7 @@ class TestAudioRecorder:
 
         mock_audio_instance.terminate.assert_called_once()
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_frames_to_wav_conversion(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
@@ -238,7 +238,7 @@ class TestAudioRecorder:
         assert isinstance(wav_data, bytes)
         assert len(wav_data) > len(b"".join(frames))  # Should include WAV header
 
-    @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_recording_thread_exception_handling(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:

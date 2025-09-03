@@ -40,7 +40,9 @@ class TestTextInserter:
 
     def test_initialization_no_methods_available(self, test_config: "ww.Config") -> None:
         """Test initialization when no methods are available."""
-        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which", return_value=None):
+        with unittest.mock.patch(
+            "whisper_wayland.text_inserter.capability_tester.shutil.which", return_value=None
+        ):
             # Even with no tools, clipboard should be available
             inserter = text_inserter.TextInserter(test_config)
             assert inserter._preferred_method == text_inserter.TextInsertionMethod.CLIPBOARD
@@ -48,7 +50,8 @@ class TestTextInserter:
     def test_detect_available_methods_all_available(self, test_config: "ww.Config") -> None:
         """Test detection when all methods are available."""
         with unittest.mock.patch(
-            "whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"
+            "whisper_wayland.text_inserter.capability_tester.shutil.which",
+            return_value="/usr/bin/tool",
         ):
             inserter = text_inserter.TextInserter(test_config)
 
@@ -63,7 +66,7 @@ class TestTextInserter:
             return "/usr/bin/tool" if tool in ["ydotool", "xdotool"] else None
 
         with unittest.mock.patch(
-            "whisper_wayland.text_inserter.shutil.which", side_effect=mock_which
+            "whisper_wayland.text_inserter.capability_tester.shutil.which", side_effect=mock_which
         ):
             inserter = text_inserter.TextInserter(test_config)
 
@@ -97,7 +100,9 @@ class TestTextInserter:
                 "TEXT_INSERTION_METHOD": "nonexistent",  # Configure a method that doesn't exist
             },
         ):
-            with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock_which:
+            with unittest.mock.patch(
+                "whisper_wayland.text_inserter.capability_tester.shutil.which"
+            ) as mock_which:
                 # Only make ydotool available
                 mock_which.side_effect = lambda tool: tool == "ydotool"
 
@@ -287,7 +292,8 @@ class TestTextInserter:
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
             with unittest.mock.patch(
-                "whisper_wayland.text_inserter.shutil.which", side_effect=mock_which
+                "whisper_wayland.text_inserter.capability_tester.shutil.which",
+                side_effect=mock_which,
             ):
                 result = text_inserter._insert_with_clipboard("test text")
 
@@ -315,7 +321,8 @@ class TestTextInserter:
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
             with unittest.mock.patch(
-                "whisper_wayland.text_inserter.shutil.which", side_effect=mock_which
+                "whisper_wayland.text_inserter.capability_tester.shutil.which",
+                side_effect=mock_which,
             ):
                 result = text_inserter._insert_with_clipboard("test text")
 
@@ -428,7 +435,9 @@ class TestTextInserter:
 
     def test_test_insertion_clipboard(self, test_config: "ww.Config") -> None:
         """Test insertion capability test for clipboard."""
-        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock_which:
+        with unittest.mock.patch(
+            "whisper_wayland.text_inserter.capability_tester.shutil.which"
+        ) as mock_which:
             # No direct tools available, should fallback to clipboard
             mock_which.side_effect = (
                 lambda tool: tool == "wl-copy" if tool in ["wl-copy", "xclip"] else None
@@ -470,7 +479,9 @@ class TestTextInserter:
 
     def test_get_preferred_method_none(self, test_config: "ww.Config") -> None:
         """Test getting preferred method when none available."""
-        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which", return_value=None):
+        with unittest.mock.patch(
+            "whisper_wayland.text_inserter.capability_tester.shutil.which", return_value=None
+        ):
             # This should still have clipboard as fallback
             inserter = text_inserter.TextInserter(test_config)
             method = inserter.get_preferred_method()
@@ -489,7 +500,8 @@ class TestCreateTextInserter:
     def test_create_text_inserter_success(self, test_config: "ww.Config") -> None:
         """Test successful text inserter creation."""
         with unittest.mock.patch(
-            "whisper_wayland.text_inserter.shutil.which", return_value="/usr/bin/tool"
+            "whisper_wayland.text_inserter.capability_tester.shutil.which",
+            return_value="/usr/bin/tool",
         ):
             inserter = text_inserter.TextInserter.new(test_config)
 
@@ -498,7 +510,9 @@ class TestCreateTextInserter:
 
     def test_create_text_inserter_no_methods_available(self, test_config: "ww.Config") -> None:
         """Test creation when no methods are available."""
-        with unittest.mock.patch("whisper_wayland.text_inserter.shutil.which") as mock_which:
+        with unittest.mock.patch(
+            "whisper_wayland.text_inserter.capability_tester.shutil.which"
+        ) as mock_which:
             # Make only clipboard tools unavailable to force error
             mock_which.return_value = None
 

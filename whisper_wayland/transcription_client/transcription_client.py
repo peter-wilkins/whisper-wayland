@@ -126,6 +126,7 @@ class TranscriptionClient:
         try:
             if self._client:
                 # OpenAI client doesn't require explicit cleanup
+                self._client = None
                 _logger.debug("Transcription client closed successfully")
         except Exception as e:
             _logger.error(f"Error closing transcription client: {e}")
