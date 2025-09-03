@@ -1,7 +1,9 @@
-"""Configuration management for Whisper Wayland service.
+"""
+Whisper Wayland - Configuration
 
 Handles environment variable loading and validation with comprehensive
-error handling and logging."""
+error handling and logging.
+"""
 
 import logging
 import os

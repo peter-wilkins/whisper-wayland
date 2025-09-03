@@ -1,4 +1,5 @@
-"""Audio recording functionality for Whisper Claude service.
+"""
+Whisper Wayland - Audio Recorder
 
 Handles audio capture using PyAudio with configurable quality settings
 and comprehensive error handling.

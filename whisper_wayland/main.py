@@ -1,8 +1,8 @@
 """
-Main entry point for Whisper Claude service.
+Whisper Wayland - Main Entry Point
 
-Real-time global hotkey detection with push-to-talk recording and transcription with cursor
-position text insertion.
+A push-to-talk voice transcription service that converts speech to text
+and inserts it at the cursor position in any application.
 """
 
 import logging

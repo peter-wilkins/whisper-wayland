@@ -1,7 +1,8 @@
-"""Service manager for coordinating all Whisper Claude components.
+"""
+Whisper Wayland - Service Manager
 
-This module will be implemented in Step 4 to provide proper service
-lifecycle management and coordination between components.
+Coordinates all components to provide proper service lifecycle
+management and coordination between audio, transcription, and text insertion.
 """
 
 import logging

@@ -1,4 +1,9 @@
-"""Constants used throughout the whisper-wayland application."""
+"""
+Whisper Wayland - Constants
+
+Defines application-wide constants for audio configuration,
+API settings, and system integration parameters.
+"""
 
 # Audio Configuration
 DEFAULT_SAMPLE_RATE = 16000

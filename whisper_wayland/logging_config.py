@@ -1,4 +1,5 @@
-"""Logging configuration for Whisper Claude service.
+"""
+Whisper Wayland - Logging Configuration
 
 Provides comprehensive logging setup with configurable levels,
 formatters, and handlers for both development and production use.

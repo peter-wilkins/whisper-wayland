@@ -1,4 +1,5 @@
-"""Text insertion functionality for cursor position text input.
+"""
+Whisper Wayland - Text Inserter
 
 Provides universal text insertion using multiple methods for maximum compatibility
 across X11 and Wayland environments. Supports wtype, ydotool, xdotool, and

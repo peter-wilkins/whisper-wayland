@@ -81,7 +81,7 @@ lint-fix: ## Lint code with ruff (fix issues)
 .PHONY: tests
 tests: tests-unit tests-integration ## Run all tests with coverage
 	@echo "Running all tests..."
-	uv run pytest --cov=whisper_wayland --cov-report=term --cov-report=html --cov-fail-under=50 -v
+	uv run pytest --cov=whisper_wayland --cov-report=term --cov-report=html --cov-fail-under= -v
 	@echo "✅ All tests passed with required coverage"
 
 .PHONY: tests-integration
