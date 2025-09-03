@@ -1,5 +1,4 @@
-"""
-Whisper Wayland - Transcription Client
+"""Whisper Wayland - Transcription Client
 
 Handles audio transcription using OpenAI's Whisper API with comprehensive
 error handling and retry logic.

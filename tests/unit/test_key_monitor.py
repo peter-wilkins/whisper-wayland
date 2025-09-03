@@ -1,4 +1,7 @@
-"""Unit tests for key monitor module with evdev implementation."""
+"""Whisper Wayland - Key Monitor Tests
+
+Unit tests for key monitor module including evdev implementation
+and global hotkey detection functionality."""
 
 import os
 import time

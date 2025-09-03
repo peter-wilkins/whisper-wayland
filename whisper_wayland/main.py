@@ -1,5 +1,4 @@
-"""
-Whisper Wayland - Main Entry Point
+"""Whisper Wayland - Main Entry Point
 
 A push-to-talk voice transcription service that converts speech to text
 and inserts it at the cursor position in any application.

@@ -1,5 +1,4 @@
-"""
-Whisper Wayland - Key Monitor
+"""Whisper Wayland - Key Monitor
 
 Provides global hotkey detection using evdev with push-to-talk functionality.
 Supports configurable key combinations and full Wayland compatibility.

@@ -1,4 +1,7 @@
-"""Unit tests for main application module."""
+"""Whisper Wayland - Main Tests
+
+Unit tests for main application module functionality including
+CLI argument parsing and service initialization."""
 
 import unittest.mock
 

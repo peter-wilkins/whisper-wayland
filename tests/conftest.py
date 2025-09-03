@@ -1,4 +1,7 @@
-"""Pytest configuration and fixtures."""
+"""Whisper Wayland - Pytest Configuration
+
+Pytest configuration and fixtures for testing the
+Whisper Wayland voice transcription service."""
 
 import os
 import tempfile

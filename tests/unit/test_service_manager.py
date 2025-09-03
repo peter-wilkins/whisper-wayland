@@ -1,4 +1,7 @@
-"""Unit tests for service manager module (placeholder for Step 4)."""
+"""Whisper Wayland - Service Manager Tests
+
+Unit tests for service manager module coordination and lifecycle
+management functionality."""
 
 import whisper_wayland.config as config
 import whisper_wayland.service_manager as service_manager

@@ -1,5 +1,4 @@
-"""
-Whisper Wayland - Constants
+"""Whisper Wayland - Constants
 
 Defines application-wide constants for audio configuration,
 API settings, and system integration parameters.

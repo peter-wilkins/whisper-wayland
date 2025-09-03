@@ -1,7 +1,8 @@
-"""Integration tests using real OpenAI API.
+"""Whisper Wayland - Real API Integration Tests
 
-These tests require a valid OPENAI_API_KEY environment variable
-and will make actual API calls to OpenAI.
+Integration tests using real OpenAI API. These tests require
+a valid OPENAI_API_KEY environment variable and will make
+actual API calls to OpenAI.
 """
 
 import os

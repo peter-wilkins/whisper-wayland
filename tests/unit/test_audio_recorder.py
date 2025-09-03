@@ -1,4 +1,7 @@
-"""Unit tests for audio recorder module."""
+"""Whisper Wayland - Audio Recorder Tests
+
+Unit tests for audio recorder module including
+PyAudio integration and audio capture functionality."""
 
 import itertools
 import os

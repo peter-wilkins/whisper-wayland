@@ -1,5 +1,4 @@
-"""
-Whisper Wayland - Audio Recorder
+"""Whisper Wayland - Audio Recorder
 
 Handles audio capture using PyAudio with configurable quality settings
 and comprehensive error handling.

@@ -1,4 +1,7 @@
-"""Unit tests for text inserter module."""
+"""Whisper Wayland - Text Inserter Tests
+
+Unit tests for text inserter module including
+text insertion methods and cross-platform compatibility."""
 
 import os
 import subprocess

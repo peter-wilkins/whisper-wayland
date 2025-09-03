@@ -1,5 +1,4 @@
-"""
-Whisper Wayland - Configuration
+"""Whisper Wayland - Configuration
 
 Handles environment variable loading and validation with comprehensive
 error handling and logging.

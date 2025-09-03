@@ -1,4 +1,7 @@
-"""Pytest configuration and fixtures for unit tests."""
+"""Whisper Wayland - Unit Test Configuration
+
+Pytest configuration and fixtures specifically for
+unit tests of the Whisper Wayland service."""
 
 import os
 import tempfile

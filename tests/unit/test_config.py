@@ -1,4 +1,7 @@
-"""Unit tests for configuration module."""
+"""Whisper Wayland - Configuration Tests
+
+Unit tests for configuration module functionality including
+environment variable loading and validation."""
 
 import os
 import tempfile

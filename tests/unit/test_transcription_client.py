@@ -1,4 +1,7 @@
-"""Unit tests for transcription client module."""
+"""Whisper Wayland - Transcription Client Tests
+
+Unit tests for transcription client module including
+OpenAI API integration and error handling."""
 
 import os
 import unittest.mock

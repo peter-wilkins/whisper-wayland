@@ -1,5 +1,4 @@
-"""
-Whisper Wayland - Service Manager
+"""Whisper Wayland - Service Manager
 
 Coordinates all components to provide proper service lifecycle
 management and coordination between audio, transcription, and text insertion.
