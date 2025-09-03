@@ -48,13 +48,14 @@ jobs:
     - name: Install Python dependencies
       run: uv sync
       
-    - name: Cache environment
+    - name: Cache environment and source
       uses: actions/cache/save@v4
       with:
         path: |
           ~/.cache/uv
           .venv
-        key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          .
+        key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ github.sha }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
 
   test:
     name: Build and Test
@@ -66,16 +67,14 @@ jobs:
         python-version: ["3.13"]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Restore environment cache
+    - name: Restore environment and source cache
       uses: actions/cache/restore@v4
       with:
         path: |
           ~/.cache/uv
           .venv
-        key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          .
+        key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ github.sha }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
         fail-on-cache-miss: true
       
     - name: Run complete pipeline
@@ -91,16 +90,14 @@ jobs:
         python-version: ["3.13"]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Restore environment cache
+    - name: Restore environment and source cache
       uses: actions/cache/restore@v4
       with:
         path: |
           ~/.cache/uv
           .venv
-        key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          .
+        key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ github.sha }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
         fail-on-cache-miss: true
       
     - name: Run tests with coverage
@@ -141,16 +138,14 @@ jobs:
         python-version: ["3.13"]
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Restore environment cache
+    - name: Restore environment and source cache
       uses: actions/cache/restore@v4
       with:
         path: |
           ~/.cache/uv
           .venv
-        key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          .
+        key: ${{ runner.os }}-python-${{ matrix.python-version }}-${{ github.sha }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
         fail-on-cache-miss: true
       
     - name: Run bandit security linter
