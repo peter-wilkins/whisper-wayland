@@ -7,8 +7,11 @@ lifecycle management and coordination between components.
 import logging
 import typing
 
-from . import audio_recorder, key_monitor, text_inserter, transcription_client
-from . import config as config_module
+import whisper_wayland.audio_recorder as audio_recorder
+import whisper_wayland.config as config
+import whisper_wayland.key_monitor as key_monitor
+import whisper_wayland.text_inserter as text_inserter
+import whisper_wayland.transcription_client as transcription_client
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +29,7 @@ class ServiceManager:
     to provide proper service lifecycle management.
     """
 
-    def __init__(self, config: config_module.Config) -> None:
+    def __init__(self, config: config.Config) -> None:
         """Initialize service manager with configuration.
 
         Args:
@@ -95,7 +98,7 @@ class ServiceManager:
         logger.debug("Service manager cleanup (placeholder)")
 
 
-def create_service_manager(config: config_module.Config) -> ServiceManager:
+def create_service_manager(config: config.Config) -> ServiceManager:
     """Create and initialize service manager instance.
 
     Args:

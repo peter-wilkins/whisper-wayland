@@ -9,10 +9,10 @@ import logging.handlers
 import sys
 import typing
 
-from . import config as config_module
+import whisper_wayland.config as config
 
 
-def setup_logging(config: config_module.Config, log_file: typing.Optional[str] = None) -> None:
+def setup_logging(config: config.Config, log_file: typing.Optional[str] = None) -> None:
     """Set up logging configuration for the application.
 
     Args:

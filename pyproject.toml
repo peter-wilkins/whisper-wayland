@@ -83,13 +83,16 @@ select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings  
     "F",   # pyflakes
-    "I",   # isort
+    "I",   # isort imports
     "B",   # flake8-bugbear
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
     "PL",  # pylint
 ]
 ignore = [
+    "PLC0415",  # import-outside-top-level
+    "UP035",    # prefer-import-alias - we prefer import ... as ...
+    "PLR0402",  # prefer-import-alias 
 ]
 
 [tool.ruff.format]

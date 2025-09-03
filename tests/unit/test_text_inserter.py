@@ -6,7 +6,10 @@ import unittest.mock
 
 import pytest
 
-from whisper_wayland import config, constants, text_inserter
+import whisper_wayland.config as config
+import whisper_wayland.constants as constants
+import whisper_wayland.text_inserter as text_inserter
+import whisper_wayland.text_inserter as text_inserter_module
 
 
 class TestTextInsertionMethod:
@@ -134,7 +137,7 @@ class TestTextInserter:
 
             assert result is True
             mock_insert.assert_called_once_with(
-                text_inserter.TextInsertionMethod.YDOTOOL, "Hello, World!"
+                text_inserter_module.TextInsertionMethod.YDOTOOL, "Hello, World!"
             )
 
     def test_insert_text_empty(self, text_inserter):
@@ -164,10 +167,10 @@ class TestTextInserter:
             assert result is True
             # Should be cleaned to single spaces
             mock_insert.assert_called_once_with(
-                text_inserter.TextInsertionMethod.YDOTOOL, "Hello, World!"
+                text_inserter_module.TextInsertionMethod.YDOTOOL, "Hello, World!"
             )
 
-    def test_insert_text_with_delay(self, config, mock_shutil_which):
+    def test_insert_text_with_delay(self, test_config, mock_shutil_which):
         """Test text insertion respects configured delay."""
         with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "0.5"}):
             delay_config = config.Config()
@@ -283,7 +286,7 @@ class TestTextInserter:
         mock_result.returncode = 0
 
         # Mock ydotool available for paste command
-        text_inserter._available_methods[text_inserter.TextInsertionMethod.YDOTOOL] = True
+        text_inserter._available_methods[text_inserter_module.TextInsertionMethod.YDOTOOL] = True
 
         def mock_which(tool):
             return "/usr/bin/tool" if tool == "wl-copy" else None
@@ -303,7 +306,7 @@ class TestTextInserter:
         mock_result.returncode = 0
 
         # Mock xdotool available for paste command
-        text_inserter._available_methods[text_inserter.TextInsertionMethod.XDOTOOL] = True
+        text_inserter._available_methods[text_inserter_module.TextInsertionMethod.XDOTOOL] = True
 
         def mock_which(tool):
             if tool == "wl-copy":
@@ -340,7 +343,7 @@ class TestTextInserter:
             mock_run.side_effect = subprocess.TimeoutExpired("cmd", 10)
 
             result = text_inserter._insert_with_method(
-                text_inserter.TextInsertionMethod.YDOTOOL, "test"
+                text_inserter_module.TextInsertionMethod.YDOTOOL, "test"
             )
 
             assert result is False
@@ -350,8 +353,8 @@ class TestTextInserter:
         # Make multiple methods available
         text_inserter._available_methods.update(
             {
-                text_inserter.TextInsertionMethod.WTYPE: True,
-                text_inserter.TextInsertionMethod.XDOTOOL: True,
+                text_inserter_module.TextInsertionMethod.WTYPE: True,
+                text_inserter_module.TextInsertionMethod.XDOTOOL: True,
             }
         )
 
@@ -369,8 +372,8 @@ class TestTextInserter:
         # Make multiple methods available
         text_inserter._available_methods.update(
             {
-                text_inserter.TextInsertionMethod.WTYPE: True,
-                text_inserter.TextInsertionMethod.XDOTOOL: True,
+                text_inserter_module.TextInsertionMethod.WTYPE: True,
+                text_inserter_module.TextInsertionMethod.XDOTOOL: True,
             }
         )
 
@@ -441,10 +444,10 @@ class TestTextInserter:
         """Test getting available methods."""
         # Set up known available methods
         text_inserter._available_methods = {
-            text_inserter.TextInsertionMethod.YDOTOOL: True,
-            text_inserter.TextInsertionMethod.CLIPBOARD: True,
-            text_inserter.TextInsertionMethod.WTYPE: False,
-            text_inserter.TextInsertionMethod.XDOTOOL: False,
+            text_inserter_module.TextInsertionMethod.YDOTOOL: True,
+            text_inserter_module.TextInsertionMethod.CLIPBOARD: True,
+            text_inserter_module.TextInsertionMethod.WTYPE: False,
+            text_inserter_module.TextInsertionMethod.XDOTOOL: False,
         }
 
         methods = text_inserter.get_available_methods()

@@ -17,7 +17,7 @@ except ImportError as e:
         "evdev is required for key monitoring. Install with: pip install evdev or uv add evdev"
     ) from e
 
-from . import config as config_module
+import whisper_wayland.config as config
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class KeyMonitor:
     Works on both X11 and Wayland systems.
     """
 
-    def __init__(self, config: config_module.Config) -> None:
+    def __init__(self, config: config.Config) -> None:
         """Initialize key monitor with configuration.
 
         Args:
@@ -473,7 +473,7 @@ class KeyMonitor:
         self.stop_monitoring()
 
 
-def create_key_monitor(config: config_module.Config) -> KeyMonitor:
+def create_key_monitor(config: config.Config) -> KeyMonitor:
     """Create and initialize key monitor instance.
 
     Args:

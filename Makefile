@@ -17,7 +17,7 @@ help:
 	@echo "  check       Run format, lint, and typecheck together"
 	@echo ""
 	@echo "Testing:"
-	@echo "  test        Run all tests (depends on code quality checks)"
+	@echo "  tests        Run all tests (depends on code quality checks)"
 	@echo "  test-unit   Run only unit tests"
 	@echo "  test-integration  Run only integration tests (requires OPENAI_API_KEY)"
 	@echo "  coverage    Run tests with coverage report"
@@ -35,26 +35,42 @@ install:
 	@echo "Installing dependencies with uv..."
 	uv sync
 
+# Check code format with ruff
+format-check:
+	@echo "Check code formatting with ruff..."
+	uv run ruff format . --check
+	@echo "✅ Code formatting complete"
+
 # Format code with ruff
-format:
+format-fix:
 	@echo "Formatting code with ruff..."
 	uv run ruff format .
 	@echo "✅ Code formatting complete"
 
+# Check code liniting with ruff (PEP8 compliance)
+lint-check:
+	@echo "Check code linting with ruff..."
+	uv run ruff check .
+	@echo "✅ Code linting complete"
+
 # Lint code with ruff (PEP8 compliance)
-lint:
+lint-fix:
 	@echo "Linting code with ruff..."
 	uv run ruff check . --fix
 	@echo "✅ Linting complete"
 
 # Type checking with mypy
-typecheck:
-	@echo "Running type checks with mypy..."
+type-check:
+	@echo "Check type checks with mypy..."
 	uv run mypy whisper_wayland/
 	@echo "✅ Type checking complete"
 
 # Run all code quality checks
-check: format lint typecheck
+check: format-check lint-check type-check
+	@echo "✅ All code quality checks passed"
+
+# Run all code quality checks
+check-fix: format-fix lint-fix type-check
 	@echo "✅ All code quality checks passed"
 
 # Run all tests

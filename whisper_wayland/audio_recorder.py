@@ -13,7 +13,7 @@ import wave
 
 import pyaudio
 
-from . import config as config_module
+import whisper_wayland.config as config
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class AudioRecorder:
     and comprehensive error handling.
     """
 
-    def __init__(self, config: config_module.Config) -> None:
+    def __init__(self, config: config.Config) -> None:
         """Initialize audio recorder with configuration.
 
         Args:
@@ -313,7 +313,7 @@ class AudioRecorder:
             logger.error(f"Error closing audio recorder: {e}")
 
 
-def create_audio_recorder(config: config_module.Config) -> AudioRecorder:
+def create_audio_recorder(config: config.Config) -> AudioRecorder:
     """Create and initialize audio recorder instance.
 
     Args:

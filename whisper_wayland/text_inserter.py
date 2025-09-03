@@ -12,8 +12,8 @@ import subprocess
 import time
 import typing
 
-from . import config as config_module
-from . import constants
+import whisper_wayland.config as config
+import whisper_wayland.constants as constants
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class TextInserter:
     and comprehensive error handling.
     """
 
-    def __init__(self, config: config_module.Config) -> None:
+    def __init__(self, config: config.Config) -> None:
         """Initialize text inserter with configuration.
 
         Args:
@@ -435,7 +435,7 @@ class TextInserter:
         logger.debug("Text inserter cleanup completed")
 
 
-def create_text_inserter(config: config_module.Config) -> TextInserter:
+def create_text_inserter(config: config.Config) -> TextInserter:
     """Create and initialize text inserter instance.
 
     Args:

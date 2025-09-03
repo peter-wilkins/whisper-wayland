@@ -1,7 +1,7 @@
-"""Main entry point for Whisper Claude service.
+"""
+Main entry point for Whisper Claude service.
 
-Provides the main application logic for Step 3: real-time global hotkey
-detection with push-to-talk recording and transcription with cursor
+Real-time global hotkey detection with push-to-talk recording and transcription with cursor
 position text insertion.
 """
 
@@ -13,20 +13,13 @@ import threading
 import time
 import typing
 
-from . import (
-    audio_recorder,
-    constants,
-    key_monitor,
-    text_inserter,
-    transcription_client,
-)
-from . import config as config_module
-from .audio_recorder import create_audio_recorder
-from .config import get_config
-from .key_monitor import create_key_monitor
-from .logging_config import setup_logging
-from .text_inserter import create_text_inserter
-from .transcription_client import create_transcription_client
+import whisper_wayland.audio_recorder as audio_recorder
+import whisper_wayland.config as config
+import whisper_wayland.constants as constants
+import whisper_wayland.key_monitor as key_monitor
+import whisper_wayland.logging_config as logging_config
+import whisper_wayland.text_inserter as text_inserter
+import whisper_wayland.transcription_client as transcription_client
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +38,7 @@ class WhisperClaudeApp:
         Args:
             config_file: Optional path to configuration file
         """
-        self.config: typing.Optional[config_module.Config] = None
+        self.config: typing.Optional[config.Config] = None
         self.audio_recorder: typing.Optional[audio_recorder.AudioRecorder] = None
         self.transcription_client: typing.Optional[transcription_client.TranscriptionClient] = None
         self.key_monitor: typing.Optional[key_monitor.KeyMonitor] = None
@@ -67,22 +60,22 @@ class WhisperClaudeApp:
             config_file: Optional path to configuration file
         """
         # Load configuration
-        self.config = get_config(config_file)
+        self.config = config.get_config(config_file)
 
         # Setup logging
-        setup_logging(self.config)
+        logging_config.setup_logging(self.config)
 
         # Initialize audio recorder
-        self.audio_recorder = create_audio_recorder(self.config)
+        self.audio_recorder = audio_recorder.create_audio_recorder(self.config)
 
         # Initialize transcription client
-        self.transcription_client = create_transcription_client(self.config)
+        self.transcription_client = transcription_client.create_transcription_client(self.config)
 
         # Initialize key monitor
-        self.key_monitor = create_key_monitor(self.config)
+        self.key_monitor = key_monitor.create_key_monitor(self.config)
 
         # Initialize text inserter
-        self.text_inserter = create_text_inserter(self.config)
+        self.text_inserter = text_inserter.create_text_inserter(self.config)
 
         # Test API connection
         logger.info("Testing OpenAI API connection...")
@@ -423,7 +416,7 @@ def main() -> None:
         app = WhisperClaudeApp(config_file)
         app.run()
 
-    except config_module.ConfigError as e:
+    except config.ConfigError as e:
         print(f"Configuration error: {e}")
         print("Please check your environment variables or .env file")
         sys.exit(1)
