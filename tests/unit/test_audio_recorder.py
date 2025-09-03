@@ -13,7 +13,6 @@ import pytest
 import tests.unit.conftest as conftest
 import whisper_wayland as ww
 import whisper_wayland.audio_recorder as audio_recorder
-import whisper_wayland.config as config
 
 
 class TestAudioRecorder:
@@ -21,7 +20,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_audio_recorder_initialization(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test audio recorder initialization."""
         mock_audio_instance = unittest.mock.Mock()
@@ -42,7 +41,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_audio_recorder_initialization_failure(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test audio recorder initialization failure."""
         mock_pyaudio.side_effect = Exception("PyAudio init failed")
@@ -54,7 +53,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_audio_recorder_no_input_devices(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test audio recorder with no input devices."""
         mock_audio_instance = unittest.mock.Mock()
@@ -72,7 +71,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_start_recording_success(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test successful recording start."""
         mock_audio_instance = conftest.create_mock_audio_instance()
@@ -89,7 +88,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_start_recording_already_recording(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test starting recording when already recording."""
         mock_audio_instance = conftest.create_mock_audio_instance()
@@ -107,7 +106,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_stop_recording_success(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test successful recording stop with audio data."""
         mock_audio_instance = conftest.create_mock_audio_instance()
@@ -129,7 +128,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_stop_recording_not_recording(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test stopping recording when not recording."""
         mock_audio_instance = conftest.create_mock_audio_instance()
@@ -143,14 +142,14 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recording_max_duration(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test recording stops at maximum duration."""
         # Set short max duration for test
         with unittest.mock.patch.dict(
             os.environ, {"OPENAI_API_KEY": "sk-test123", "MAX_RECORDING_DURATION": "1"}
         ):
-            short_config = config.Config()
+            short_config = ww.Config()
 
         mock_audio_instance = conftest.create_mock_audio_instance()
         mock_stream = conftest.create_mock_stream()
@@ -173,7 +172,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_get_audio_devices(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test getting audio devices list."""
         mock_audio_instance = unittest.mock.Mock()
@@ -208,7 +207,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recorder_close(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test audio recorder cleanup."""
         mock_audio_instance = conftest.create_mock_audio_instance()
@@ -223,7 +222,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_frames_to_wav_conversion(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test audio frames to WAV conversion."""
         mock_audio_instance = conftest.create_mock_audio_instance()
@@ -241,7 +240,7 @@ class TestAudioRecorder:
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.pyaudio.PyAudio")
     def test_recording_thread_exception_handling(
-        self, mock_pyaudio: unittest.mock.Mock, test_config: config.Config
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test recording thread handles exceptions gracefully."""
         mock_audio_instance = conftest.create_mock_audio_instance()
@@ -262,7 +261,7 @@ class TestAudioRecorder:
     def test_create_audio_recorder(self) -> None:
         """Test AudioRecorder.new static method."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-            test_config = config.Config()
+            test_config = ww.Config()
 
         with unittest.mock.patch(
             "whisper_wayland.audio_recorder.AudioRecorder.__init__", return_value=None

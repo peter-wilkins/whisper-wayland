@@ -10,7 +10,6 @@ import openai
 import pytest
 
 import whisper_wayland as ww
-import whisper_wayland.config as config
 import whisper_wayland.transcription_client as transcription_client
 
 
@@ -19,7 +18,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcription_client_initialization(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test transcription client initialization."""
         mock_client = unittest.mock.Mock()
@@ -33,7 +32,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcription_client_initialization_failure(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test transcription client initialization failure."""
         mock_openai_class.side_effect = Exception("OpenAI init failed")
@@ -43,7 +42,7 @@ class TestTranscriptionClient:
         ):
             transcription_client.TranscriptionClient(test_config)
 
-    def test_model_name_mapping(self, test_config: config.Config) -> None:
+    def test_model_name_mapping(self, test_config: "ww.Config") -> None:
         """Test model name mapping to API-compatible names."""
         with unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI"):
             client = transcription_client.TranscriptionClient(test_config)
@@ -57,7 +56,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcribe_audio_success(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test successful audio transcription."""
         mock_client = unittest.mock.Mock()
@@ -76,7 +75,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcribe_audio_empty_data(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test transcription with empty audio data."""
         mock_client = unittest.mock.Mock()
@@ -92,7 +91,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcribe_audio_api_errors(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test transcription with various OpenAI API errors."""
         mock_client = unittest.mock.Mock()
@@ -129,7 +128,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcribe_audio_with_retries(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test transcription with retry logic."""
         mock_client = unittest.mock.Mock()
@@ -154,7 +153,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcribe_audio_max_retries_exceeded(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test transcription when max retries are exceeded."""
         mock_client = unittest.mock.Mock()
@@ -174,7 +173,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcribe_audio_empty_result(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test transcription with empty result."""
         mock_client = unittest.mock.Mock()
@@ -191,7 +190,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_test_connection_success(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test successful API connection test."""
         mock_client = unittest.mock.Mock()
@@ -208,7 +207,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_test_connection_failure(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test API connection test failure."""
         mock_client = unittest.mock.Mock()
@@ -224,7 +223,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_create_test_audio(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test creation of test audio data."""
         mock_client = unittest.mock.Mock()
@@ -240,7 +239,7 @@ class TestTranscriptionClient:
         assert test_audio.startswith(b"RIFF")
         assert b"WAVE" in test_audio[:12]
 
-    def test_get_supported_models(self, test_config: config.Config) -> None:
+    def test_get_supported_models(self, test_config: "ww.Config") -> None:
         """Test getting supported models list."""
         with unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI"):
             client = transcription_client.TranscriptionClient(test_config)
@@ -251,7 +250,7 @@ class TestTranscriptionClient:
             assert "base" in models
             assert "large-v3" in models
 
-    def test_get_supported_languages(self, test_config: config.Config) -> None:
+    def test_get_supported_languages(self, test_config: "ww.Config") -> None:
         """Test getting supported languages list."""
         with unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI"):
             client = transcription_client.TranscriptionClient(test_config)
@@ -264,7 +263,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_client_close(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test transcription client cleanup."""
         mock_client = unittest.mock.Mock()
@@ -277,7 +276,7 @@ class TestTranscriptionClient:
 
     @unittest.mock.patch("whisper_wayland.transcription_client.openai.OpenAI")
     def test_transcribe_with_custom_language(
-        self, mock_openai_class: unittest.mock.MagicMock, test_config: config.Config
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:
         """Test transcription with custom language parameter."""
         mock_client = unittest.mock.Mock()
@@ -299,7 +298,7 @@ class TestTranscriptionClient:
     def test_create_transcription_client(self) -> None:
         """Test TranscriptionClient.new static method."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-            test_config = config.Config()
+            test_config = ww.Config()
 
         with unittest.mock.patch(
             "whisper_wayland.transcription_client.TranscriptionClient.__init__", return_value=None

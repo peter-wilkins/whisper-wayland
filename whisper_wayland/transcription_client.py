@@ -13,7 +13,6 @@ import typing
 import openai
 
 import whisper_wayland as ww
-import whisper_wayland.config as config
 
 _logger = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ class TranscriptionClient:
     retry logic, and comprehensive logging.
     """
 
-    def __init__(self, config: config.Config) -> None:
+    def __init__(self, config: "ww.Config") -> None:
         """Initialize transcription client with configuration.
 
         Args:
@@ -334,7 +333,7 @@ class TranscriptionClient:
         self.close()
 
     @staticmethod
-    def new(config: config.Config) -> "TranscriptionClient":
+    def new(config: "ww.Config") -> "TranscriptionClient":
         """Create and initialize transcription client instance.
 
         Args:

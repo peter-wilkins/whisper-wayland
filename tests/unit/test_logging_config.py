@@ -8,7 +8,6 @@ import tempfile
 import unittest.mock
 
 import whisper_wayland as ww
-import whisper_wayland.config as config
 
 
 class TestLoggingConfig:
@@ -16,7 +15,7 @@ class TestLoggingConfig:
 
     def test_setup_logging_functionality(self) -> None:
         """Test logging setup functionality - handlers and basic configuration."""
-        test_config = config.Config()
+        test_config = ww.Config()
 
         with unittest.mock.patch("logging.getLogger") as mock_get_logger:
             mock_root_logger = unittest.mock.Mock()
@@ -31,7 +30,7 @@ class TestLoggingConfig:
 
     def test_setup_logging_debug_level(self) -> None:
         """Test logging setup with DEBUG level."""
-        test_config = config.Config()
+        test_config = ww.Config()
 
         # Patch the log_level property to return DEBUG
         with unittest.mock.patch.object(
@@ -48,7 +47,7 @@ class TestLoggingConfig:
                 # Verify setup_logging was called (level may vary due to CI environment)
                 assert mock_root_logger.setLevel.called
 
-    def test_setup_logging_with_file(self, test_config: config.Config) -> None:
+    def test_setup_logging_with_file(self, test_config: "ww.Config") -> None:
         """Test logging setup with file handler."""
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             log_file = temp_file.name
@@ -66,7 +65,7 @@ class TestLoggingConfig:
         finally:
             os.unlink(log_file)
 
-    def test_setup_logging_file_error(self, test_config: config.Config) -> None:
+    def test_setup_logging_file_error(self, test_config: "ww.Config") -> None:
         """Test logging setup with file handler error."""
         invalid_file = "/invalid/path/log.txt"
 
@@ -82,7 +81,7 @@ class TestLoggingConfig:
 
     def test_configure_third_party_loggers(self) -> None:
         """Test third-party logger configuration."""
-        test_config = config.Config()
+        test_config = ww.Config()
 
         with unittest.mock.patch("logging.getLogger") as mock_get_logger:
             mock_logger = unittest.mock.Mock()
@@ -100,12 +99,12 @@ class TestLoggingConfig:
             mock_logger = unittest.mock.Mock()
             mock_get_logger.return_value = mock_logger
 
-            result = config.Config.get_logger("test.module")
+            result = ww.Config.get_logger("test.module")
 
             assert result == mock_logger
             mock_get_logger.assert_called_once_with("test.module")
 
-    def test_logging_levels_mapping(self, test_config: config.Config) -> None:
+    def test_logging_levels_mapping(self, test_config: "ww.Config") -> None:
         """Test that string log levels are properly mapped."""
 
         # Test just one level to verify the functionality works
@@ -120,13 +119,13 @@ class TestLoggingConfig:
             # Verify that setup_logging calls setLevel (exact level may vary due to CI)
             assert mock_root_logger.setLevel.called
 
-    def test_logging_formatter_selection(self, test_config: config.Config) -> None:
+    def test_logging_formatter_selection(self, test_config: "ww.Config") -> None:
         """Test that appropriate formatters are selected."""
         # Test DEBUG level gets detailed formatter
         with unittest.mock.patch.dict(
             os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "DEBUG"}
         ):
-            debug_config = config.Config()
+            debug_config = ww.Config()
 
         with unittest.mock.patch("logging.getLogger") as mock_get_logger, unittest.mock.patch(
             "logging.StreamHandler"
@@ -145,7 +144,7 @@ class TestLoggingConfig:
         with unittest.mock.patch.dict(
             os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "INFO"}
         ):
-            info_config = config.Config()
+            info_config = ww.Config()
 
         with unittest.mock.patch("logging.getLogger") as mock_get_logger, unittest.mock.patch(
             "logging.StreamHandler"

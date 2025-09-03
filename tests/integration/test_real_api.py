@@ -12,7 +12,6 @@ import unittest.mock
 import pytest
 
 import whisper_wayland as ww
-import whisper_wayland.config as config
 import whisper_wayland.transcription_client as transcription_client
 
 
@@ -20,15 +19,15 @@ class TestRealAPIIntegration:
     """Integration tests with real OpenAI API."""
 
     @pytest.fixture
-    def test_config(self) -> config.Config:
+    def test_config(self) -> "ww.Config":
         """Create configuration for real API testing."""
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             pytest.skip("OPENAI_API_KEY not set, skipping real API tests")
 
-        return config.Config()
+        return ww.Config()
 
-    def test_real_api_connection(self, test_config: config.Config) -> None:
+    def test_real_api_connection(self, test_config: "ww.Config") -> None:
         """Test connection to real OpenAI API."""
         client = transcription_client.TranscriptionClient.new(test_config)
 
@@ -38,7 +37,7 @@ class TestRealAPIIntegration:
         assert result is True
         client.close()
 
-    def test_real_api_transcription_with_test_audio(self, test_config: config.Config) -> None:
+    def test_real_api_transcription_with_test_audio(self, test_config: "ww.Config") -> None:
         """Test transcription with minimal test audio."""
         client = transcription_client.TranscriptionClient.new(test_config)
 
@@ -55,14 +54,14 @@ class TestRealAPIIntegration:
         finally:
             client.close()
 
-    def test_real_api_with_various_models(self, test_config: config.Config) -> None:
+    def test_real_api_with_various_models(self, test_config: "ww.Config") -> None:
         """Test transcription with different model configurations."""
         models_to_test = ["base", "tiny", "whisper-1"]
 
         for model in models_to_test:
             # Update config for this model
             with unittest.mock.patch.dict(os.environ, {"WHISPER_MODEL": model}):
-                model_config = config.Config()
+                model_config = ww.Config()
 
                 client = transcription_client.TranscriptionClient.new(model_config)
 
@@ -74,7 +73,7 @@ class TestRealAPIIntegration:
                 finally:
                     client.close()
 
-    def test_real_api_error_handling(self, test_config: config.Config) -> None:
+    def test_real_api_error_handling(self, test_config: "ww.Config") -> None:
         """Test error handling with real API."""
         # Create client with invalid model to test validation
         client = transcription_client.TranscriptionClient.new(test_config)
@@ -92,7 +91,7 @@ class TestRealAPIIntegration:
         finally:
             client.close()
 
-    def test_real_api_language_parameter(self, test_config: config.Config) -> None:
+    def test_real_api_language_parameter(self, test_config: "ww.Config") -> None:
         """Test transcription with language parameter."""
         client = transcription_client.TranscriptionClient.new(test_config)
 
@@ -110,7 +109,7 @@ class TestRealAPIIntegration:
         finally:
             client.close()
 
-    def test_real_api_supported_features(self, test_config: config.Config) -> None:
+    def test_real_api_supported_features(self, test_config: "ww.Config") -> None:
         """Test supported models and languages."""
         client = transcription_client.TranscriptionClient.new(test_config)
 
@@ -157,7 +156,7 @@ class TestConfigurationIntegration:
 
         try:
             # Load config from env file
-            test_config = config.Config(env_file_path)
+            test_config = ww.Config(env_file_path)
 
             assert test_config.openai_api_key == api_key
             assert test_config.whisper_model == "large"
@@ -174,7 +173,7 @@ class TestConfigurationIntegration:
         """Test configuration validation with invalid API key format."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "invalid-key-format"}):
             # Should still create config (validation happens at API level)
-            invalid_config = config.Config()
+            invalid_config = ww.Config()
             assert invalid_config.openai_api_key == "invalid-key-format"
 
             # But transcription client should fail on API calls
@@ -200,7 +199,7 @@ class TestEndToEndIntegration:
             pytest.skip("OPENAI_API_KEY not set, skipping E2E test")
 
         # Create config
-        test_config = config.Config()
+        test_config = ww.Config()
 
         # Create transcription client
         trans_client = transcription_client.TranscriptionClient.new(test_config)

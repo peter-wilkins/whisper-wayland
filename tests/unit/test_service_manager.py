@@ -3,14 +3,14 @@
 Unit tests for service manager module coordination and lifecycle
 management functionality."""
 
-import whisper_wayland.config as config
+import whisper_wayland as ww
 import whisper_wayland.service_manager as service_manager
 
 
 class TestServiceManager:
     """Test cases for ServiceManager placeholder class."""
 
-    def test_service_manager_initialization(self, test_config: config.Config) -> None:
+    def test_service_manager_initialization(self, test_config: "ww.Config") -> None:
         """Test service manager placeholder initialization."""
         manager = service_manager.ServiceManager(test_config)
 
@@ -21,7 +21,7 @@ class TestServiceManager:
         assert manager._text_inserter is None
         assert manager._running is False
 
-    def test_start_service(self, test_config: config.Config) -> None:
+    def test_start_service(self, test_config: "ww.Config") -> None:
         """Test starting the service."""
         manager = service_manager.ServiceManager(test_config)
 
@@ -31,7 +31,7 @@ class TestServiceManager:
 
         assert manager.is_running()
 
-    def test_start_service_already_running(self, test_config: config.Config) -> None:
+    def test_start_service_already_running(self, test_config: "ww.Config") -> None:
         """Test starting service when already running."""
         manager = service_manager.ServiceManager(test_config)
         manager.start_service()
@@ -41,7 +41,7 @@ class TestServiceManager:
 
         assert manager.is_running()
 
-    def test_stop_service(self, test_config: config.Config) -> None:
+    def test_stop_service(self, test_config: "ww.Config") -> None:
         """Test stopping the service."""
         manager = service_manager.ServiceManager(test_config)
         manager.start_service()
@@ -52,7 +52,7 @@ class TestServiceManager:
 
         assert not manager.is_running()
 
-    def test_stop_service_not_running(self, test_config: config.Config) -> None:
+    def test_stop_service_not_running(self, test_config: "ww.Config") -> None:
         """Test stopping service when not running."""
         manager = service_manager.ServiceManager(test_config)
 
@@ -61,7 +61,7 @@ class TestServiceManager:
 
         assert not manager.is_running()
 
-    def test_restart_service(self, test_config: config.Config) -> None:
+    def test_restart_service(self, test_config: "ww.Config") -> None:
         """Test restarting the service."""
         manager = service_manager.ServiceManager(test_config)
         manager.start_service()
@@ -73,7 +73,7 @@ class TestServiceManager:
         # Should still be running after restart
         assert manager.is_running()
 
-    def test_restart_service_not_running(self, test_config: config.Config) -> None:
+    def test_restart_service_not_running(self, test_config: "ww.Config") -> None:
         """Test restarting service when not initially running."""
         manager = service_manager.ServiceManager(test_config)
 
@@ -82,7 +82,7 @@ class TestServiceManager:
         # Should be running after restart
         assert manager.is_running()
 
-    def test_is_running(self, test_config: config.Config) -> None:
+    def test_is_running(self, test_config: "ww.Config") -> None:
         """Test running status check."""
         manager = service_manager.ServiceManager(test_config)
 
@@ -94,7 +94,7 @@ class TestServiceManager:
         manager.stop_service()
         assert manager.is_running() is False
 
-    def test_get_status(self, test_config: config.Config) -> None:
+    def test_get_status(self, test_config: "ww.Config") -> None:
         """Test getting service status."""
         manager = service_manager.ServiceManager(test_config)
 
@@ -113,7 +113,7 @@ class TestServiceManager:
         status = manager.get_status()
         assert status["running"] is True
 
-    def test_close(self, test_config: config.Config) -> None:
+    def test_close(self, test_config: "ww.Config") -> None:
         """Test service manager cleanup."""
         manager = service_manager.ServiceManager(test_config)
         manager.start_service()
@@ -123,7 +123,7 @@ class TestServiceManager:
 
         assert not manager.is_running()
 
-    def test_close_not_running(self, test_config: config.Config) -> None:
+    def test_close_not_running(self, test_config: "ww.Config") -> None:
         """Test cleanup when service not running."""
         manager = service_manager.ServiceManager(test_config)
 
@@ -132,7 +132,7 @@ class TestServiceManager:
 
         assert not manager.is_running()
 
-    def test_create_service_manager(self, test_config: config.Config) -> None:
+    def test_create_service_manager(self, test_config: "ww.Config") -> None:
         """Test ServiceManager.new static method."""
         manager = service_manager.ServiceManager.new(test_config)
 
