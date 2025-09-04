@@ -52,17 +52,6 @@ class KeyMonitor:
             self._event_handler = EventHandler.new(hotkey_combination, self._key_mapping)
             self._monitor_loop = MonitorLoop.new(self._device_manager, self._event_handler)
 
-            # Backward compatibility attributes
-            self._callback = None
-            self._release_callback = None
-            self._monitoring = False
-            self._hotkey_pressed = False
-            self._hotkey_combination = hotkey_combination
-            self._devices = []
-            self._pressed_keys = set()
-            self._lock = self._event_handler._lock
-            self._key_map = self._key_mapping._key_map
-
             _logger.info(f"Key monitor initialized with hotkey: {config.hotkey}")
         except (KeyMappingError, DeviceManagerError) as e:
             _logger.error(f"Failed to initialize key monitor: {e}")
@@ -125,89 +114,6 @@ class KeyMonitor:
             Set of currently pressed key names
         """
         return self._event_handler.get_pressed_keys()
-
-    # Backward compatibility methods for tests
-    def _get_key_name(self, keycode: int) -> typing.Optional[str]:
-        """Legacy interface for key name conversion."""
-        return self._key_mapping.get_key_name(keycode)
-
-    def _check_hotkey_state(self) -> None:
-        """Legacy interface for hotkey state checking."""
-        # Sync backward compatibility state with event handler
-        self._event_handler._pressed_keys = self._pressed_keys.copy()
-        self._event_handler._check_hotkey_state()
-        # Update backward compatibility state from event handler
-        self._hotkey_pressed = self._event_handler._hotkey_pressed
-
-    def _handle_key_event(self, event: typing.Any) -> None:
-        """Legacy interface for key event handling."""
-        self._event_handler.handle_key_event(event)
-
-    def _cleanup_devices(self) -> None:
-        """Legacy interface for device cleanup."""
-        self._device_manager.cleanup_devices()
-
-    @property
-    def _callback(self) -> typing.Optional[typing.Callable[[], None]]:
-        """Legacy attribute access for callback."""
-        return getattr(self._event_handler, "_callback", None)
-
-    @_callback.setter
-    def _callback(self, value: typing.Optional[typing.Callable[[], None]]) -> None:
-        """Legacy attribute setter for callback."""
-        if hasattr(self._event_handler, "_callback"):
-            self._event_handler._callback = value
-
-    @property
-    def _release_callback(self) -> typing.Optional[typing.Callable[[], None]]:
-        """Legacy attribute access for release callback."""
-        return getattr(self._event_handler, "_release_callback", None)
-
-    @_release_callback.setter
-    def _release_callback(self, value: typing.Optional[typing.Callable[[], None]]) -> None:
-        """Legacy attribute setter for release callback."""
-        if hasattr(self._event_handler, "_release_callback"):
-            self._event_handler._release_callback = value
-
-    @property
-    def _monitoring(self) -> bool:
-        """Legacy attribute access for monitoring state."""
-        return self._monitor_loop.is_monitoring()
-
-    @_monitoring.setter
-    def _monitoring(self, value: bool) -> None:
-        """Legacy attribute setter for monitoring state."""
-        # This is read-only through the property interface
-
-    @property
-    def _hotkey_pressed(self) -> bool:
-        """Legacy attribute access for hotkey pressed state."""
-        return self._event_handler.is_hotkey_pressed()
-
-    @_hotkey_pressed.setter
-    def _hotkey_pressed(self, value: bool) -> None:
-        """Legacy attribute setter for hotkey pressed state."""
-        # This is managed by the event handler
-
-    @property
-    def _pressed_keys(self) -> set[str]:
-        """Legacy attribute access for pressed keys."""
-        return self._event_handler.get_pressed_keys()
-
-    @_pressed_keys.setter
-    def _pressed_keys(self, value: set[str]) -> None:
-        """Legacy attribute setter for pressed keys."""
-        # This is managed by the event handler
-
-    @property
-    def _devices(self) -> list:
-        """Legacy attribute access for devices."""
-        return self._device_manager.get_devices()
-
-    @_devices.setter
-    def _devices(self, value: list) -> None:
-        """Legacy attribute setter for devices."""
-        # This is managed by the device manager
 
     def close(self) -> None:
         """Clean up key monitor resources."""

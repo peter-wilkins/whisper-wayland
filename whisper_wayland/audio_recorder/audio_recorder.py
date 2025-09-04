@@ -100,14 +100,6 @@ class AudioRecorder:
         """
         return self._audio_validator.get_audio_devices(self._audio)
 
-    # Backward compatibility methods for tests
-    def _frames_to_wav(self, frames: list[bytes]) -> bytes:
-        """Legacy interface for WAV conversion."""
-        from whisper_wayland.audio_recorder.wav_converter import WavConverter
-
-        wav_converter = WavConverter.new(self._audio, self.config)
-        return wav_converter.frames_to_wav(frames)
-
     def close(self) -> None:
         """Clean up audio resources."""
         try:

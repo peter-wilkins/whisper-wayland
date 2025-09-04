@@ -10,7 +10,7 @@ import typing
 import whisper_wayland as ww
 from whisper_wayland.text_inserter.capability_tester import CapabilityTester
 from whisper_wayland.text_inserter.fallback_handler import FallbackHandler
-from whisper_wayland.text_inserter.insertion_methods import MethodDetector, TextInsertionMethod
+from whisper_wayland.text_inserter.insertion_methods import MethodDetector
 from whisper_wayland.text_inserter.method_executors import MethodExecutors
 from whisper_wayland.text_inserter.text_processor import TextProcessor
 
@@ -135,37 +135,6 @@ class TextInserter:
             Name of preferred method or None if none available
         """
         return self._preferred_method.value if self._preferred_method else None
-
-    # Backward compatibility methods for tests
-    def _clean_text_for_insertion(self, text: str) -> str:
-        """Legacy interface for text cleaning."""
-        return self._text_processor.clean_text_for_insertion(text)
-
-    def _insert_with_method(self, method: "TextInsertionMethod", text: str) -> bool:
-        """Legacy interface for method insertion."""
-        return self._method_executors.insert_with_method(method, text)
-
-    def _insert_with_wtype(self, text: str) -> bool:
-        """Legacy interface for wtype insertion."""
-        return self._method_executors._insert_with_wtype(text)
-
-    def _insert_with_ydotool(self, text: str) -> bool:
-        """Legacy interface for ydotool insertion."""
-        return self._method_executors._insert_with_ydotool(text)
-
-    def _insert_with_xdotool(self, text: str) -> bool:
-        """Legacy interface for xdotool insertion."""
-        return self._method_executors._insert_with_xdotool(text)
-
-    def _insert_with_clipboard(self, text: str) -> bool:
-        """Legacy interface for clipboard insertion."""
-        return self._method_executors._insert_with_clipboard(text)
-
-    def _try_fallback_methods(self, text: str) -> bool:
-        """Legacy interface for fallback methods."""
-        return self._fallback_handler.try_fallback_methods(
-            text, self._preferred_method, self._available_methods
-        )
 
     def close(self) -> None:
         """Clean up text inserter resources."""

@@ -20,11 +20,11 @@ class TestKeyMonitor:
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
         assert monitor.config == test_config_with_hotkey
-        assert monitor._callback is None
-        assert monitor._release_callback is None
-        assert not monitor._monitoring
-        assert not monitor._hotkey_pressed
-        assert monitor._hotkey_combination == {"ctrl", "compose"}
+        assert monitor._event_handler._callback is None
+        assert monitor._event_handler._release_callback is None
+        assert not monitor.is_monitoring()
+        assert not monitor.is_hotkey_pressed()
+        assert monitor._event_handler._hotkey_combination == {"ctrl", "compose"}
 
     def test_key_monitor_initialization_custom_hotkey(self) -> None:
         """Test key monitor initialization with custom hotkey."""
@@ -32,7 +32,7 @@ class TestKeyMonitor:
             hotkey_config = ww.Config()
             monitor = key_monitor.KeyMonitor(hotkey_config)
 
-            assert monitor._hotkey_combination == {"ctrl", "shift", "f1"}
+            assert monitor._event_handler._hotkey_combination == {"ctrl", "shift", "f1"}
 
     def test_key_monitor_initialization_single_key(self) -> None:
         """Test key monitor initialization with single key."""
@@ -40,7 +40,7 @@ class TestKeyMonitor:
             f10_config = ww.Config()
             monitor = key_monitor.KeyMonitor(f10_config)
 
-            assert monitor._hotkey_combination == {"f10"}
+            assert monitor._event_handler._hotkey_combination == {"f10"}
 
     def test_key_monitor_initialization_invalid_hotkey(self) -> None:
         """Test key monitor initialization with invalid hotkey."""
@@ -65,7 +65,7 @@ class TestKeyMonitor:
             with unittest.mock.patch.dict(os.environ, {"HOTKEY": hotkey_str}):
                 test_hotkey_config = ww.Config()
                 monitor = key_monitor.KeyMonitor(test_hotkey_config)
-                assert monitor._hotkey_combination == expected
+                assert monitor._event_handler._hotkey_combination == expected
 
     def test_set_callback(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test setting press callback for key monitor."""
@@ -76,7 +76,7 @@ class TestKeyMonitor:
             return None
 
         monitor.set_callback(callback)
-        assert monitor._callback == callback
+        assert monitor._event_handler._callback == callback
 
     def test_set_release_callback(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test setting release callback for key monitor."""
@@ -87,12 +87,12 @@ class TestKeyMonitor:
             return None
 
         monitor.set_release_callback(release_callback)
-        assert monitor._release_callback == release_callback
+        assert monitor._event_handler._release_callback == release_callback
 
     def test_build_key_map(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test building of key code mapping."""
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
-        key_map = monitor._key_map
+        key_map = monitor._key_mapping._key_map
 
         # Test some expected mappings
         assert key_map[57] == "space"  # KEY_SPACE
@@ -112,12 +112,12 @@ class TestKeyMonitor:
         monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
         # Test mapped keys
-        assert monitor._get_key_name(57) == "space"
-        assert monitor._get_key_name(28) == "enter"
-        assert monitor._get_key_name(127) == "compose"
+        assert monitor._key_mapping.get_key_name(57) == "space"
+        assert monitor._key_mapping.get_key_name(28) == "enter"
+        assert monitor._key_mapping.get_key_name(127) == "compose"
 
         # Test unmapped key
-        assert monitor._get_key_name(999) is None
+        assert monitor._key_mapping.get_key_name(999) is None
 
     @unittest.mock.patch("whisper_wayland.key_monitor.monitor_loop.select.select")
     def test_start_monitoring_success(
@@ -133,18 +133,23 @@ class TestKeyMonitor:
         monitor.start_monitoring()
 
         assert monitor.is_monitoring()
-        assert len(monitor._devices) == ww.Constants.EXPECTED_DEVICE_COUNT  # Two mock devices
+        assert (
+            len(monitor._device_manager.get_devices()) == ww.Constants.EXPECTED_DEVICE_COUNT
+        )  # Two mock devices
 
     def test_start_monitoring_already_active(
         self, test_config_with_hotkey: "ww.Config", mock_evdev: unittest.mock.Mock
     ) -> None:
         """Test starting monitoring when already active."""
-        monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
-        monitor._monitoring = True
+        with unittest.mock.patch(
+            "whisper_wayland.key_monitor.monitor_loop.select.select", return_value=([], [], [])
+        ):
+            monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
+            monitor.start_monitoring()  # Start monitoring first
 
-        # Should not raise an error
-        monitor.start_monitoring()
-        assert monitor.is_monitoring()
+            # Should not raise an error when starting again
+            monitor.start_monitoring()
+            assert monitor.is_monitoring()
 
     def test_start_monitoring_no_devices(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test handling when no devices are found."""
@@ -182,7 +187,7 @@ class TestKeyMonitor:
             monitor.stop_monitoring()
 
             assert not monitor.is_monitoring()
-            assert len(monitor._devices) == 0
+            assert len(monitor._device_manager.get_devices()) == 0
 
     def test_stop_monitoring_not_active(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test stopping monitoring when not active."""
@@ -208,7 +213,7 @@ class TestKeyMonitor:
             monitor.set_release_callback(release_callback)
 
             # Simulate pressing ctrl+compose keys by directly manipulating event handler state
-            with monitor._lock:
+            with monitor._event_handler._lock:
                 monitor._event_handler._pressed_keys.add("ctrl")
                 monitor._event_handler._pressed_keys.add("compose")
                 monitor._event_handler._check_hotkey_state()
@@ -221,7 +226,7 @@ class TestKeyMonitor:
             mock_thread.reset_mock()
 
             # Simulate releasing compose key (ctrl still held)
-            with monitor._lock:
+            with monitor._event_handler._lock:
                 monitor._event_handler._pressed_keys.remove("compose")
                 monitor._event_handler._check_hotkey_state()
 
@@ -244,7 +249,7 @@ class TestKeyMonitor:
                 monitor.set_callback(press_callback)
 
                 # Press only ctrl - should not trigger
-                with monitor._lock:
+                with monitor._event_handler._lock:
                     monitor._event_handler._pressed_keys.add("ctrl")
                     monitor._event_handler._check_hotkey_state()
 
@@ -252,7 +257,7 @@ class TestKeyMonitor:
                 mock_thread.assert_not_called()
 
                 # Press ctrl+alt - should trigger
-                with monitor._lock:
+                with monitor._event_handler._lock:
                     monitor._event_handler._pressed_keys.add("alt")
                     monitor._event_handler._check_hotkey_state()
 
@@ -310,7 +315,7 @@ class TestKeyMonitor:
             monitor.set_callback(failing_callback)
 
             # Should not raise an error when callback fails - error is caught in thread
-            with monitor._lock:
+            with monitor._event_handler._lock:
                 monitor._event_handler._pressed_keys.add("compose")
                 monitor._event_handler._check_hotkey_state()
 
@@ -348,7 +353,7 @@ class TestKeyMonitor:
         # Set devices in the device manager (where cleanup actually happens)
         monitor._device_manager._devices = mock_evdev_devices.copy()
 
-        monitor._cleanup_devices()
+        monitor._device_manager.cleanup_devices()
 
         # Check that all devices were closed
         for device in mock_evdev_devices:
@@ -367,8 +372,8 @@ class TestKeyMonitor:
         press_event.value = 1  # Key press
 
         # Handle press event
-        monitor._handle_key_event(press_event)
-        assert "compose" in monitor._pressed_keys
+        monitor._event_handler.handle_key_event(press_event)
+        assert "compose" in monitor.get_pressed_keys()
 
         # Create mock event for key release
         release_event = unittest.mock.Mock()
@@ -377,5 +382,5 @@ class TestKeyMonitor:
         release_event.value = 0  # Key release
 
         # Handle release event
-        monitor._handle_key_event(release_event)
-        assert "compose" not in monitor._pressed_keys
+        monitor._event_handler.handle_key_event(release_event)
+        assert "compose" not in monitor.get_pressed_keys()

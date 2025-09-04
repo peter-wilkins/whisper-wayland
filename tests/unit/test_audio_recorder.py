@@ -225,15 +225,18 @@ class TestAudioRecorder:
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:
         """Test audio frames to WAV conversion."""
+        from whisper_wayland.audio_recorder.wav_converter import WavConverter
+
         mock_audio_instance = conftest.create_mock_audio_instance()
         mock_pyaudio.return_value = mock_audio_instance
 
         recorder = audio_recorder.AudioRecorder(test_config)
+        wav_converter = WavConverter.new(recorder._audio, test_config)
 
         # Test frames data
         frames = [b"\x00\x01" * 100, b"\x02\x03" * 100]
 
-        wav_data = recorder._frames_to_wav(frames)
+        wav_data = wav_converter.frames_to_wav(frames)
 
         assert isinstance(wav_data, bytes)
         assert len(wav_data) > len(b"".join(frames))  # Should include WAV header

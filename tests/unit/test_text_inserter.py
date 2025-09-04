@@ -134,7 +134,7 @@ class TestTextInserter:
         """Test text insertion with None."""
         # Convert None to empty string for cleaning
         with unittest.mock.patch.object(
-            text_inserter, "_clean_text_for_insertion", return_value=""
+            text_inserter._text_processor, "validate_text", return_value=False
         ):
             # Cast None to str to match function signature
             result = text_inserter.insert_text(typing.cast(str, None))
@@ -207,26 +207,34 @@ class TestTextInserter:
     ) -> None:
         """Test basic text cleaning."""
         # Test strip whitespace
-        assert text_inserter._clean_text_for_insertion("  hello  ") == "hello"
+        assert text_inserter._text_processor.clean_text_for_insertion("  hello  ") == "hello"
 
         # Test multiple spaces
-        assert text_inserter._clean_text_for_insertion("hello    world") == "hello world"
+        assert (
+            text_inserter._text_processor.clean_text_for_insertion("hello    world")
+            == "hello world"
+        )
 
         # Test combined
-        assert text_inserter._clean_text_for_insertion("  hello    world  ") == "hello world"
+        assert (
+            text_inserter._text_processor.clean_text_for_insertion("  hello    world  ")
+            == "hello world"
+        )
 
     def test_clean_text_for_insertion_edge_cases(
         self, text_inserter: text_inserter_module.TextInserter
     ) -> None:
         """Test text cleaning edge cases."""
         # Empty string
-        assert text_inserter._clean_text_for_insertion("") == ""
+        assert text_inserter._text_processor.clean_text_for_insertion("") == ""
 
         # Only whitespace
-        assert text_inserter._clean_text_for_insertion("   ") == ""
+        assert text_inserter._text_processor.clean_text_for_insertion("   ") == ""
 
         # Already clean
-        assert text_inserter._clean_text_for_insertion("hello world") == "hello world"
+        assert (
+            text_inserter._text_processor.clean_text_for_insertion("hello world") == "hello world"
+        )
 
     def test_insert_with_wtype(self, text_inserter: text_inserter_module.TextInserter) -> None:
         """Test wtype insertion method."""

@@ -45,14 +45,6 @@ class TranscriptionProcessor:
         except Exception as e:
             _logger.error(f"Error processing transcription: {e}")
 
-    def _transcribe_audio(self, audio_data: bytes) -> str | None:
-        """Legacy interface for transcription."""
-        return self.audio_processor.transcribe_audio(audio_data)
-
-    def _insert_text(self, text: str) -> None:
-        """Legacy interface for text insertion."""
-        self.text_handler.insert_text(text)
-
     @staticmethod
     def new(
         transcription_client: "ww.TranscriptionClient",

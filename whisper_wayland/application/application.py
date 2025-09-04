@@ -9,7 +9,6 @@ import typing
 import whisper_wayland as ww
 from whisper_wayland.application.component_manager import ComponentManager
 from whisper_wayland.application.hotkey_handler import HotkeyHandler
-from whisper_wayland.application.legacy import LegacyRecorder
 from whisper_wayland.application.runtime import RuntimeManager
 from whisper_wayland.application.transcription_processor import TranscriptionProcessor
 
@@ -34,14 +33,7 @@ class Application:
         self.hotkey_handler: typing.Optional[HotkeyHandler] = None
         self.transcription_processor: typing.Optional[TranscriptionProcessor] = None
         self.runtime_manager: typing.Optional[RuntimeManager] = None
-        self.legacy_recorder: typing.Optional[LegacyRecorder] = None
         self._running = False
-
-        # Backward compatibility attributes (delegate to component_manager)
-        self.audio_recorder: typing.Optional[ww.AudioRecorder] = None
-        self.transcription_client: typing.Optional[ww.TranscriptionClient] = None
-        self.key_monitor: typing.Optional[ww.KeyMonitor] = None
-        self.text_inserter: typing.Optional[ww.TextInserter] = None
 
         try:
             self._initialize(config_file)
@@ -81,16 +73,6 @@ class Application:
 
         # Initialize runtime manager
         self.runtime_manager = RuntimeManager(self)
-
-        # Initialize legacy recorder for backward compatibility
-        if self.component_manager.audio_recorder:
-            self.legacy_recorder = LegacyRecorder.new(self.component_manager.audio_recorder)
-
-        # Set backward compatibility attributes
-        self.audio_recorder = self.component_manager.audio_recorder
-        self.transcription_client = self.component_manager.transcription_client
-        self.key_monitor = self.component_manager.key_monitor
-        self.text_inserter = self.component_manager.text_inserter
 
     def run(self) -> None:
         """Run the main application loop."""
@@ -133,39 +115,7 @@ class Application:
             _logger.info(f"  - Text insertion method: {preferred_method}")
             _logger.debug(f"  - Available methods: {available_methods}")
 
-    def _validate_components(self) -> bool:
-        """Legacy compatibility method for component validation."""
-        if not self.config:
-            return False
-        if self.component_manager:
-            return self.component_manager.validate_components()
-        return False
-
     def cleanup(self) -> None:
         """Clean up application resources."""
         if self.component_manager:
             self.component_manager.cleanup()
-
-    # Legacy methods for backward compatibility
-    def _wait_for_recording_trigger(self) -> None:
-        """Legacy simple recording compatibility method."""
-        if self.legacy_recorder:
-            if not self.legacy_recorder.wait_for_recording_trigger():
-                self._running = False
-
-    def _record_audio_session(self) -> typing.Optional[bytes]:
-        """Legacy simple recording compatibility method."""
-        if self.legacy_recorder:
-            return self.legacy_recorder.record_audio_session()
-        return None
-
-    def _transcribe_audio(self, audio_data: bytes) -> typing.Optional[str]:
-        """Legacy interface for transcription."""
-        if self.transcription_processor:
-            return self.transcription_processor._transcribe_audio(audio_data)
-        return None
-
-    def _insert_text(self, text: str) -> None:
-        """Legacy interface for text insertion."""
-        if self.transcription_processor:
-            self.transcription_processor._insert_text(text)
