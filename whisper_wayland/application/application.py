@@ -46,7 +46,6 @@ class Application:
         self.runtime_manager.setup_hotkey_monitoring()
         self._running = True
 
-
     def run(self) -> None:
         """Run the main application loop."""
         try:

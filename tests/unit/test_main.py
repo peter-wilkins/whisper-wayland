@@ -86,8 +86,6 @@ class TestApplication:
 
         mock_config_get.assert_called_once_with("/path/to/config.env")
 
-
-
     @unittest.mock.patch("whisper_wayland.TextInserter.new")
     @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
     @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
@@ -119,7 +117,6 @@ class TestApplication:
         # Test that audio recorder is accessible through component manager
         assert app.component_manager is not None
         assert app.component_manager.audio_recorder == mock_recorder
-
 
 
 class TestMainFunction:
