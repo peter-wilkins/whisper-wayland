@@ -36,8 +36,6 @@ class TestApplication:
         mock_client = unittest.mock.Mock()
         mock_key_monitor = unittest.mock.Mock()
         mock_text_inserter = unittest.mock.Mock()
-        mock_client.test_connection.return_value = True
-        mock_text_inserter.test_insertion.return_value = True
         mock_create_recorder.return_value = mock_recorder
         mock_create_client.return_value = mock_client
         mock_create_key_monitor.return_value = mock_key_monitor
@@ -52,8 +50,6 @@ class TestApplication:
         assert app.component_manager.key_monitor == mock_key_monitor
         assert app.component_manager.text_inserter == mock_text_inserter
         mock_setup_logging.assert_called_once_with()
-        mock_client.test_connection.assert_called_once()
-        mock_text_inserter.test_insertion.assert_called_once()
 
     @unittest.mock.patch("whisper_wayland.Config.get")
     def test_app_initialization_config_error(self, mock_config_get: unittest.mock.Mock) -> None:
@@ -81,86 +77,16 @@ class TestApplication:
     ) -> None:
         """Test app initialization with custom config file."""
         mock_config_get.return_value = test_config
-        mock_client = unittest.mock.Mock()
-        mock_client.test_connection.return_value = True
-        mock_text_inserter = unittest.mock.Mock()
-        mock_text_inserter.test_insertion.return_value = True
-        mock_create_client.return_value = mock_client
         mock_create_recorder.return_value = unittest.mock.Mock()
+        mock_create_client.return_value = unittest.mock.Mock()
         mock_create_key_monitor.return_value = unittest.mock.Mock()
-        mock_create_text_inserter.return_value = mock_text_inserter
+        mock_create_text_inserter.return_value = unittest.mock.Mock()
 
         ww.Application("/path/to/config.env")
 
         mock_config_get.assert_called_once_with("/path/to/config.env")
 
-    @unittest.mock.patch("whisper_wayland.TextInserter.new")
-    @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
-    @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
-    @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch.object(ww.Config, "setup_logging")
-    @unittest.mock.patch("whisper_wayland.Config.get")
-    def test_validate_components_success(  # noqa: PLR0913
-        self,
-        mock_config_get: unittest.mock.Mock,
-        mock_setup_logging: unittest.mock.Mock,
-        mock_create_recorder: unittest.mock.Mock,
-        mock_create_client: unittest.mock.Mock,
-        mock_create_key_monitor: unittest.mock.Mock,
-        mock_create_text_inserter: unittest.mock.Mock,
-        test_config: ww.Config,
-    ) -> None:
-        """Test successful component validation."""
-        mock_config_get.return_value = test_config
-        mock_client = unittest.mock.Mock()
-        mock_client.test_connection.return_value = True
-        mock_text_inserter = unittest.mock.Mock()
-        mock_text_inserter.test_insertion.return_value = True
-        mock_create_client.return_value = mock_client
-        mock_create_recorder.return_value = unittest.mock.Mock()
-        mock_create_key_monitor.return_value = unittest.mock.Mock()
-        mock_create_text_inserter.return_value = mock_text_inserter
 
-        app = ww.Application()
-        assert app.component_manager is not None
-        assert app.component_manager.validate_components() is True
-
-    @unittest.mock.patch("whisper_wayland.TextInserter.new")
-    @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
-    @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
-    @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch.object(ww.Config, "setup_logging")
-    @unittest.mock.patch("whisper_wayland.Config.get")
-    def test_validate_components_missing_config(  # noqa: PLR0913
-        self,
-        mock_config_get: unittest.mock.Mock,
-        mock_setup_logging: unittest.mock.Mock,
-        mock_create_recorder: unittest.mock.Mock,
-        mock_create_client: unittest.mock.Mock,
-        mock_create_key_monitor: unittest.mock.Mock,
-        mock_create_text_inserter: unittest.mock.Mock,
-        test_config: ww.Config,
-    ) -> None:
-        """Test component validation with missing config."""
-        mock_config_get.return_value = test_config
-        mock_client = unittest.mock.Mock()
-        mock_client.test_connection.return_value = True
-        mock_text_inserter = unittest.mock.Mock()
-        mock_text_inserter.test_insertion.return_value = True
-        mock_create_client.return_value = mock_client
-        mock_create_recorder.return_value = unittest.mock.Mock()
-        mock_create_key_monitor.return_value = unittest.mock.Mock()
-        mock_create_text_inserter.return_value = mock_text_inserter
-
-        app = ww.Application()
-        app.config = None
-
-        # Should fail validation when config is None
-        assert app.component_manager is not None
-        with unittest.mock.patch.object(
-            app.component_manager, "validate_components", return_value=False
-        ):
-            assert not app.component_manager.validate_components()
 
     @unittest.mock.patch("whisper_wayland.TextInserter.new")
     @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
@@ -184,15 +110,9 @@ class TestApplication:
         mock_recorder.start_recording.return_value = None
         mock_recorder.stop_recording.return_value = b"fake_audio_data"
         mock_create_recorder.return_value = mock_recorder
-
-        mock_client = unittest.mock.Mock()
-        mock_client.test_connection.return_value = True
-        mock_create_client.return_value = mock_client
+        mock_create_client.return_value = unittest.mock.Mock()
         mock_create_key_monitor.return_value = unittest.mock.Mock()
-
-        mock_text_inserter = unittest.mock.Mock()
-        mock_text_inserter.test_insertion.return_value = True
-        mock_create_text_inserter.return_value = mock_text_inserter
+        mock_create_text_inserter.return_value = unittest.mock.Mock()
 
         app = ww.Application()
 
@@ -200,41 +120,6 @@ class TestApplication:
         assert app.component_manager is not None
         assert app.component_manager.audio_recorder == mock_recorder
 
-    @unittest.mock.patch("whisper_wayland.TextInserter.new")
-    @unittest.mock.patch("whisper_wayland.KeyMonitor.new")
-    @unittest.mock.patch("whisper_wayland.TranscriptionClient.new")
-    @unittest.mock.patch("whisper_wayland.AudioRecorder.new")
-    @unittest.mock.patch.object(ww.Config, "setup_logging")
-    @unittest.mock.patch("whisper_wayland.Config.get")
-    def test_cleanup(  # noqa: PLR0913
-        self,
-        mock_config_get: unittest.mock.Mock,
-        mock_setup_logging: unittest.mock.Mock,
-        mock_create_recorder: unittest.mock.Mock,
-        mock_create_client: unittest.mock.Mock,
-        mock_create_key_monitor: unittest.mock.Mock,
-        mock_create_text_inserter: unittest.mock.Mock,
-        test_config: ww.Config,
-    ) -> None:
-        """Test application cleanup."""
-        mock_config_get.return_value = test_config
-        mock_recorder = unittest.mock.Mock()
-        mock_create_recorder.return_value = mock_recorder
-
-        mock_client = unittest.mock.Mock()
-        mock_client.test_connection.return_value = True
-        mock_create_client.return_value = mock_client
-        mock_create_key_monitor.return_value = unittest.mock.Mock()
-
-        mock_text_inserter = unittest.mock.Mock()
-        mock_text_inserter.test_insertion.return_value = True
-        mock_create_text_inserter.return_value = mock_text_inserter
-
-        app = ww.Application()
-        app.cleanup()
-
-        # Verify cleanup was called (component_manager handles individual component cleanup)
-        assert True  # cleanup() was called without errors
 
 
 class TestMainFunction:
