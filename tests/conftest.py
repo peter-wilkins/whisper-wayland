@@ -37,10 +37,6 @@ def clean_environment() -> typing.Generator[None, None, None]:
         "MAX_RECORDING_DURATION",
         "LOG_LEVEL",
         "HOTKEY",
-        "SERVICE_NAME",
-        "SERVICE_DESCRIPTION",
-        "DOCKER_AUDIO_DEVICE",
-        "DOCKER_DISPLAY_VAR",
         "TEXT_INSERTION_DELAY",
         "TEXT_INSERTION_METHOD",
     ]

@@ -152,25 +152,6 @@ class TestConfig:
                     test_config.text_insertion_method == "ydotool"
                 )  # Fallback per config.py line 210
 
-    def test_config_service_properties(self) -> None:
-        """Test service-related configuration properties."""
-        with unittest.mock.patch.dict(
-            os.environ,
-            {
-                "OPENAI_API_KEY": "sk-test123",
-                "SERVICE_NAME": "test-service",
-                "SERVICE_DESCRIPTION": "Test service description",
-                "DOCKER_AUDIO_DEVICE": "/dev/audio",
-                "DOCKER_DISPLAY_VAR": "WAYLAND_DISPLAY",
-            },
-        ):
-            test_config = ww.Config()
-
-            assert test_config.service_name == "test-service"
-            assert test_config.service_description == "Test service description"
-            assert test_config.docker_audio_device == "/dev/audio"
-            assert test_config.docker_display_var == "WAYLAND_DISPLAY"
-
     def test_config_load_env_file(self) -> None:
         """Test loading configuration from .env file."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:

@@ -22,7 +22,7 @@ The service runs in the background and works with any application that accepts t
 - **Wayland Support**: Native support for modern Linux desktop environments
 - **High Accuracy**: Uses OpenAI's Whisper API for accurate speech recognition
 - **Privacy Focused**: Audio is only sent to OpenAI for transcription, not stored locally
-- **Multiple Deployment Options**: Run natively, in Docker, or as a system service
+- **Simple Deployment**: Runs natively on your Linux desktop
 
 ## Quick Start
 
@@ -31,7 +31,7 @@ The service runs in the background and works with any application that accepts t
 You'll need:
 - Ubuntu/Debian or Fedora/RHEL Linux system with Wayland
 - [OpenAI API key][openai-api-keys] (pay-per-use, typically $0.006 per minute)
-- Python 3.11+ or Docker
+- Python 3.11+
 
 ### System Dependencies
 
@@ -55,7 +55,7 @@ sudo dnf install portaudio-devel python3-devel wtype
 
 2. **Clone and install:**
    ```bash
-   git clone https://github.com/your-org/whisper-wayland.git
+   git clone https://github.com/rolandtritsch/whisper-wayland.git
    cd whisper-wayland
    uv sync
    ```
@@ -72,47 +72,10 @@ sudo dnf install portaudio-devel python3-devel wtype
    uv run whisper-wayland
    ```
 
-#### Option 2: Docker Installation
-
-1. **Build and run:**
-   ```bash
-   git clone https://github.com/your-org/whisper-wayland.git
-   cd whisper-wayland
-   docker build -t whisper-wayland .
-   ```
-
-2. **Run with system access:**
-   ```bash
-   docker run -d \
-     --name whisper-wayland \
-     --device /dev/snd \
-     -e DISPLAY=$DISPLAY \
-     -e WAYLAND_DISPLAY=$WAYLAND_DISPLAY \
-     -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
-     -v /tmp/.X11-unix:/tmp/.X11-unix \
-     -v $XDG_RUNTIME_DIR:$XDG_RUNTIME_DIR \
-     --env-file .env \
-     whisper-wayland
-   ```
-
-#### Option 3: System Service
-
-For always-on operation, install as a systemd service:
-
-```bash
-# Copy and configure service file
-sudo cp whisper-wayland.service /etc/systemd/system/
-sudo nano /etc/systemd/system/whisper-wayland.service  # Update paths and user
-
-# Enable and start
-sudo systemctl daemon-reload
-sudo systemctl enable whisper-wayland
-sudo systemctl start whisper-wayland
-```
 
 ## How to Use
 
-1. **Start the service** using one of the installation methods above
+1. **Start the service** using the installation method above
 2. **Position your cursor** where you want text to appear in any application
 3. **Press and hold the Compose key** (usually right Alt or Menu key)
 4. **Speak clearly** while holding the key
@@ -175,12 +138,6 @@ All configuration is handled through environment variables:
 For detailed troubleshooting and logs:
 
 ```bash
-# Check service status (systemd)
-systemctl status whisper-wayland
-
-# View logs (systemd)
-journalctl -u whisper-wayland -f
-
 # Enable debug logging
 export LOG_LEVEL=DEBUG
 uv run whisper-wayland
@@ -214,11 +171,11 @@ MIT License - see [LICENSE][license-url] file for details.
 
 **For developers**: See [CLAUDE.md][claude-md] for repository structure, development workflow, and contribution guidelines.
 
-[ci-badge]: https://github.com/whisper-wayland/whisper-wayland/actions/workflows/ci.yml/badge.svg
-[ci-url]: https://github.com/whisper-wayland/whisper-wayland/actions/workflows/ci.yml
+[ci-badge]: https://github.com/rolandtritsch/whisper-wayland/actions/workflows/ci.yml/badge.svg
+[ci-url]: https://github.com/rolandtritsch/whisper-wayland/actions/workflows/ci.yml
 [openai-api-keys]: https://platform.openai.com/api-keys
 [uv-install]: https://docs.astral.sh/uv/getting-started/installation/
-[issues-url]: https://github.com/your-org/whisper-wayland/issues
-[discussions-url]: https://github.com/your-org/whisper-wayland/discussions
-[license-url]: https://github.com/your-org/whisper-wayland/blob/trunk/LICENSE
-[claude-md]: https://github.com/your-org/whisper-wayland/blob/trunk/CLAUDE.md
+[issues-url]: https://github.com/rolandtritsch/whisper-wayland/issues
+[discussions-url]: https://github.com/rolandtritsch/whisper-wayland/discussions
+[license-url]: https://github.com/rolandtritsch/whisper-wayland/blob/trunk/LICENSE
+[claude-md]: https://github.com/rolandtritsch/whisper-wayland/blob/trunk/CLAUDE.md

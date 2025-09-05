@@ -60,8 +60,6 @@ class ConfigValidator:
             "max_recording_duration": config_instance.max_recording_duration,
             "log_level": config_instance.log_level,
             "hotkey": config_instance.hotkey,
-            "service_name": config_instance.service_name,
-            "service_description": config_instance.service_description,
             "text_insertion_delay": config_instance.text_insertion_delay,
             "text_insertion_method": config_instance.text_insertion_method,
         }

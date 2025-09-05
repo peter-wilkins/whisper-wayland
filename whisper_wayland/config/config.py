@@ -94,28 +94,6 @@ class Config:
         """Push-to-talk key combination."""
         return self._property_handlers.get_hotkey()
 
-    # Service Configuration
-    @property
-    def service_name(self) -> str:
-        """Service name for systemd/docker."""
-        return self._property_handlers.get_service_name()
-
-    @property
-    def service_description(self) -> str:
-        """Service description."""
-        return self._property_handlers.get_service_description()
-
-    # Docker Configuration
-    @property
-    def docker_audio_device(self) -> str:
-        """Docker audio device path."""
-        return self._property_handlers.get_docker_audio_device()
-
-    @property
-    def docker_display_var(self) -> str:
-        """Docker display environment variable."""
-        return self._property_handlers.get_docker_display_var()
-
     # Text Insertion Configuration
     @property
     def text_insertion_delay(self) -> float:

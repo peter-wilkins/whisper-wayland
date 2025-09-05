@@ -130,40 +130,6 @@ class PropertyHandlers:
         """
         return os.getenv("HOTKEY", "ctrl+compose").strip().lower()
 
-    # Service Configuration
-    def get_service_name(self) -> str:
-        """Get service name for systemd/docker.
-
-        Returns:
-            Service name
-        """
-        return os.getenv("SERVICE_NAME", "whisper-wayland").strip()
-
-    def get_service_description(self) -> str:
-        """Get service description.
-
-        Returns:
-            Service description
-        """
-        return os.getenv("SERVICE_DESCRIPTION", "Voice-to-text transcription service").strip()
-
-    # Docker Configuration
-    def get_docker_audio_device(self) -> str:
-        """Get Docker audio device path.
-
-        Returns:
-            Docker audio device path
-        """
-        return os.getenv("DOCKER_AUDIO_DEVICE", "/dev/snd").strip()
-
-    def get_docker_display_var(self) -> str:
-        """Get Docker display environment variable.
-
-        Returns:
-            Docker display environment variable
-        """
-        return os.getenv("DOCKER_DISPLAY_VAR", "DISPLAY").strip()
-
     # Text Insertion Configuration
     def get_text_insertion_delay(self) -> float:
         """Get delay before text insertion in seconds.
