@@ -8,7 +8,7 @@ __version__ = "0.1.0"
 __author__ = "Roland Tritsch"
 __email__ = "roland@tritsch.org"
 
-from whisper_wayland.application import Application as Application
+from whisper_wayland.application.application import Application as Application
 from whisper_wayland.audio_recorder import AudioRecorder as AudioRecorder
 from whisper_wayland.audio_recorder import AudioRecordingError as AudioRecordingError
 from whisper_wayland.config import Config as Config
