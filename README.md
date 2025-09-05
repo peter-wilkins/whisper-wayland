@@ -46,7 +46,7 @@ sudo dnf install portaudio-devel python3-devel wtype
 
 ### Installation
 
-#### Option 1: Native Installation (Recommended)
+#### Installation
 
 1. **Install [uv][uv-install] package manager:**
    ```bash
@@ -90,7 +90,7 @@ sudo dnf install portaudio-devel python3-devel wtype
 
 ## Configuration
 
-All configuration is handled through environment variables:
+All configuration is handled through environment variables and/or a/the `.env` file:
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -99,12 +99,12 @@ All configuration is handled through environment variables:
 | `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
 | `MAX_RECORDING_DURATION` | Maximum recording duration in seconds | `30` | No |
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
-| `HOTKEY` | Push-to-talk key combination | `compose` | No |
+| `HOTKEY` | Push-to-talk key combination | `ctrl+compose` | No |
 
 ### Model Selection Guide
 
 - **tiny**: Fastest, least accurate, cheapest (~$0.0024/min)
-- **base**: Good balance of speed and accuracy (~$0.006/min) - **Recommended**
+- **base**: Good balance of speed and accuracy (~$0.006/min) **Recommended**
 - **small**: Better accuracy, slightly slower (~$0.006/min)
 - **medium**: High accuracy, slower (~$0.012/min)
 - **large**: Best accuracy, slowest (~$0.018/min)
@@ -124,7 +124,7 @@ All configuration is handled through environment variables:
 - Check Wayland environment variables are set
 
 **Hotkey not working:**
-- Verify Compose key is configured: `setxkbmap -option compose:ralt`
+- Verify Compose key is configured: e.g. `setxkbmap -option compose:lctrl`
 - Check if another application is using the key
 - Try alternative keys by setting `HOTKEY` environment variable
 
@@ -169,7 +169,7 @@ MIT License - see [LICENSE][license-url] file for details.
 
 ---
 
-**For developers**: See [CLAUDE.md][claude-md] for repository structure, development workflow, and contribution guidelines.
+**For developers**: See [CLAUDE.md][claude-md] for architecture details, development workflow, and contribution guidelines.
 
 [ci-badge]: https://github.com/rolandtritsch/whisper-wayland/actions/workflows/ci.yml/badge.svg
 [ci-url]: https://github.com/rolandtritsch/whisper-wayland/actions/workflows/ci.yml

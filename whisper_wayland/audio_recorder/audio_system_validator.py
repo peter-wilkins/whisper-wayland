@@ -73,11 +73,13 @@ class AudioSystemValidator:
                 default_device = audio.get_default_input_device_info()
                 audio.is_format_supported(
                     rate=config.audio_sample_rate,
-                    input_device=default_device['index'],
+                    input_device=default_device["index"],
                     input_channels=1,
                     input_format=pyaudio.paInt16,
                 )
-                _logger.debug(f"Audio format validated successfully for device: {default_device['name']}")
+                _logger.debug(
+                    f"Audio format validated successfully for device: {default_device['name']}"
+                )
             except (ValueError, OSError) as e:
                 # Log as debug instead of warning since this is just a validation check
                 # and the system can still work even if format validation fails
