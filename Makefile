@@ -78,6 +78,11 @@ lint-fix: ## Lint code with ruff (fix issues)
 	uv run ruff check . --fix
 	@echo "✅ Linting complete"
 
+.PHONY: run
+run: ## Run whisper-wayland service
+	@echo "Starting whisper-wayland..."
+	uv run whisper-wayland
+
 .PHONY: tests
 tests: tests-unit tests-integration ## Run all tests with coverage
 
