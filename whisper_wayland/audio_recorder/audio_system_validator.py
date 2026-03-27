@@ -91,6 +91,47 @@ class AudioSystemValidator:
             _logger.error(f"Audio system validation failed: {e}")
             raise AudioSystemValidationError(f"Audio system validation failed: {e}") from e
 
+    def find_preferred_input_device(self, audio: pyaudio.PyAudio) -> typing.Optional[int]:
+        """Find the preferred input device, prioritizing USB then Bluetooth headsets.
+
+        Args:
+            audio: PyAudio instance
+
+        Returns:
+            Device index of preferred device, or None to use the system default
+        """
+        usb_keywords = ["usb"]
+        bt_keywords = ["bluetooth", "bluez", "headset", "headphone"]
+
+        usb_candidates: list[tuple[int, str]] = []
+        bt_candidates: list[tuple[int, str]] = []
+
+        try:
+            for i in range(audio.get_device_count()):
+                info = audio.get_device_info_by_index(i)
+                if info["maxInputChannels"] <= 0:
+                    continue
+                name = str(info["name"]).lower()
+                if any(k in name for k in usb_keywords):
+                    usb_candidates.append((i, str(info["name"])))
+                elif any(k in name for k in bt_keywords):
+                    bt_candidates.append((i, str(info["name"])))
+        except Exception as e:
+            _logger.warning(f"Error scanning audio devices: {e}")
+            return None
+
+        if usb_candidates:
+            idx, name = usb_candidates[0]
+            _logger.info(f"Auto-selected USB input device: {name} (index {idx})")
+            return idx
+        if bt_candidates:
+            idx, name = bt_candidates[0]
+            _logger.info(f"Auto-selected Bluetooth input device: {name} (index {idx})")
+            return idx
+
+        _logger.debug("No USB/Bluetooth headset found, using system default input device")
+        return None
+
     def get_audio_devices(self, audio: pyaudio.PyAudio) -> list[dict[str, typing.Any]]:
         """Get list of available audio input devices.
 

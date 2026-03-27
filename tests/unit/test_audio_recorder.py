@@ -261,6 +261,72 @@ class TestAudioRecorder:
         # Should not raise exception, may return None
         assert audio_data is None or isinstance(audio_data, bytes)
 
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
+    def test_preferred_device_selects_usb(
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
+    ) -> None:
+        """Test that USB device is preferred over internal mic."""
+        mock_audio_instance = unittest.mock.Mock()
+        mock_audio_instance.get_device_count.return_value = 3
+        mock_audio_instance.get_device_info_by_index.side_effect = [
+            # validation scan
+            {"name": "Apple T2 Audio: Digital Mic", "maxInputChannels": 3},
+            {"name": "USB Audio Device", "maxInputChannels": 1},
+            {"name": "default", "maxInputChannels": 64},
+            # find_preferred_input_device scan
+            {"name": "Apple T2 Audio: Digital Mic", "maxInputChannels": 3},
+            {"name": "USB Audio Device", "maxInputChannels": 1},
+            {"name": "default", "maxInputChannels": 64},
+        ]
+        mock_audio_instance.is_format_supported.return_value = True
+        mock_pyaudio.return_value = mock_audio_instance
+
+        recorder = audio_recorder.AudioRecorder(test_config)
+
+        assert recorder._recording_engine._input_device_index == 1
+
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
+    def test_preferred_device_selects_bluetooth(
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
+    ) -> None:
+        """Test that Bluetooth device is selected when no USB device is present."""
+        mock_audio_instance = unittest.mock.Mock()
+        mock_audio_instance.get_device_count.return_value = 2
+        mock_audio_instance.get_device_info_by_index.side_effect = [
+            # validation scan
+            {"name": "Apple T2 Audio: Digital Mic", "maxInputChannels": 3},
+            {"name": "Bluetooth Headset", "maxInputChannels": 1},
+            # find_preferred_input_device scan
+            {"name": "Apple T2 Audio: Digital Mic", "maxInputChannels": 3},
+            {"name": "Bluetooth Headset", "maxInputChannels": 1},
+        ]
+        mock_audio_instance.is_format_supported.return_value = True
+        mock_pyaudio.return_value = mock_audio_instance
+
+        recorder = audio_recorder.AudioRecorder(test_config)
+
+        assert recorder._recording_engine._input_device_index == 1
+
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
+    def test_preferred_device_falls_back_to_default(
+        self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
+    ) -> None:
+        """Test that None (system default) is used when no USB/BT device is found."""
+        mock_audio_instance = unittest.mock.Mock()
+        mock_audio_instance.get_device_count.return_value = 1
+        mock_audio_instance.get_device_info_by_index.side_effect = [
+            # validation scan
+            {"name": "Apple T2 Audio: Digital Mic", "maxInputChannels": 3},
+            # find_preferred_input_device scan
+            {"name": "Apple T2 Audio: Digital Mic", "maxInputChannels": 3},
+        ]
+        mock_audio_instance.is_format_supported.return_value = True
+        mock_pyaudio.return_value = mock_audio_instance
+
+        recorder = audio_recorder.AudioRecorder(test_config)
+
+        assert recorder._recording_engine._input_device_index is None
+
     def test_create_audio_recorder(self) -> None:
         """Test AudioRecorder.new static method."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):

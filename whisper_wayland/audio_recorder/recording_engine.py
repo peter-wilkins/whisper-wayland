@@ -24,15 +24,22 @@ class RecordingEngineError(Exception):
 class RecordingEngine:
     """Core audio recording engine with threading support."""
 
-    def __init__(self, audio: pyaudio.PyAudio, config: "ww.Config") -> None:
+    def __init__(
+        self,
+        audio: pyaudio.PyAudio,
+        config: "ww.Config",
+        input_device_index: typing.Optional[int] = None,
+    ) -> None:
         """Initialize recording engine.
 
         Args:
             audio: PyAudio instance
             config: Configuration instance
+            input_device_index: Input device index, or None for system default
         """
         self._audio = audio
         self._config = config
+        self._input_device_index = input_device_index
         self._stream: typing.Optional[pyaudio.Stream] = None
         self._recording = False
         self._recording_thread: typing.Optional[threading.Thread] = None
@@ -116,6 +123,7 @@ class RecordingEngine:
                 rate=self._config.audio_sample_rate,
                 input=True,
                 frames_per_buffer=self._config.audio_chunk_size,
+                input_device_index=self._input_device_index,
             )
 
             _logger.debug(f"Audio stream opened, recording for up to {max_duration}s")
@@ -174,14 +182,19 @@ class RecordingEngine:
             return self._recording
 
     @staticmethod
-    def new(audio: pyaudio.PyAudio, config: "ww.Config") -> "RecordingEngine":
+    def new(
+        audio: pyaudio.PyAudio,
+        config: "ww.Config",
+        input_device_index: typing.Optional[int] = None,
+    ) -> "RecordingEngine":
         """Create recording engine instance.
 
         Args:
             audio: PyAudio instance
             config: Configuration instance
+            input_device_index: Input device index, or None for system default
 
         Returns:
             RecordingEngine instance
         """
-        return RecordingEngine(audio, config)
+        return RecordingEngine(audio, config, input_device_index)

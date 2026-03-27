@@ -45,13 +45,15 @@ class AudioRecorder:
             self._audio_validator = AudioSystemValidator.new()
             self._audio = self._audio_validator.initialize_audio()
             self._audio_validator.validate_audio_system(self._audio, config)
-            self._recording_engine = RecordingEngine.new(self._audio, config)
+            input_device_index = self._audio_validator.find_preferred_input_device(self._audio)
+            self._recording_engine = RecordingEngine.new(self._audio, config, input_device_index)
 
             _logger.info("Audio recorder initialized successfully")
             _logger.debug(
                 f"Audio config: sample_rate={config.audio_sample_rate}, "
                 f"chunk_size={config.audio_chunk_size}, "
-                f"max_duration={config.max_recording_duration}s"
+                f"max_duration={config.max_recording_duration}s, "
+                f"input_device_index={input_device_index}"
             )
         except AudioSystemValidationError as e:
             raise AudioRecordingError(str(e)) from e
