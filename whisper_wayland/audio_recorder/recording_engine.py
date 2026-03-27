@@ -40,6 +40,7 @@ class RecordingEngine:
         self._audio = audio
         self._config = config
         self._input_device_index = input_device_index
+        self._effective_sample_rate = self._resolve_sample_rate(audio, input_device_index, config)
         self._stream: typing.Optional[pyaudio.Stream] = None
         self._recording = False
         self._recording_thread: typing.Optional[threading.Thread] = None
@@ -120,7 +121,7 @@ class RecordingEngine:
             self._stream = self._audio.open(
                 format=pyaudio.paInt16,
                 channels=1,
-                rate=self._config.audio_sample_rate,
+                rate=self._effective_sample_rate,
                 input=True,
                 frames_per_buffer=self._config.audio_chunk_size,
                 input_device_index=self._input_device_index,
@@ -155,7 +156,7 @@ class RecordingEngine:
                 from whisper_wayland.audio_recorder.wav_converter import WavConverter
 
                 wav_converter = WavConverter.new(self._audio, self._config)
-                self._audio_data = wav_converter.frames_to_wav(frames)
+                self._audio_data = wav_converter.frames_to_wav(frames, self._effective_sample_rate)
                 _logger.debug(f"Converted {len(frames)} frames to WAV format")
             except Exception as e:
                 _logger.error(f"Failed to convert audio frames to WAV: {e}")
@@ -180,6 +181,27 @@ class RecordingEngine:
         """
         with self._lock:
             return self._recording
+
+    @staticmethod
+    def _resolve_sample_rate(
+        audio: pyaudio.PyAudio,
+        input_device_index: typing.Optional[int],
+        config: "ww.Config",
+    ) -> int:
+        """Resolve the effective sample rate for the chosen input device.
+
+        Uses the device's native sample rate when a specific device is selected,
+        falling back to the configured rate otherwise.
+        """
+        if input_device_index is not None:
+            try:
+                info = audio.get_device_info_by_index(input_device_index)
+                native_rate = int(info["defaultSampleRate"])
+                _logger.debug(f"Using device native sample rate: {native_rate} Hz")
+                return native_rate
+            except Exception as e:
+                _logger.warning(f"Could not read device sample rate, using config value: {e}")
+        return config.audio_sample_rate
 
     @staticmethod
     def new(

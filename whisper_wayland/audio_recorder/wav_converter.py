@@ -5,6 +5,7 @@ Converts audio frames to WAV format for transcription.
 
 import io
 import logging
+import typing
 import wave
 
 import pyaudio
@@ -33,11 +34,12 @@ class WavConverter:
         self._audio = audio
         self._config = config
 
-    def frames_to_wav(self, frames: list[bytes]) -> bytes:
+    def frames_to_wav(self, frames: list[bytes], sample_rate: typing.Optional[int] = None) -> bytes:
         """Convert audio frames to WAV format.
 
         Args:
             frames: List of audio frame data
+            sample_rate: Sample rate to encode in WAV header, defaults to config value
 
         Returns:
             WAV-formatted audio data as bytes
@@ -45,13 +47,14 @@ class WavConverter:
         Raises:
             WavConverterError: If WAV conversion fails
         """
+        effective_rate = sample_rate if sample_rate is not None else self._config.audio_sample_rate
         wav_buffer = io.BytesIO()
 
         try:
             with wave.open(wav_buffer, "wb") as wav_file:
                 wav_file.setnchannels(1)  # Mono
                 wav_file.setsampwidth(self._audio.get_sample_size(pyaudio.paInt16))
-                wav_file.setframerate(self._config.audio_sample_rate)
+                wav_file.setframerate(effective_rate)
                 wav_file.writeframes(b"".join(frames))
 
             wav_buffer.seek(0)
