@@ -60,6 +60,11 @@ class ConfigValidator:
             "max_recording_duration": config_instance.max_recording_duration,
             "log_level": config_instance.log_level,
             "hotkey": config_instance.hotkey,
+            "hotkey_mode": config_instance.hotkey_mode,
+            "streaming_transcription_enabled": config_instance.streaming_transcription_enabled,
+            "streaming_transcription_model": config_instance.streaming_transcription_model,
+            "streaming_sample_rate": config_instance.streaming_sample_rate,
+            "streaming_completion_timeout_secs": config_instance.streaming_completion_timeout_secs,
             "text_insertion_delay": config_instance.text_insertion_delay,
             "text_insertion_method": config_instance.text_insertion_method,
         }

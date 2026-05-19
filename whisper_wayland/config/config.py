@@ -66,6 +66,26 @@ class Config:
         """Whisper model to use for transcription."""
         return self._property_handlers.get_whisper_model()
 
+    @property
+    def streaming_transcription_enabled(self) -> bool:
+        """Whether realtime streaming transcription should be attempted."""
+        return self._property_handlers.get_streaming_transcription_enabled()
+
+    @property
+    def streaming_transcription_model(self) -> str:
+        """Realtime transcription model to use for streaming sessions."""
+        return self._property_handlers.get_streaming_transcription_model()
+
+    @property
+    def streaming_sample_rate(self) -> int:
+        """Realtime streaming PCM sample rate in Hz."""
+        return self._property_handlers.get_streaming_sample_rate()
+
+    @property
+    def streaming_completion_timeout_secs(self) -> float:
+        """Seconds to wait for final realtime transcript after recording stops."""
+        return self._property_handlers.get_streaming_completion_timeout_secs()
+
     # Audio Configuration
     @property
     def audio_sample_rate(self) -> int:

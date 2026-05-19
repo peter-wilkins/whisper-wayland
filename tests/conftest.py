@@ -37,8 +37,13 @@ def clean_environment() -> typing.Generator[None, None, None]:
         "MAX_RECORDING_DURATION",
         "LOG_LEVEL",
         "HOTKEY",
+        "HOTKEY_MODE",
         "TEXT_INSERTION_DELAY",
         "TEXT_INSERTION_METHOD",
+        "STREAMING_TRANSCRIPTION_ENABLED",
+        "STREAMING_TRANSCRIPTION_MODEL",
+        "STREAMING_SAMPLE_RATE",
+        "STREAMING_COMPLETION_TIMEOUT_SECS",
     ]
 
     yield

@@ -101,6 +101,10 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
 | `HOTKEY` | Push-to-talk key combination | `ctrl+compose` | No |
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
+| `STREAMING_TRANSCRIPTION_ENABLED` | Enable experimental OpenAI Realtime streaming transcription | `false` | No |
+| `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `WHISPER_MODEL` | No |
+| `STREAMING_SAMPLE_RATE` | PCM sample rate sent to Realtime streaming transcription | `24000` | No |
+| `STREAMING_COMPLETION_TIMEOUT_SECS` | Seconds to wait for final streaming transcript after release | `15` | No |
 
 ### Model Selection Guide
 
@@ -135,26 +139,18 @@ All configuration is handled through environment variables and/or a/the `.env` f
 
 ## TODO / Issues
 
-### Add streaming transcription for lower-latency dictation
+### Streaming transcription rollout
 
-The current dictation flow is batch-oriented: record audio, stop recording, upload the
-completed audio file, wait for transcription, then insert text. This is accurate, but
-the pause is noticeable.
+Experimental streaming transcription is implemented behind
+`STREAMING_TRANSCRIPTION_ENABLED=true`. The app streams microphone audio while the
+hotkey is active, finalizes transcription on release, and inserts only the final
+transcript. If streaming fails or returns no transcript, captured audio is converted
+to WAV and sent through the existing batch transcription path.
 
-Goal:
-- Keep push-to-talk semantics.
-- Stream microphone audio while the hotkey is held.
-- Finalize the stream on release and insert the final transcript.
-- Preserve the existing batch transcription path as a fallback.
-- Avoid typing unstable partial text until there is a robust correction strategy.
-
-Acceptance criteria:
-- A config flag can enable streaming mode.
-- Holding the hotkey starts recording and streaming without waiting for release.
-- Releasing the hotkey finalizes transcription and inserts the final text.
-- If streaming setup fails, the app falls back to batch transcription or logs a clear error.
-- No API keys or transcript audio are logged.
-- Existing batch transcription tests continue to pass.
+Remaining rough edges:
+- Confirm account/model access for `gpt-4o-transcribe` Realtime sessions.
+- Tune streaming sample rate and chunk size for latency on real hardware.
+- Add correction-aware partial text insertion before typing unstable interim text.
 
 ### Getting Help
 

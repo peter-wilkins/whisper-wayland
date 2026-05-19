@@ -45,13 +45,12 @@ class TranscriptionClient:
             TranscriptionError: If client initialization fails
         """
         self.config = config
+        self._client: typing.Optional[openai.OpenAI] = None
 
         try:
             # Initialize components
             self._client_validator = ClientValidator.new()
-            self._client: typing.Optional[openai.OpenAI] = self._client_validator.initialize_client(
-                config
-            )
+            self._client = self._client_validator.initialize_client(config)
             self._transcription_engine = TranscriptionEngine.new(self._client, config)
             self._connection_tester = ConnectionTester.new(self._transcription_engine)
 

@@ -11,6 +11,11 @@ import pytest
 
 import whisper_wayland as ww
 
+STREAMING_DEFAULT_SAMPLE_RATE = 24000
+STREAMING_DEFAULT_TIMEOUT_SECS = 15
+STREAMING_CUSTOM_SAMPLE_RATE = 16000
+STREAMING_CUSTOM_TIMEOUT_SECS = 3.5
+
 
 class TestConfig:
     """Test cases for Config class."""
@@ -20,8 +25,8 @@ class TestConfig:
         # Temporarily remove LOG_LEVEL to test default
         old_log_level = os.environ.pop("LOG_LEVEL", None)
         try:
-            with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-                test_config = ww.Config()
+            with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
+                test_config = ww.Config("/nonexistent/test.env")
 
                 assert test_config.openai_api_key == "sk-test123"
                 assert test_config.whisper_model == "gpt-4o-transcribe"
@@ -31,6 +36,13 @@ class TestConfig:
                 assert test_config.log_level == "INFO"
                 assert test_config.hotkey == "ctrl+compose"
                 assert test_config.hotkey_mode == "push_to_talk"
+                assert not test_config.streaming_transcription_enabled
+                assert test_config.streaming_transcription_model == "gpt-4o-transcribe"
+                assert test_config.streaming_sample_rate == STREAMING_DEFAULT_SAMPLE_RATE
+                assert (
+                    test_config.streaming_completion_timeout_secs
+                    == STREAMING_DEFAULT_TIMEOUT_SECS
+                )
         finally:
             # Restore LOG_LEVEL if it existed
             if old_log_level:
@@ -60,10 +72,14 @@ class TestConfig:
             "LOG_LEVEL": "DEBUG",
             "HOTKEY": "alt+space",
             "HOTKEY_MODE": "toggle",
+            "STREAMING_TRANSCRIPTION_ENABLED": "true",
+            "STREAMING_TRANSCRIPTION_MODEL": "whisper-1",
+            "STREAMING_SAMPLE_RATE": "16000",
+            "STREAMING_COMPLETION_TIMEOUT_SECS": "3.5",
         }
 
         with unittest.mock.patch.dict(os.environ, env_vars):
-            test_config = ww.Config()
+            test_config = ww.Config("/nonexistent/test.env")
 
             assert test_config.openai_api_key == "sk-custom123"
             assert test_config.whisper_model == "large"
@@ -73,18 +89,22 @@ class TestConfig:
             assert test_config.log_level == "DEBUG"
             assert test_config.hotkey == "alt+space"
             assert test_config.hotkey_mode == "toggle"
+            assert test_config.streaming_transcription_enabled
+            assert test_config.streaming_transcription_model == "whisper-1"
+            assert test_config.streaming_sample_rate == STREAMING_CUSTOM_SAMPLE_RATE
+            assert test_config.streaming_completion_timeout_secs == STREAMING_CUSTOM_TIMEOUT_SECS
 
     def test_config_invalid_hotkey_mode(self) -> None:
         """Test config handles invalid hotkey modes gracefully."""
         with unittest.mock.patch.dict(
             os.environ, {"OPENAI_API_KEY": "sk-test123", "HOTKEY_MODE": "invalid"}
         ):
-            test_config = ww.Config()
+            test_config = ww.Config("/nonexistent/test.env")
             assert test_config.hotkey_mode == "push_to_talk"
 
     def test_config_invalid_numeric_values(self) -> None:
         """Test config validation of numeric values."""
-        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
             # Invalid sample rate
             with unittest.mock.patch.dict(os.environ, {"AUDIO_SAMPLE_RATE": "invalid"}):
                 with pytest.raises(ww.ConfigError, match="AUDIO_SAMPLE_RATE"):
@@ -105,12 +125,24 @@ class TestConfig:
                 with pytest.raises(ww.ConfigError, match="MAX_RECORDING_DURATION"):
                     ww.Config()
 
+            # Invalid streaming sample rate
+            with unittest.mock.patch.dict(os.environ, {"STREAMING_SAMPLE_RATE": "invalid"}):
+                with pytest.raises(ww.ConfigError, match="STREAMING_SAMPLE_RATE"):
+                    ww.Config()
+
+            # Invalid streaming timeout
+            with unittest.mock.patch.dict(
+                os.environ, {"STREAMING_COMPLETION_TIMEOUT_SECS": "-1"}
+            ):
+                with pytest.raises(ww.ConfigError, match="STREAMING_COMPLETION_TIMEOUT_SECS"):
+                    ww.Config()
+
     def test_config_invalid_log_level(self) -> None:
         """Test config handles invalid log levels gracefully."""
         with unittest.mock.patch.dict(
             os.environ, {"OPENAI_API_KEY": "sk-test123", "LOG_LEVEL": "INVALID_LEVEL"}
         ):
-            test_config = ww.Config()
+            test_config = ww.Config("/nonexistent/test.env")
             assert test_config.log_level == "INFO"  # Should fallback to default
 
     def test_config_text_insertion_delay(self) -> None:
@@ -200,8 +232,10 @@ class TestConfig:
 
     def test_config_safe_summary(self) -> None:
         """Test safe configuration summary masks sensitive data."""
-        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-sensitive123"}):
-            test_config = ww.Config()
+        with unittest.mock.patch.dict(
+            os.environ, {"OPENAI_API_KEY": "sk-sensitive123"}, clear=True
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
             summary = test_config._get_safe_config_summary()
 
             assert summary["openai_api_key"] == "***"

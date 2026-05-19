@@ -145,6 +145,55 @@ class PropertyHandlers:
             return "push_to_talk"
         return mode
 
+    def get_streaming_transcription_enabled(self) -> bool:
+        """Get whether realtime streaming transcription is enabled.
+
+        Returns:
+            True if realtime streaming transcription should be attempted
+        """
+        value = os.getenv("STREAMING_TRANSCRIPTION_ENABLED", "false").strip().lower()
+        return value in {"1", "true", "yes", "on"}
+
+    def get_streaming_transcription_model(self) -> str:
+        """Get realtime streaming transcription model.
+
+        Returns:
+            OpenAI realtime transcription model name
+        """
+        return os.getenv("STREAMING_TRANSCRIPTION_MODEL", self.get_whisper_model()).strip()
+
+    def get_streaming_sample_rate(self) -> int:
+        """Get realtime streaming PCM sample rate.
+
+        Returns:
+            Sample rate in Hz
+        """
+        try:
+            rate = int(os.getenv("STREAMING_SAMPLE_RATE", "24000"))
+            if rate <= 0:
+                raise ValueError("Streaming sample rate must be positive")
+            return rate
+        except ValueError as e:
+            _logger.error(f"Invalid STREAMING_SAMPLE_RATE: {e}")
+            raise PropertyHandlerError(f"Invalid STREAMING_SAMPLE_RATE: {e}") from e
+
+    def get_streaming_completion_timeout_secs(self) -> float:
+        """Get seconds to wait for final realtime transcript after stopping.
+
+        Returns:
+            Timeout in seconds
+        """
+        try:
+            timeout = float(os.getenv("STREAMING_COMPLETION_TIMEOUT_SECS", "15"))
+            if timeout <= 0:
+                raise ValueError("Streaming completion timeout must be positive")
+            return timeout
+        except ValueError as e:
+            _logger.error(f"Invalid STREAMING_COMPLETION_TIMEOUT_SECS: {e}")
+            raise PropertyHandlerError(
+                f"Invalid STREAMING_COMPLETION_TIMEOUT_SECS: {e}"
+            ) from e
+
     # Text Insertion Configuration
     def get_text_insertion_delay(self) -> float:
         """Get delay before text insertion in seconds.

@@ -32,6 +32,7 @@ class HotkeyHandler:
         self.transcription_processor = transcription_processor
         self.mode = mode
         self._recording_active = False
+        self._streaming_active = False
 
     def setup_callbacks(self, key_monitor: "ww.KeyMonitor") -> None:
         """Setup hotkey press and release callbacks.
@@ -62,6 +63,9 @@ class HotkeyHandler:
         self._recording_active = True
 
         try:
+            if self._start_streaming_if_available():
+                return
+
             self.audio_recorder.start_recording()
         except ww.AudioRecordingError as e:
             _logger.error(f"Failed to start recording: {e}")
@@ -77,6 +81,14 @@ class HotkeyHandler:
         self._recording_active = False
 
         try:
+            if self._streaming_active:
+                self._streaming_active = False
+                threading.Thread(
+                    target=self.transcription_processor.stop_streaming,
+                    daemon=True,
+                ).start()
+                return
+
             audio_data = self.audio_recorder.stop_recording()
 
             if audio_data:
@@ -90,6 +102,18 @@ class HotkeyHandler:
                 _logger.warning("No audio data captured")
         except ww.AudioRecordingError as e:
             _logger.error(f"Failed to stop recording: {e}")
+
+    def _start_streaming_if_available(self) -> bool:
+        """Attempt realtime streaming if the transcription processor supports it."""
+        if getattr(self.transcription_processor, "streaming_enabled", False) is not True:
+            return False
+
+        if self.transcription_processor.start_streaming():
+            self._streaming_active = True
+            return True
+
+        _logger.warning("Realtime streaming unavailable; falling back to batch recording")
+        return False
 
     @property
     def is_recording_active(self) -> bool:

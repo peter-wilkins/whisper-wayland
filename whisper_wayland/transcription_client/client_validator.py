@@ -63,6 +63,9 @@ class ClientValidator:
         # Validate model name
         valid_models = [
             "whisper-1",  # Current API model name
+            "gpt-4o-transcribe",
+            "gpt-4o-mini-transcribe",
+            "gpt-4o-transcribe-diarize",
             "tiny",
             "base",
             "small",
@@ -86,6 +89,9 @@ class ClientValidator:
         """
         return [
             "whisper-1",
+            "gpt-4o-transcribe",
+            "gpt-4o-mini-transcribe",
+            "gpt-4o-transcribe-diarize",
             "tiny",
             "base",
             "small",
