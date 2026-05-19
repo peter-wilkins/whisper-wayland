@@ -117,8 +117,9 @@ class MethodExecutors:
             # Try wl-copy for Wayland
             if shutil.which("wl-copy"):
                 result = subprocess.run(
-                    ["wl-copy", text],
+                    ["wl-copy"],
                     check=False,
+                    input=text,
                     capture_output=True,
                     text=True,
                     timeout=5,

@@ -184,7 +184,6 @@ class RealtimeStreamingTranscriptionClient:
         """Open realtime websocket, stream audio, and collect final transcript."""
         headers = {
             "Authorization": f"Bearer {self._config.openai_api_key}",
-            "OpenAI-Beta": "realtime=v1",
         }
 
         async with websockets.connect(
@@ -221,14 +220,22 @@ class RealtimeStreamingTranscriptionClient:
     def _session_update_event(self) -> dict[str, typing.Any]:
         """Build session configuration for realtime transcription."""
         return {
-            "type": "transcription_session.update",
+            "type": "session.update",
             "session": {
-                "input_audio_format": "pcm16",
-                "input_audio_transcription": {
-                    "model": self._config.streaming_transcription_model,
-                    "language": "en",
+                "type": "transcription",
+                "audio": {
+                    "input": {
+                        "format": {
+                            "type": "audio/pcm",
+                            "rate": self._config.streaming_sample_rate,
+                        },
+                        "transcription": {
+                            "model": self._config.streaming_transcription_model,
+                            "language": "en",
+                        },
+                        "turn_detection": None,
+                    },
                 },
-                "turn_detection": None,
             },
         }
 

@@ -37,7 +37,7 @@ class TestConfig:
                 assert test_config.hotkey == "ctrl+compose"
                 assert test_config.hotkey_mode == "push_to_talk"
                 assert not test_config.streaming_transcription_enabled
-                assert test_config.streaming_transcription_model == "gpt-4o-transcribe"
+                assert test_config.streaming_transcription_model == "gpt-realtime-whisper"
                 assert test_config.streaming_sample_rate == STREAMING_DEFAULT_SAMPLE_RATE
                 assert (
                     test_config.streaming_completion_timeout_secs
@@ -147,39 +147,41 @@ class TestConfig:
 
     def test_config_text_insertion_delay(self) -> None:
         """Test text insertion delay configuration."""
-        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
             # Default value
-            test_config = ww.Config()
+            test_config = ww.Config("/nonexistent/test.env")
             assert test_config.text_insertion_delay == ww.Constants.DEFAULT_TEXT_INSERTION_DELAY
 
             # Custom value
             with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "0.5"}):
-                test_config = ww.Config()
+                test_config = ww.Config("/nonexistent/test.env")
                 assert test_config.text_insertion_delay == ww.Constants.CUSTOM_TEXT_INSERTION_DELAY
 
             # Invalid value
             with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "invalid"}):
                 with pytest.raises(ww.ConfigError, match="TEXT_INSERTION_DELAY"):
-                    ww.Config()
+                    ww.Config("/nonexistent/test.env")
 
             # Negative value
             with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_DELAY": "-1.0"}):
                 with pytest.raises(ww.ConfigError, match="TEXT_INSERTION_DELAY"):
-                    ww.Config()
+                    ww.Config("/nonexistent/test.env")
 
     def test_config_text_insertion_method(self) -> None:
         """Test text insertion method configuration."""
         # Temporarily remove TEXT_INSERTION_METHOD to test default
         old_method = os.environ.pop("TEXT_INSERTION_METHOD", None)
         try:
-            with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+            with unittest.mock.patch.dict(
+                os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True
+            ):
                 # Default value (per config.py line 203)
-                test_config = ww.Config()
+                test_config = ww.Config("/nonexistent/test.env")
                 assert test_config.text_insertion_method == "ydotool"
 
                 # Valid custom value
                 with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "xdotool"}):
-                    test_config = ww.Config()
+                    test_config = ww.Config("/nonexistent/test.env")
                     assert test_config.text_insertion_method == "xdotool"
         finally:
             # Restore TEXT_INSERTION_METHOD if it existed
@@ -187,10 +189,10 @@ class TestConfig:
                 os.environ["TEXT_INSERTION_METHOD"] = old_method
 
         # Test after restoring to ensure proper cleanup
-        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
             # Invalid value (should fallback to default)
             with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "invalid_method"}):
-                test_config = ww.Config()
+                test_config = ww.Config("/nonexistent/test.env")
                 assert (
                     test_config.text_insertion_method == "ydotool"
                 )  # Fallback per config.py line 210

@@ -102,7 +102,7 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `HOTKEY` | Push-to-talk key combination | `ctrl+compose` | No |
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
 | `STREAMING_TRANSCRIPTION_ENABLED` | Enable experimental OpenAI Realtime streaming transcription | `false` | No |
-| `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `WHISPER_MODEL` | No |
+| `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `gpt-realtime-whisper` | No |
 | `STREAMING_SAMPLE_RATE` | PCM sample rate sent to Realtime streaming transcription | `24000` | No |
 | `STREAMING_COMPLETION_TIMEOUT_SECS` | Seconds to wait for final streaming transcript after release | `15` | No |
 
@@ -148,7 +148,7 @@ transcript. If streaming fails or returns no transcript, captured audio is conve
 to WAV and sent through the existing batch transcription path.
 
 Remaining rough edges:
-- Confirm account/model access for `gpt-4o-transcribe` Realtime sessions.
+- Confirm account/model access for higher-accuracy batch transcription models.
 - Tune streaming sample rate and chunk size for latency on real hardware.
 - Add correction-aware partial text insertion before typing unstable interim text.
 

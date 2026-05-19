@@ -313,6 +313,14 @@ class TestTextInserter:
             assert (
                 mock_run.call_count == ww.Constants.EXPECTED_DEVICE_COUNT
             )  # wl-copy + ydotool paste
+            mock_run.assert_any_call(
+                ["wl-copy"],
+                check=False,
+                input="test text",
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
 
     def test_insert_with_clipboard_xclip(
         self, text_inserter: text_inserter_module.TextInserter

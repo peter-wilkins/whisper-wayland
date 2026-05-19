@@ -160,7 +160,7 @@ class PropertyHandlers:
         Returns:
             OpenAI realtime transcription model name
         """
-        return os.getenv("STREAMING_TRANSCRIPTION_MODEL", self.get_whisper_model()).strip()
+        return os.getenv("STREAMING_TRANSCRIPTION_MODEL", "gpt-realtime-whisper").strip()
 
     def get_streaming_sample_rate(self) -> int:
         """Get realtime streaming PCM sample rate.

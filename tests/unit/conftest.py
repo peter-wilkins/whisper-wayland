@@ -14,10 +14,10 @@ import whisper_wayland as ww
 
 
 @pytest.fixture
-def test_config() -> ww.Config:
+def test_config() -> typing.Generator[ww.Config, None, None]:
     """Create test configuration."""
-    with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
-        return ww.Config()
+    with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
+        yield ww.Config("/nonexistent/test.env")
 
 
 @pytest.fixture
@@ -93,7 +93,7 @@ def mock_shutil_which() -> typing.Generator[unittest.mock.Mock, None, None]:
 
 
 @pytest.fixture
-def test_config_text_inserter() -> ww.Config:
+def test_config_text_inserter() -> typing.Generator[ww.Config, None, None]:
     """Create test configuration for text inserter with specific settings."""
     with unittest.mock.patch.dict(
         os.environ,
@@ -102,8 +102,9 @@ def test_config_text_inserter() -> ww.Config:
             "TEXT_INSERTION_METHOD": "ydotool",
             "TEXT_INSERTION_DELAY": "0.1",
         },
+        clear=True,
     ):
-        return ww.Config()
+        yield ww.Config("/nonexistent/test.env")
 
 
 @pytest.fixture

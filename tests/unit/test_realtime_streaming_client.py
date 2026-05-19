@@ -60,3 +60,34 @@ def test_start_returns_false_when_audio_capture_fails() -> None:
 
     with unittest.mock.patch.object(client, "_run_websocket_thread"):
         assert not client.start()
+
+
+def test_session_update_uses_current_realtime_shape() -> None:
+    """Test websocket session update uses the current Realtime API shape."""
+    config = unittest.mock.Mock(spec=ww.Config)
+    config.streaming_sample_rate = STREAMING_SAMPLE_RATE
+    config.streaming_transcription_model = "gpt-4o-transcribe"
+    audio = unittest.mock.Mock()
+    client = RealtimeStreamingTranscriptionClient(config, audio=audio)
+
+    event = client._session_update_event()
+
+    assert event == {
+        "type": "session.update",
+        "session": {
+            "type": "transcription",
+            "audio": {
+                "input": {
+                    "format": {
+                        "type": "audio/pcm",
+                        "rate": STREAMING_SAMPLE_RATE,
+                    },
+                    "transcription": {
+                        "model": "gpt-4o-transcribe",
+                        "language": "en",
+                    },
+                    "turn_detection": None,
+                },
+            },
+        },
+    }
