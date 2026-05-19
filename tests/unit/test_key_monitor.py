@@ -59,6 +59,9 @@ class TestKeyMonitor:
             ("ctrl+shift+enter", {"ctrl", "shift", "enter"}),
             ("f5", {"f5"}),
             ("menu", {"menu"}),
+            ("pagedown", {"pagedown"}),
+            ("page_down", {"pagedown"}),
+            ("pgdn", {"pagedown"}),
         ]
 
         for hotkey_str, expected in test_cases:
@@ -98,6 +101,7 @@ class TestKeyMonitor:
         assert key_map[57] == "space"  # KEY_SPACE
         assert key_map[28] == "enter"  # KEY_ENTER
         assert key_map[127] == "compose"  # KEY_COMPOSE
+        assert key_map[109] == "pagedown"  # KEY_PAGEDOWN
 
         # Test letter keys
         assert key_map[30] == "a"  # KEY_A
@@ -115,6 +119,7 @@ class TestKeyMonitor:
         assert monitor._key_mapping.get_key_name(57) == "space"
         assert monitor._key_mapping.get_key_name(28) == "enter"
         assert monitor._key_mapping.get_key_name(127) == "compose"
+        assert monitor._key_mapping.get_key_name(109) == "pagedown"
 
         # Test unmapped key
         assert monitor._key_mapping.get_key_name(999) is None

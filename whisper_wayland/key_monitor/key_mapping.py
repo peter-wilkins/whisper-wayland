@@ -44,6 +44,7 @@ class KeyMapping:
             evdev.ecodes.KEY_TAB: "tab",
             evdev.ecodes.KEY_BACKSPACE: "backspace",
             evdev.ecodes.KEY_DELETE: "delete",
+            evdev.ecodes.KEY_PAGEDOWN: "pagedown",
             evdev.ecodes.KEY_COMPOSE: "compose",  # The compose key
             evdev.ecodes.KEY_MENU: "menu",
             # Function keys
@@ -115,15 +116,6 @@ class KeyMapping:
         if not hotkey_normalized:
             raise KeyMappingError("Hotkey cannot be empty")
 
-        # Handle single key (like "compose")
-        if "+" not in hotkey_normalized:
-            return {hotkey_normalized}
-
-        # Split by '+' and normalize key names
-        key_parts = [part.strip() for part in hotkey_normalized.split("+")]
-        if not key_parts:
-            raise KeyMappingError(f"Invalid hotkey format: {hotkey_str}")
-
         # Map common key names
         key_mapping = {
             "ctrl": "ctrl",
@@ -136,9 +128,21 @@ class KeyMapping:
             "tab": "tab",
             "esc": "esc",
             "escape": "esc",
+            "pagedown": "pagedown",
+            "page_down": "pagedown",
+            "pgdn": "pagedown",
             "compose": "compose",
             "menu": "menu",
         }
+
+        # Handle single key (like "compose")
+        if "+" not in hotkey_normalized:
+            return {key_mapping.get(hotkey_normalized, hotkey_normalized)}
+
+        # Split by '+' and normalize key names
+        key_parts = [part.strip() for part in hotkey_normalized.split("+")]
+        if not key_parts:
+            raise KeyMappingError(f"Invalid hotkey format: {hotkey_str}")
 
         hotkey_combination: set[str] = set()
         for part in key_parts:

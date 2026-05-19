@@ -94,6 +94,11 @@ class Config:
         """Push-to-talk key combination."""
         return self._property_handlers.get_hotkey()
 
+    @property
+    def hotkey_mode(self) -> str:
+        """Hotkey activation mode."""
+        return self._property_handlers.get_hotkey_mode()
+
     # Text Insertion Configuration
     @property
     def text_insertion_delay(self) -> float:

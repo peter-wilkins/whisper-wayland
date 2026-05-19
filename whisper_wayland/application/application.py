@@ -39,6 +39,7 @@ class Application:
         self.hotkey_handler = HotkeyHandler.new(
             self.component_manager.audio_recorder,
             self.transcription_processor,
+            self.config.hotkey_mode,
         )
         self.runtime_manager = RuntimeManager(self)
 

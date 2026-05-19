@@ -130,6 +130,21 @@ class PropertyHandlers:
         """
         return os.getenv("HOTKEY", "ctrl+compose").strip().lower()
 
+    def get_hotkey_mode(self) -> str:
+        """Get hotkey activation mode.
+
+        Returns:
+            Hotkey mode: "push_to_talk" or "toggle"
+        """
+        mode = os.getenv("HOTKEY_MODE", "push_to_talk").strip().lower()
+        valid_modes = ["push_to_talk", "toggle"]
+        if mode not in valid_modes:
+            _logger.warning(
+                f"Invalid HOTKEY_MODE '{mode}', using push_to_talk. Valid modes: {valid_modes}"
+            )
+            return "push_to_talk"
+        return mode
+
     # Text Insertion Configuration
     def get_text_insertion_delay(self) -> float:
         """Get delay before text insertion in seconds.

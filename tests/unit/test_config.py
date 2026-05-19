@@ -30,6 +30,7 @@ class TestConfig:
                 assert test_config.max_recording_duration == ww.Constants.DEFAULT_RECORDING_DURATION
                 assert test_config.log_level == "INFO"
                 assert test_config.hotkey == "ctrl+compose"
+                assert test_config.hotkey_mode == "push_to_talk"
         finally:
             # Restore LOG_LEVEL if it existed
             if old_log_level:
@@ -58,6 +59,7 @@ class TestConfig:
             "MAX_RECORDING_DURATION": "60",
             "LOG_LEVEL": "DEBUG",
             "HOTKEY": "alt+space",
+            "HOTKEY_MODE": "toggle",
         }
 
         with unittest.mock.patch.dict(os.environ, env_vars):
@@ -70,6 +72,15 @@ class TestConfig:
             assert test_config.max_recording_duration == ww.Constants.LONG_RECORDING_DURATION
             assert test_config.log_level == "DEBUG"
             assert test_config.hotkey == "alt+space"
+            assert test_config.hotkey_mode == "toggle"
+
+    def test_config_invalid_hotkey_mode(self) -> None:
+        """Test config handles invalid hotkey modes gracefully."""
+        with unittest.mock.patch.dict(
+            os.environ, {"OPENAI_API_KEY": "sk-test123", "HOTKEY_MODE": "invalid"}
+        ):
+            test_config = ww.Config()
+            assert test_config.hotkey_mode == "push_to_talk"
 
     def test_config_invalid_numeric_values(self) -> None:
         """Test config validation of numeric values."""

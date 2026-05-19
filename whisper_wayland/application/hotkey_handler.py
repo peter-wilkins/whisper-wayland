@@ -19,15 +19,18 @@ class HotkeyHandler:
         self,
         audio_recorder: "ww.AudioRecorder",
         transcription_processor: typing.Any,  # Forward reference to avoid circular import
+        mode: str = "push_to_talk",
     ) -> None:
         """Initialize hotkey handler.
 
         Args:
             audio_recorder: Audio recorder instance
             transcription_processor: Transcription processor instance
+            mode: Hotkey activation mode
         """
         self.audio_recorder = audio_recorder
         self.transcription_processor = transcription_processor
+        self.mode = mode
         self._recording_active = False
 
     def setup_callbacks(self, key_monitor: "ww.KeyMonitor") -> None:
@@ -36,16 +39,21 @@ class HotkeyHandler:
         Args:
             key_monitor: Key monitor instance to configure
         """
-        # Set callback for hotkey press (start recording)
+        # Set callback for hotkey press (start recording or toggle)
         key_monitor.set_callback(self._on_hotkey_press)
 
-        # Set callback for hotkey release (stop recording)
-        key_monitor.set_release_callback(self._on_hotkey_release)
+        if self.mode == "push_to_talk":
+            # Set callback for hotkey release (stop recording)
+            key_monitor.set_release_callback(self._on_hotkey_release)
 
         _logger.debug("Hotkey callbacks configured")
 
     def _on_hotkey_press(self) -> None:
         """Handle hotkey press event - start recording."""
+        if self.mode == "toggle" and self._recording_active:
+            self._on_hotkey_release()
+            return
+
         if self._recording_active:
             _logger.debug("Recording already active, ignoring hotkey press")
             return
@@ -96,14 +104,16 @@ class HotkeyHandler:
     def new(
         audio_recorder: "ww.AudioRecorder",
         transcription_processor: typing.Any,  # Forward reference
+        mode: str = "push_to_talk",
     ) -> "HotkeyHandler":
         """Create hotkey handler instance.
 
         Args:
             audio_recorder: Audio recorder instance
             transcription_processor: Transcription processor instance
+            mode: Hotkey activation mode
 
         Returns:
             HotkeyHandler instance
         """
-        return HotkeyHandler(audio_recorder, transcription_processor)
+        return HotkeyHandler(audio_recorder, transcription_processor, mode)

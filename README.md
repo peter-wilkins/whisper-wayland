@@ -100,6 +100,7 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `MAX_RECORDING_DURATION` | Maximum recording duration in seconds | `30` | No |
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
 | `HOTKEY` | Push-to-talk key combination | `ctrl+compose` | No |
+| `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
 
 ### Model Selection Guide
 
