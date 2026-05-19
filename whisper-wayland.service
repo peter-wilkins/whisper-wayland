@@ -1,0 +1,15 @@
+[Unit]
+Description=Whisper Wayland push-to-talk voice-to-text service
+After=graphical-session.target ydotoold.service
+Wants=ydotoold.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/peter/whisper-wayland
+EnvironmentFile=/home/peter/whisper-wayland/.env
+ExecStart=/home/peter/whisper-wayland/.venv/bin/whisper-wayland
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

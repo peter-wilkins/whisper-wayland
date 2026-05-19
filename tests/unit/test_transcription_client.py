@@ -54,7 +54,9 @@ class TestTranscriptionClient:
             assert client._map_model_name("base") == "whisper-1"
             assert client._map_model_name("large-v3") == "whisper-1"
             assert client._map_model_name("whisper-1") == "whisper-1"
-            assert client._map_model_name("unknown") == "whisper-1"
+            assert client._map_model_name("gpt-4o-transcribe") == "gpt-4o-transcribe"
+            assert client._map_model_name("gpt-4o-mini-transcribe") == "gpt-4o-mini-transcribe"
+            assert client._map_model_name("unknown-future-model") == "unknown-future-model"
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_transcribe_audio_success(

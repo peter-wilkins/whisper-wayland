@@ -24,7 +24,7 @@ class TestConfig:
                 test_config = ww.Config()
 
                 assert test_config.openai_api_key == "sk-test123"
-                assert test_config.whisper_model == "base"
+                assert test_config.whisper_model == "gpt-4o-transcribe"
                 assert test_config.audio_sample_rate == ww.Constants.DEFAULT_SAMPLE_RATE
                 assert test_config.audio_chunk_size == ww.Constants.DEFAULT_CHUNK_SIZE
                 assert test_config.max_recording_duration == ww.Constants.DEFAULT_RECORDING_DURATION
@@ -194,7 +194,7 @@ class TestConfig:
             summary = test_config._get_safe_config_summary()
 
             assert summary["openai_api_key"] == "***"
-            assert summary["whisper_model"] == "base"
+            assert summary["whisper_model"] == "gpt-4o-transcribe"
             assert "sk-sensitive123" not in str(summary)
 
     def test_config_get_static_method(self) -> None:

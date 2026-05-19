@@ -24,8 +24,9 @@ class ModelMapper:
         Returns:
             API-compatible model name
         """
-        # For OpenAI API, the main model is called "whisper-1"
-        # Local model names are mapped to this
+        # Legacy local Whisper size names all map to OpenAI's hosted Whisper model.
+        # Real OpenAI transcription model IDs pass through unchanged so the app can
+        # pick up newer API models without code changes.
         model_mapping = {
             "tiny": "whisper-1",
             "base": "whisper-1",
@@ -37,7 +38,7 @@ class ModelMapper:
             "whisper-1": "whisper-1",
         }
 
-        api_model = model_mapping.get(model, "whisper-1")
+        api_model = model_mapping.get(model, model)
         if api_model != model:
             _logger.debug(f"Mapped model '{model}' to API model '{api_model}'")
 

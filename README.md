@@ -95,7 +95,7 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `OPENAI_API_KEY` | OpenAI API key for Whisper service | - | Yes |
-| `WHISPER_MODEL` | Model to use (tiny, base, small, medium, large) | `base` | No |
+| `WHISPER_MODEL` | OpenAI transcription model, or a legacy Whisper size alias | `gpt-4o-transcribe` | No |
 | `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
 | `MAX_RECORDING_DURATION` | Maximum recording duration in seconds | `30` | No |
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
@@ -103,11 +103,10 @@ All configuration is handled through environment variables and/or a/the `.env` f
 
 ### Model Selection Guide
 
-- **tiny**: Fastest, least accurate, cheapest (~$0.0024/min)
-- **base**: Good balance of speed and accuracy (~$0.006/min) **Recommended**
-- **small**: Better accuracy, slightly slower (~$0.006/min)
-- **medium**: High accuracy, slower (~$0.012/min)
-- **large**: Best accuracy, slowest (~$0.018/min)
+- **gpt-4o-transcribe**: Best default for dictation accuracy
+- **gpt-4o-mini-transcribe**: Lower-latency/lower-cost alternative
+- **whisper-1**: Legacy hosted Whisper model
+- **tiny/base/small/medium/large**: Legacy aliases mapped to `whisper-1`
 
 ## Troubleshooting
 
@@ -132,6 +131,29 @@ All configuration is handled through environment variables and/or a/the `.env` f
 - Check your OpenAI API key is valid
 - Ensure all system dependencies are installed
 - Enable debug logging: `LOG_LEVEL=DEBUG`
+
+## TODO / Issues
+
+### Add streaming transcription for lower-latency dictation
+
+The current dictation flow is batch-oriented: record audio, stop recording, upload the
+completed audio file, wait for transcription, then insert text. This is accurate, but
+the pause is noticeable.
+
+Goal:
+- Keep push-to-talk semantics.
+- Stream microphone audio while the hotkey is held.
+- Finalize the stream on release and insert the final transcript.
+- Preserve the existing batch transcription path as a fallback.
+- Avoid typing unstable partial text until there is a robust correction strategy.
+
+Acceptance criteria:
+- A config flag can enable streaming mode.
+- Holding the hotkey starts recording and streaming without waiting for release.
+- Releasing the hotkey finalizes transcription and inserts the final text.
+- If streaming setup fails, the app falls back to batch transcription or logs a clear error.
+- No API keys or transcript audio are logged.
+- Existing batch transcription tests continue to pass.
 
 ### Getting Help
 

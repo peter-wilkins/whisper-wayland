@@ -46,7 +46,7 @@ class PropertyHandlers:
         Returns:
             Whisper model name
         """
-        return os.getenv("WHISPER_MODEL", "base").strip()
+        return os.getenv("WHISPER_MODEL", "gpt-4o-transcribe").strip()
 
     # Audio Configuration
     def get_audio_sample_rate(self) -> int:
