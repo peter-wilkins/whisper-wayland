@@ -74,6 +74,8 @@ class TestConfig:
             "HOTKEY": "alt+space",
             "HOTKEY_MODE": "toggle",
             "TEXT_PASTE_HOTKEY": "ctrl+shift+v",
+            "TEXT_POST_PROCESS_MODE": "snappy",
+            "TEXT_POST_PROCESS_MODEL": "gpt-test-model",
             "STREAMING_TRANSCRIPTION_ENABLED": "true",
             "STREAMING_TRANSCRIPTION_MODEL": "whisper-1",
             "STREAMING_SAMPLE_RATE": "16000",
@@ -92,6 +94,8 @@ class TestConfig:
             assert test_config.hotkey == "alt+space"
             assert test_config.hotkey_mode == "toggle"
             assert test_config.text_paste_hotkey == "ctrl+shift+v"
+            assert test_config.text_post_process_mode == "snappy"
+            assert test_config.text_post_process_model == "gpt-test-model"
             assert test_config.streaming_transcription_enabled
             assert test_config.streaming_transcription_model == "whisper-1"
             assert test_config.streaming_sample_rate == STREAMING_CUSTOM_SAMPLE_RATE
@@ -213,6 +217,25 @@ class TestConfig:
             with unittest.mock.patch.dict(os.environ, {"TEXT_PASTE_HOTKEY": "invalid"}):
                 test_config = ww.Config("/nonexistent/test.env")
                 assert test_config.text_paste_hotkey == "ctrl+v"
+
+    def test_config_text_post_process_mode(self) -> None:
+        """Test text post-processing mode configuration."""
+        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
+            test_config = ww.Config("/nonexistent/test.env")
+            assert test_config.text_post_process_mode == "raw"
+            assert test_config.text_post_process_model == "gpt-4.1-mini"
+
+            with unittest.mock.patch.dict(os.environ, {"TEXT_POST_PROCESS_MODE": "clean"}):
+                test_config = ww.Config("/nonexistent/test.env")
+                assert test_config.text_post_process_mode == "clean"
+
+            with unittest.mock.patch.dict(os.environ, {"TEXT_POST_PROCESS_MODE": "invalid"}):
+                test_config = ww.Config("/nonexistent/test.env")
+                assert test_config.text_post_process_mode == "raw"
+
+            with unittest.mock.patch.dict(os.environ, {"TEXT_POST_PROCESS_MODEL": "gpt-test"}):
+                test_config = ww.Config("/nonexistent/test.env")
+                assert test_config.text_post_process_model == "gpt-test"
 
     def test_config_load_env_file(self) -> None:
         """Test loading configuration from .env file."""

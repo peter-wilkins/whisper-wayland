@@ -36,6 +36,7 @@ class AudioProcessor:
             transcribed_text = self.transcription_client.transcribe_audio(audio_data)
 
             if transcribed_text:
+                transcribed_text = self.transcription_client.post_process_text(transcribed_text)
                 preview_len = ww.Constants.TRANSCRIPTION_PREVIEW_LENGTH
                 preview_text = transcribed_text[:preview_len]
                 ellipsis = "..." if len(transcribed_text) > preview_len else ""

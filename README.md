@@ -102,6 +102,8 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `HOTKEY` | Push-to-talk key combination | `ctrl+compose` | No |
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
 | `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
+| `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, or `snappy`) | `raw` | No |
+| `TEXT_POST_PROCESS_MODEL` | OpenAI text model for transcript rewriting | `gpt-4.1-mini` | No |
 | `STREAMING_TRANSCRIPTION_ENABLED` | Enable experimental OpenAI Realtime streaming transcription | `false` | No |
 | `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `gpt-realtime-whisper` | No |
 | `STREAMING_SAMPLE_RATE` | PCM sample rate sent to Realtime streaming transcription | `24000` | No |

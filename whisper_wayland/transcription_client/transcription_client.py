@@ -83,6 +83,62 @@ class TranscriptionClient:
         except TranscriptionEngineError as e:
             raise TranscriptionError(str(e)) from e
 
+    def post_process_text(self, text: str) -> str:
+        """Post-process transcribed text using a text model.
+
+        Args:
+            text: Raw transcribed text
+
+        Returns:
+            Post-processed text, or the original text if post-processing is disabled or fails
+        """
+        mode = self.config.text_post_process_mode
+        if mode == "raw" or not text.strip() or not self._client:
+            return text
+
+        try:
+            response = self._client.responses.create(
+                model=self.config.text_post_process_model,
+                input=[
+                    {
+                        "role": "system",
+                        "content": self._post_process_system_prompt(mode),
+                    },
+                    {
+                        "role": "user",
+                        "content": text,
+                    },
+                ],
+                temperature=0.2,
+                max_output_tokens=512,
+            )
+            processed_text = response.output_text.strip()
+            if processed_text:
+                _logger.info(f"Transcript post-processing completed using mode: {mode}")
+                return processed_text
+        except Exception as e:
+            _logger.warning(f"Transcript post-processing failed, using raw transcript: {e}")
+
+        return text
+
+    @staticmethod
+    def _post_process_system_prompt(mode: str) -> str:
+        """Build post-processing system prompt for the configured mode."""
+        if mode == "snappy":
+            return (
+                "Rewrite the transcript into concise, natural text with a clear, snappy tone. "
+                "Preserve the speaker's meaning and intent. Fix punctuation, casing, obvious "
+                "speech recognition errors, filler words, and false starts. Do not add facts, "
+                "do not answer the text, and return only the rewritten text."
+            )
+
+        return (
+            "Clean up this dictated transcript. Fix punctuation, casing, obvious speech "
+            "recognition errors, filler words, and false starts. Preserve the speaker's "
+            "meaning and wording as much as possible. Do not add facts, do not answer the "
+            "text, and return only the cleaned text."
+        )
+
     def test_connection(self) -> bool:
         """Test connection to OpenAI API with a minimal request.
 

@@ -247,6 +247,30 @@ class PropertyHandlers:
             return "ctrl+v"
         return hotkey
 
+    def get_text_post_process_mode(self) -> str:
+        """Get transcript post-processing mode.
+
+        Returns:
+            Post-processing mode: "raw", "clean", or "snappy"
+        """
+        mode = os.getenv("TEXT_POST_PROCESS_MODE", "raw").strip().lower()
+        valid_modes = ["raw", "clean", "snappy"]
+        if mode not in valid_modes:
+            _logger.warning(
+                f"Invalid TEXT_POST_PROCESS_MODE '{mode}', using raw. "
+                f"Valid modes: {valid_modes}"
+            )
+            return "raw"
+        return mode
+
+    def get_text_post_process_model(self) -> str:
+        """Get model used for transcript post-processing.
+
+        Returns:
+            OpenAI text model name
+        """
+        return os.getenv("TEXT_POST_PROCESS_MODEL", "gpt-4.1-mini").strip()
+
     @staticmethod
     def new() -> "PropertyHandlers":
         """Create property handlers instance.

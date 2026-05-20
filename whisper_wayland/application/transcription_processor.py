@@ -31,6 +31,7 @@ class TranscriptionProcessor:
         """
         self.audio_processor = AudioProcessor.new(transcription_client)
         self.text_handler = TextHandler.new(text_inserter)
+        self._transcription_client = transcription_client
         streaming_enabled = (
             getattr(transcription_client.config, "streaming_transcription_enabled", False) is True
         )
@@ -69,7 +70,8 @@ class TranscriptionProcessor:
         try:
             result = self._streaming_client.stop()
             if result.text:
-                self.text_handler.insert_text(result.text)
+                processed_text = self._transcription_client.post_process_text(result.text)
+                self.text_handler.insert_text(processed_text)
             elif result.fallback_audio:
                 self.process_audio(result.fallback_audio)
             elif result.error:

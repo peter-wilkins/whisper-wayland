@@ -135,6 +135,16 @@ class Config:
         """Hotkey used to paste clipboard text."""
         return self._property_handlers.get_text_paste_hotkey()
 
+    @property
+    def text_post_process_mode(self) -> str:
+        """Transcript post-processing mode."""
+        return self._property_handlers.get_text_post_process_mode()
+
+    @property
+    def text_post_process_model(self) -> str:
+        """Model used for transcript post-processing."""
+        return self._property_handlers.get_text_post_process_model()
+
     def setup_logging(self, log_file: typing.Optional[str] = None) -> None:
         """Set up logging configuration for the application.
 

@@ -303,6 +303,61 @@ class TestTranscriptionClient:
         call_args = mock_transcription.create.call_args
         assert call_args.kwargs["language"] == "es"
 
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_post_process_text_raw_mode(
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
+    ) -> None:
+        """Test raw mode returns text without an API call."""
+        mock_client = unittest.mock.Mock()
+        mock_openai_class.return_value = mock_client
+        client = transcription_client.TranscriptionClient(test_config)
+
+        assert client.post_process_text("raw text") == "raw text"
+        mock_client.responses.create.assert_not_called()
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_post_process_text_clean_mode(self, mock_openai_class: unittest.mock.MagicMock) -> None:
+        """Test clean mode rewrites transcript using responses API."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "TEXT_POST_PROCESS_MODE": "clean",
+                "TEXT_POST_PROCESS_MODEL": "gpt-test",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_response = unittest.mock.Mock()
+            mock_response.output_text = "Clean text."
+            mock_client.responses.create.return_value = mock_response
+            mock_openai_class.return_value = mock_client
+            client = transcription_client.TranscriptionClient(test_config)
+
+            assert client.post_process_text("clean text") == "Clean text."
+            mock_client.responses.create.assert_called_once()
+            call_args = mock_client.responses.create.call_args
+            assert call_args.kwargs["model"] == "gpt-test"
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_post_process_text_falls_back_on_error(
+        self, mock_openai_class: unittest.mock.MagicMock
+    ) -> None:
+        """Test post-processing returns raw transcript if API call fails."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {"OPENAI_API_KEY": "sk-test123", "TEXT_POST_PROCESS_MODE": "snappy"},
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_client.responses.create.side_effect = Exception("post-process failed")
+            mock_openai_class.return_value = mock_client
+            client = transcription_client.TranscriptionClient(test_config)
+
+            assert client.post_process_text("keep this") == "keep this"
+
     def test_create_transcription_client(self) -> None:
         """Test TranscriptionClient.new static method."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
