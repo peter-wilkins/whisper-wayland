@@ -36,6 +36,7 @@ class TestConfig:
                 assert test_config.log_level == "INFO"
                 assert test_config.hotkey == "ctrl+compose"
                 assert test_config.hotkey_mode == "push_to_talk"
+                assert test_config.text_paste_hotkey == "ctrl+v"
                 assert not test_config.streaming_transcription_enabled
                 assert test_config.streaming_transcription_model == "gpt-realtime-whisper"
                 assert test_config.streaming_sample_rate == STREAMING_DEFAULT_SAMPLE_RATE
@@ -72,6 +73,7 @@ class TestConfig:
             "LOG_LEVEL": "DEBUG",
             "HOTKEY": "alt+space",
             "HOTKEY_MODE": "toggle",
+            "TEXT_PASTE_HOTKEY": "ctrl+shift+v",
             "STREAMING_TRANSCRIPTION_ENABLED": "true",
             "STREAMING_TRANSCRIPTION_MODEL": "whisper-1",
             "STREAMING_SAMPLE_RATE": "16000",
@@ -89,6 +91,7 @@ class TestConfig:
             assert test_config.log_level == "DEBUG"
             assert test_config.hotkey == "alt+space"
             assert test_config.hotkey_mode == "toggle"
+            assert test_config.text_paste_hotkey == "ctrl+shift+v"
             assert test_config.streaming_transcription_enabled
             assert test_config.streaming_transcription_model == "whisper-1"
             assert test_config.streaming_sample_rate == STREAMING_CUSTOM_SAMPLE_RATE
@@ -196,6 +199,20 @@ class TestConfig:
                 assert (
                     test_config.text_insertion_method == "ydotool"
                 )  # Fallback per config.py line 210
+
+    def test_config_text_paste_hotkey(self) -> None:
+        """Test paste hotkey configuration."""
+        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
+            test_config = ww.Config("/nonexistent/test.env")
+            assert test_config.text_paste_hotkey == "ctrl+v"
+
+            with unittest.mock.patch.dict(os.environ, {"TEXT_PASTE_HOTKEY": "ctrl+shift+v"}):
+                test_config = ww.Config("/nonexistent/test.env")
+                assert test_config.text_paste_hotkey == "ctrl+shift+v"
+
+            with unittest.mock.patch.dict(os.environ, {"TEXT_PASTE_HOTKEY": "invalid"}):
+                test_config = ww.Config("/nonexistent/test.env")
+                assert test_config.text_paste_hotkey == "ctrl+v"
 
     def test_config_load_env_file(self) -> None:
         """Test loading configuration from .env file."""

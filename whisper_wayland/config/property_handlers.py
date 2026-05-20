@@ -231,6 +231,22 @@ class PropertyHandlers:
             return "ydotool"
         return method
 
+    def get_text_paste_hotkey(self) -> str:
+        """Get hotkey used to paste clipboard text.
+
+        Returns:
+            Paste hotkey string
+        """
+        hotkey = os.getenv("TEXT_PASTE_HOTKEY", "ctrl+v").strip().lower()
+        valid_hotkeys = ["ctrl+v", "ctrl+shift+v"]
+        if hotkey not in valid_hotkeys:
+            _logger.warning(
+                f"Invalid TEXT_PASTE_HOTKEY '{hotkey}', using ctrl+v. "
+                f"Valid hotkeys: {valid_hotkeys}"
+            )
+            return "ctrl+v"
+        return hotkey
+
     @staticmethod
     def new() -> "PropertyHandlers":
         """Create property handlers instance.

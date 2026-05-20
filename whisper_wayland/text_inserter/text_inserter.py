@@ -54,7 +54,10 @@ class TextInserter:
         )
 
         # Initialize method executors and fallback handler
-        self._method_executors = MethodExecutors.new(self._available_methods)
+        self._method_executors = MethodExecutors.new(
+            self._available_methods,
+            config.text_paste_hotkey,
+        )
         self._fallback_handler = FallbackHandler.new(self._method_executors)
 
         if not self._available_methods or not any(self._available_methods.values()):

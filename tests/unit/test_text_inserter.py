@@ -322,6 +322,41 @@ class TestTextInserter:
                 text=True,
                 timeout=5,
             )
+            mock_run.assert_any_call(
+                ["ydotool", "key", "29:1", "47:1", "47:0", "29:0"],
+                check=False,
+                capture_output=True,
+                timeout=5,
+            )
+
+    def test_insert_with_clipboard_ctrl_shift_v(
+        self, text_inserter: text_inserter_module.TextInserter
+    ) -> None:
+        """Test clipboard insertion can use Ctrl+Shift+V."""
+        mock_result = unittest.mock.Mock()
+        mock_result.returncode = 0
+        text_inserter._method_executors._paste_hotkey = "ctrl+shift+v"
+        text_inserter._method_executors._available_methods[
+            text_inserter_module.TextInsertionMethod.YDOTOOL
+        ] = True
+
+        def mock_which(tool: str) -> typing.Optional[str]:
+            return "/usr/bin/tool" if tool == "wl-copy" else None
+
+        with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
+            with unittest.mock.patch(
+                "whisper_wayland.text_inserter.method_executors.shutil.which",
+                side_effect=mock_which,
+            ):
+                result = text_inserter._method_executors._insert_with_clipboard("test text")
+
+            assert result is True
+            mock_run.assert_any_call(
+                ["ydotool", "key", "29:1", "42:1", "47:1", "47:0", "42:0", "29:0"],
+                check=False,
+                capture_output=True,
+                timeout=5,
+            )
 
     def test_insert_with_clipboard_xclip(
         self, text_inserter: text_inserter_module.TextInserter

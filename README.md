@@ -101,6 +101,7 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
 | `HOTKEY` | Push-to-talk key combination | `ctrl+compose` | No |
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
+| `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
 | `STREAMING_TRANSCRIPTION_ENABLED` | Enable experimental OpenAI Realtime streaming transcription | `false` | No |
 | `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `gpt-realtime-whisper` | No |
 | `STREAMING_SAMPLE_RATE` | PCM sample rate sent to Realtime streaming transcription | `24000` | No |

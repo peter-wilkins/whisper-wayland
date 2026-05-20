@@ -130,6 +130,11 @@ class Config:
         """Text insertion method to use."""
         return self._property_handlers.get_text_insertion_method()
 
+    @property
+    def text_paste_hotkey(self) -> str:
+        """Hotkey used to paste clipboard text."""
+        return self._property_handlers.get_text_paste_hotkey()
+
     def setup_logging(self, log_file: typing.Optional[str] = None) -> None:
         """Set up logging configuration for the application.
 

@@ -15,13 +15,24 @@ _logger = logging.getLogger(__name__)
 class MethodExecutors:
     """Executes text insertion using various methods."""
 
-    def __init__(self, available_methods: dict[TextInsertionMethod, bool]) -> None:
+    YDOTOOL_PASTE_HOTKEYS = {
+        "ctrl+v": ["29:1", "47:1", "47:0", "29:0"],
+        "ctrl+shift+v": ["29:1", "42:1", "47:1", "47:0", "42:0", "29:0"],
+    }
+
+    def __init__(
+        self,
+        available_methods: dict[TextInsertionMethod, bool],
+        paste_hotkey: str = "ctrl+v",
+    ) -> None:
         """Initialize method executors.
 
         Args:
             available_methods: Dictionary of available methods
+            paste_hotkey: Hotkey used to paste clipboard text
         """
         self._available_methods = available_methods
+        self._paste_hotkey = paste_hotkey
 
     def insert_with_method(self, method: TextInsertionMethod, text: str) -> bool:
         """Insert text using specific method.
@@ -129,14 +140,7 @@ class MethodExecutors:
                     # Send Ctrl+V to paste
                     if self._available_methods.get(TextInsertionMethod.YDOTOOL, False):
                         subprocess.run(
-                            [
-                                "ydotool",
-                                "key",
-                                "29:1",
-                                "47:1",
-                                "47:0",
-                                "29:0",
-                            ],  # Ctrl+V
+                            ["ydotool", "key", *self._get_ydotool_paste_sequence()],
                             check=False,
                             capture_output=True,
                             timeout=5,
@@ -157,7 +161,7 @@ class MethodExecutors:
                     # Send Ctrl+V to paste
                     if self._available_methods.get(TextInsertionMethod.XDOTOOL, False):
                         subprocess.run(
-                            ["xdotool", "key", "ctrl+v"],
+                            ["xdotool", "key", self._paste_hotkey],
                             check=False,
                             capture_output=True,
                             timeout=5,
@@ -171,14 +175,25 @@ class MethodExecutors:
             _logger.error(f"Clipboard insertion failed: {e}")
             return False
 
+    def _get_ydotool_paste_sequence(self) -> list[str]:
+        """Get ydotool key sequence for the configured paste hotkey."""
+        return self.YDOTOOL_PASTE_HOTKEYS.get(
+            self._paste_hotkey,
+            self.YDOTOOL_PASTE_HOTKEYS["ctrl+v"],
+        )
+
     @staticmethod
-    def new(available_methods: dict[TextInsertionMethod, bool]) -> "MethodExecutors":
+    def new(
+        available_methods: dict[TextInsertionMethod, bool],
+        paste_hotkey: str = "ctrl+v",
+    ) -> "MethodExecutors":
         """Create method executors instance.
 
         Args:
             available_methods: Dictionary of available methods
+            paste_hotkey: Hotkey used to paste clipboard text
 
         Returns:
             MethodExecutors instance
         """
-        return MethodExecutors(available_methods)
+        return MethodExecutors(available_methods, paste_hotkey)

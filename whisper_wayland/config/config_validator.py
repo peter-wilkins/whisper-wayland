@@ -67,6 +67,7 @@ class ConfigValidator:
             "streaming_completion_timeout_secs": config_instance.streaming_completion_timeout_secs,
             "text_insertion_delay": config_instance.text_insertion_delay,
             "text_insertion_method": config_instance.text_insertion_method,
+            "text_paste_hotkey": config_instance.text_paste_hotkey,
         }
 
     @staticmethod
