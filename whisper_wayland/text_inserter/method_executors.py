@@ -120,7 +120,8 @@ class MethodExecutors:
                     ["wl-copy"],
                     check=False,
                     input=text,
-                    capture_output=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
                     text=True,
                     timeout=5,
                 )

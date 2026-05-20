@@ -317,7 +317,8 @@ class TestTextInserter:
                 ["wl-copy"],
                 check=False,
                 input="test text",
-                capture_output=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 text=True,
                 timeout=5,
             )
