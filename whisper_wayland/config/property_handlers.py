@@ -184,7 +184,7 @@ class PropertyHandlers:
             Timeout in seconds
         """
         try:
-            timeout = float(os.getenv("STREAMING_COMPLETION_TIMEOUT_SECS", "15"))
+            timeout = float(os.getenv("STREAMING_COMPLETION_TIMEOUT_SECS", "4"))
             if timeout <= 0:
                 raise ValueError("Streaming completion timeout must be positive")
             return timeout
