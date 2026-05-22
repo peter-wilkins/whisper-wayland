@@ -91,15 +91,41 @@ class AudioSystemValidator:
             _logger.error(f"Audio system validation failed: {e}")
             raise AudioSystemValidationError(f"Audio system validation failed: {e}") from e
 
-    def find_preferred_input_device(self, audio: pyaudio.PyAudio) -> typing.Optional[int]:
+    def find_preferred_input_device(
+        self, audio: pyaudio.PyAudio, config: "ww.Config"
+    ) -> typing.Optional[int]:
         """Find the preferred input device, prioritizing USB then Bluetooth headsets.
 
         Args:
             audio: PyAudio instance
+            config: Configuration instance
 
         Returns:
             Device index of preferred device, or None to use the system default
         """
+        explicit_index = config.audio_input_device_index
+        if explicit_index is not None:
+            if self._is_valid_input_device(audio, explicit_index):
+                name = self.get_input_device_name(audio, explicit_index)
+                _logger.info(f"Using configured input device: {name} (index {explicit_index})")
+                return explicit_index
+            _logger.warning(
+                f"Configured AUDIO_INPUT_DEVICE_INDEX={explicit_index} is not a valid "
+                "input device; falling back to automatic selection"
+            )
+
+        explicit_name = config.audio_input_device_name
+        if explicit_name:
+            matched_index = self._find_input_device_by_name(audio, explicit_name)
+            if matched_index is not None:
+                name = self.get_input_device_name(audio, matched_index)
+                _logger.info(f"Using configured input device: {name} (index {matched_index})")
+                return matched_index
+            _logger.warning(
+                f"No input device matched AUDIO_INPUT_DEVICE_NAME='{explicit_name}'; "
+                "falling back to automatic selection"
+            )
+
         usb_keywords = ["usb"]
         bt_keywords = ["bluetooth", "bluez", "headset", "headphone"]
 
@@ -130,6 +156,41 @@ class AudioSystemValidator:
             return idx
 
         _logger.debug("No USB/Bluetooth headset found, using system default input device")
+        return None
+
+    def get_input_device_name(
+        self, audio: pyaudio.PyAudio, input_device_index: typing.Optional[int]
+    ) -> str:
+        """Get display name for input device index or system default."""
+        try:
+            if input_device_index is None:
+                info = audio.get_default_input_device_info()
+                return str(info["name"])
+            info = audio.get_device_info_by_index(input_device_index)
+            return str(info["name"])
+        except Exception as e:
+            _logger.debug(f"Could not resolve input device name: {e}")
+            return "system default"
+
+    def _is_valid_input_device(self, audio: pyaudio.PyAudio, index: int) -> bool:
+        """Return whether index refers to an available input device."""
+        try:
+            info = audio.get_device_info_by_index(index)
+            return int(info["maxInputChannels"]) > 0
+        except Exception:
+            return False
+
+    def _find_input_device_by_name(self, audio: pyaudio.PyAudio, name_match: str) -> int | None:
+        """Find first input device whose name contains the configured substring."""
+        try:
+            for i in range(audio.get_device_count()):
+                info = audio.get_device_info_by_index(i)
+                if info["maxInputChannels"] <= 0:
+                    continue
+                if name_match in str(info["name"]).lower():
+                    return i
+        except Exception as e:
+            _logger.warning(f"Error matching audio input device name: {e}")
         return None
 
     def get_audio_devices(self, audio: pyaudio.PyAudio) -> list[dict[str, typing.Any]]:

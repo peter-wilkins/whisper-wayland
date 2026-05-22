@@ -33,9 +33,9 @@ class KeyMapping:
         """Build mapping from evdev keycodes to key names."""
         key_map = {
             evdev.ecodes.KEY_LEFTCTRL: "ctrl",
-            evdev.ecodes.KEY_RIGHTCTRL: "ctrl",
+            evdev.ecodes.KEY_RIGHTCTRL: "rightctrl",
             evdev.ecodes.KEY_LEFTALT: "alt",
-            evdev.ecodes.KEY_RIGHTALT: "alt",
+            evdev.ecodes.KEY_RIGHTALT: "altgr",
             evdev.ecodes.KEY_LEFTSHIFT: "shift",
             evdev.ecodes.KEY_RIGHTSHIFT: "shift",
             evdev.ecodes.KEY_SPACE: "space",
@@ -44,9 +44,19 @@ class KeyMapping:
             evdev.ecodes.KEY_TAB: "tab",
             evdev.ecodes.KEY_BACKSPACE: "backspace",
             evdev.ecodes.KEY_DELETE: "delete",
+            evdev.ecodes.KEY_INSERT: "insert",
             evdev.ecodes.KEY_PAGEDOWN: "pagedown",
+            evdev.ecodes.KEY_SCROLLLOCK: "scrolllock",
             evdev.ecodes.KEY_COMPOSE: "compose",  # The compose key
             evdev.ecodes.KEY_MENU: "menu",
+            evdev.ecodes.BTN_LEFT: "mouse_left",
+            evdev.ecodes.BTN_RIGHT: "mouse_right",
+            evdev.ecodes.BTN_MIDDLE: "mouse_middle",
+            evdev.ecodes.BTN_SIDE: "mouse_side",
+            evdev.ecodes.BTN_EXTRA: "mouse_extra",
+            evdev.ecodes.BTN_FORWARD: "mouse_forward",
+            evdev.ecodes.BTN_BACK: "mouse_back",
+            evdev.ecodes.BTN_TASK: "mouse_task",
             # Function keys
             evdev.ecodes.KEY_F1: "f1",
             evdev.ecodes.KEY_F2: "f2",
@@ -120,7 +130,17 @@ class KeyMapping:
         key_mapping = {
             "ctrl": "ctrl",
             "control": "ctrl",
+            "rightctrl": "rightctrl",
+            "right_ctrl": "rightctrl",
+            "rctrl": "rightctrl",
+            "rightcontrol": "rightctrl",
+            "right_control": "rightctrl",
             "alt": "alt",
+            "altgr": "altgr",
+            "alt_gr": "altgr",
+            "rightalt": "altgr",
+            "right_alt": "altgr",
+            "ralt": "altgr",
             "shift": "shift",
             "space": "space",
             "enter": "enter",
@@ -128,11 +148,57 @@ class KeyMapping:
             "tab": "tab",
             "esc": "esc",
             "escape": "esc",
+            "insert": "insert",
+            "ins": "insert",
             "pagedown": "pagedown",
             "page_down": "pagedown",
             "pgdn": "pagedown",
+            "scrolllock": "scrolllock",
+            "scroll_lock": "scrolllock",
+            "screenlock": "scrolllock",
+            "screen_lock": "scrolllock",
             "compose": "compose",
             "menu": "menu",
+            "mouse_left": "mouse_left",
+            "leftmouse": "mouse_left",
+            "left_mouse": "mouse_left",
+            "leftclick": "mouse_left",
+            "left_click": "mouse_left",
+            "mouse1": "mouse_left",
+            "mouse_right": "mouse_right",
+            "rightmouse": "mouse_right",
+            "right_mouse": "mouse_right",
+            "rightclick": "mouse_right",
+            "right_click": "mouse_right",
+            "mouse2": "mouse_right",
+            "mouse_middle": "mouse_middle",
+            "middlemouse": "mouse_middle",
+            "middle_mouse": "mouse_middle",
+            "middleclick": "mouse_middle",
+            "middle_click": "mouse_middle",
+            "mouse3": "mouse_middle",
+            "mouse_side": "mouse_side",
+            "side_mouse": "mouse_side",
+            "sidebutton": "mouse_side",
+            "side_button": "mouse_side",
+            "mouse4": "mouse_side",
+            "mouse_extra": "mouse_extra",
+            "extra_mouse": "mouse_extra",
+            "extrabutton": "mouse_extra",
+            "extra_button": "mouse_extra",
+            "mouse5": "mouse_extra",
+            "mouse_back": "mouse_back",
+            "back_mouse": "mouse_back",
+            "backbutton": "mouse_back",
+            "back_button": "mouse_back",
+            "mouse_forward": "mouse_forward",
+            "forward_mouse": "mouse_forward",
+            "forwardbutton": "mouse_forward",
+            "forward_button": "mouse_forward",
+            "mouse_task": "mouse_task",
+            "task_mouse": "mouse_task",
+            "taskbutton": "mouse_task",
+            "task_button": "mouse_task",
         }
 
         # Handle single key (like "compose")
@@ -202,6 +268,14 @@ class KeyMapping:
             pass
 
         return None
+
+    def get_key_aliases(self, key_name: str) -> set[str]:
+        """Return generic aliases for side-specific modifier keys."""
+        aliases = {
+            "rightctrl": {"ctrl"},
+            "altgr": {"alt"},
+        }
+        return aliases.get(key_name, set())
 
     @staticmethod
     def new() -> "KeyMapping":

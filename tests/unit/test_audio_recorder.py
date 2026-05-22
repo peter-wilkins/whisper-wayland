@@ -308,6 +308,39 @@ class TestAudioRecorder:
         assert recorder._recording_engine._input_device_index == 1
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
+    def test_configured_device_name_selects_matching_input(
+        self, mock_pyaudio: unittest.mock.Mock
+    ) -> None:
+        """Test that configured device name selects the matching input device."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "AUDIO_INPUT_DEVICE_NAME": "external",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+
+        devices = [
+            {"name": "Laptop Digital Mic", "maxInputChannels": 2},
+            {"name": "External USB Microphone", "maxInputChannels": 1},
+        ]
+        mock_audio_instance = unittest.mock.Mock()
+        mock_audio_instance.get_device_count.return_value = len(devices)
+        mock_audio_instance.get_device_info_by_index.side_effect = lambda index: devices[index]
+        mock_audio_instance.get_default_input_device_info.return_value = {
+            "index": 0,
+            "name": "Laptop Digital Mic",
+        }
+        mock_audio_instance.is_format_supported.return_value = True
+        mock_pyaudio.return_value = mock_audio_instance
+
+        recorder = audio_recorder.AudioRecorder(test_config)
+
+        assert recorder._recording_engine._input_device_index == 1
+
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_preferred_device_falls_back_to_default(
         self, mock_pyaudio: unittest.mock.Mock, test_config: "ww.Config"
     ) -> None:

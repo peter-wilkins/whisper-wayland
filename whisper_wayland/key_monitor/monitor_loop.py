@@ -128,7 +128,13 @@ class MonitorLoop:
                     except OSError:
                         # Device disconnected
                         _logger.warning(f"Device {device.name} disconnected")
-                        continue
+                        devices_dict.pop(device.fd, None)
+                        self._device_manager.remove_device(device)
+                        if not devices_dict:
+                            _logger.error("All keyboard devices disconnected")
+                            self._monitoring = False
+                            self._stop_event.set()
+                            break
 
         except Exception as e:
             _logger.error(f"Error in monitoring loop: {e}")

@@ -44,6 +44,8 @@ class RecordingEngine:
         self._stream: typing.Optional[pyaudio.Stream] = None
         self._recording = False
         self._recording_thread: typing.Optional[threading.Thread] = None
+        self._recording_started_event = threading.Event()
+        self._recording_start_error: typing.Optional[str] = None
         self._audio_data: typing.Optional[bytes] = None
         self._lock = threading.Lock()
 
@@ -60,9 +62,18 @@ class RecordingEngine:
 
             try:
                 self._recording = True
+                self._recording_started_event = threading.Event()
+                self._recording_start_error = None
                 self._audio_data = None
                 self._recording_thread = threading.Thread(target=self._record_audio, daemon=True)
                 self._recording_thread.start()
+
+                if not self._recording_started_event.wait(timeout=1.0):
+                    _logger.warning("Audio stream did not report ready within 1s")
+                if self._recording_start_error:
+                    self._recording = False
+                    raise RecordingEngineError(self._recording_start_error)
+
                 _logger.info("Audio recording started")
             except Exception as e:
                 self._recording = False
@@ -128,6 +139,7 @@ class RecordingEngine:
             )
 
             _logger.debug(f"Audio stream opened, recording for up to {max_duration}s")
+            self._recording_started_event.set()
 
             while self._recording:
                 if time.time() - start_time >= max_duration:
@@ -144,7 +156,9 @@ class RecordingEngine:
                     break
 
         except Exception as e:
-            _logger.error(f"Error setting up audio stream: {e}")
+            self._recording_start_error = f"Error setting up audio stream: {e}"
+            self._recording_started_event.set()
+            _logger.error(self._recording_start_error)
             return
 
         finally:

@@ -57,6 +57,8 @@ class ConfigValidator:
             "whisper_model": config_instance.whisper_model,
             "audio_sample_rate": config_instance.audio_sample_rate,
             "audio_chunk_size": config_instance.audio_chunk_size,
+            "audio_input_device_index": config_instance.audio_input_device_index,
+            "audio_input_device_name": config_instance.audio_input_device_name,
             "max_recording_duration": config_instance.max_recording_duration,
             "log_level": config_instance.log_level,
             "hotkey": config_instance.hotkey,
@@ -65,6 +67,12 @@ class ConfigValidator:
             "streaming_transcription_model": config_instance.streaming_transcription_model,
             "streaming_sample_rate": config_instance.streaming_sample_rate,
             "streaming_completion_timeout_secs": config_instance.streaming_completion_timeout_secs,
+            "streaming_turn_detection_enabled": (
+                config_instance.streaming_turn_detection_enabled
+            ),
+            "streaming_vad_silence_duration_ms": (
+                config_instance.streaming_vad_silence_duration_ms
+            ),
             "text_insertion_delay": config_instance.text_insertion_delay,
             "text_insertion_method": config_instance.text_insertion_method,
             "text_paste_hotkey": config_instance.text_paste_hotkey,

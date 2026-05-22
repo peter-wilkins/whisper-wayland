@@ -35,11 +35,13 @@ class Application:
         self.transcription_processor = TranscriptionProcessor.new(
             self.component_manager.transcription_client,
             self.component_manager.text_inserter,
+            self.component_manager.status_indicator,
         )
         self.hotkey_handler = HotkeyHandler.new(
             self.component_manager.audio_recorder,
             self.transcription_processor,
             self.config.hotkey_mode,
+            self.component_manager.status_indicator,
         )
         self.runtime_manager = RuntimeManager(self)
 
@@ -55,3 +57,10 @@ class Application:
             _logger.info("Received interrupt signal, shutting down ...")
         except Exception as e:
             _logger.error(f"Application error: {e}")
+        finally:
+            self.close()
+
+    def close(self) -> None:
+        """Clean up application resources."""
+        self.transcription_processor.close()
+        self.component_manager.status_indicator.close()

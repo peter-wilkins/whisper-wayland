@@ -72,16 +72,17 @@ class MethodDetector:
         """
         configured_method_lower = configured_method.lower()
 
-        # Try to use configured method first
-        for method in TextInsertionMethod:
-            if method.value == configured_method_lower and available_methods.get(method, False):
-                _logger.debug(f"Using configured method: {method.value}")
-                return method
+        if configured_method_lower != "auto":
+            # Try to use configured method first
+            for method in TextInsertionMethod:
+                if method.value == configured_method_lower and available_methods.get(method, False):
+                    _logger.debug(f"Using configured method: {method.value}")
+                    return method
 
         # Auto-select best available method
         preference_order = [
-            TextInsertionMethod.WTYPE,  # Best for Wayland
-            TextInsertionMethod.YDOTOOL,  # Universal
+            TextInsertionMethod.YDOTOOL,  # Direct typing without touching clipboard
+            TextInsertionMethod.WTYPE,  # Wayland direct typing
             TextInsertionMethod.XDOTOOL,  # Good for X11
             TextInsertionMethod.CLIPBOARD,  # Fallback
         ]

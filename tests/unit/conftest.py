@@ -77,6 +77,14 @@ def mock_evdev(
         mock_evdev.ecodes.KEY_SPACE = 57
         mock_evdev.ecodes.KEY_ENTER = 28
         mock_evdev.ecodes.KEY_COMPOSE = 127
+        mock_evdev.ecodes.BTN_LEFT = 272
+        mock_evdev.ecodes.BTN_RIGHT = 273
+        mock_evdev.ecodes.BTN_MIDDLE = 274
+        mock_evdev.ecodes.BTN_SIDE = 275
+        mock_evdev.ecodes.BTN_EXTRA = 276
+        mock_evdev.ecodes.BTN_FORWARD = 277
+        mock_evdev.ecodes.BTN_BACK = 278
+        mock_evdev.ecodes.BTN_TASK = 279
 
         yield mock_evdev
 

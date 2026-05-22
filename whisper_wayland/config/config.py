@@ -86,6 +86,16 @@ class Config:
         """Seconds to wait for final realtime transcript after recording stops."""
         return self._property_handlers.get_streaming_completion_timeout_secs()
 
+    @property
+    def streaming_turn_detection_enabled(self) -> bool:
+        """Whether realtime streaming should commit speech chunks on pauses."""
+        return self._property_handlers.get_streaming_turn_detection_enabled()
+
+    @property
+    def streaming_vad_silence_duration_ms(self) -> int:
+        """Silence duration used for realtime server-side VAD."""
+        return self._property_handlers.get_streaming_vad_silence_duration_ms()
+
     # Audio Configuration
     @property
     def audio_sample_rate(self) -> int:
@@ -96,6 +106,16 @@ class Config:
     def audio_chunk_size(self) -> int:
         """Audio buffer chunk size in samples."""
         return self._property_handlers.get_audio_chunk_size()
+
+    @property
+    def audio_input_device_index(self) -> int | None:
+        """Explicit audio input device index, or None for automatic selection."""
+        return self._property_handlers.get_audio_input_device_index()
+
+    @property
+    def audio_input_device_name(self) -> str:
+        """Explicit audio input device name substring, or empty for automatic selection."""
+        return self._property_handlers.get_audio_input_device_name()
 
     @property
     def max_recording_duration(self) -> int:

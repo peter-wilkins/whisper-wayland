@@ -97,17 +97,28 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `OPENAI_API_KEY` | OpenAI API key for Whisper service | - | Yes |
 | `WHISPER_MODEL` | OpenAI transcription model, or a legacy Whisper size alias | `gpt-4o-transcribe` | No |
 | `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
+| `AUDIO_INPUT_DEVICE_INDEX` | Explicit PyAudio input device index, blank for auto-selection | - | No |
+| `AUDIO_INPUT_DEVICE_NAME` | Case-insensitive input device name substring, blank for auto-selection | - | No |
 | `MAX_RECORDING_DURATION` | Maximum recording duration in seconds | `30` | No |
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
-| `HOTKEY` | Push-to-talk key combination | `ctrl+compose` | No |
+| `HOTKEY` | Push-to-talk key or mouse-button combination | `ctrl+compose` | No |
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
-| `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
+| `TEXT_INSERTION_METHOD` | Text insertion backend (`auto`, `ydotool`, `wtype`, `xdotool`, or `clipboard`) | `auto` | No |
+| `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard fallback insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
 | `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, or `snappy`) | `raw` | No |
 | `TEXT_POST_PROCESS_MODEL` | OpenAI text model for transcript rewriting | `gpt-4.1-mini` | No |
 | `STREAMING_TRANSCRIPTION_ENABLED` | Enable experimental OpenAI Realtime streaming transcription | `false` | No |
 | `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `gpt-realtime-whisper` | No |
 | `STREAMING_SAMPLE_RATE` | PCM sample rate sent to Realtime streaming transcription | `24000` | No |
 | `STREAMING_COMPLETION_TIMEOUT_SECS` | Seconds to wait for final streaming transcript after release | `4` | No |
+| `STREAMING_TURN_DETECTION_ENABLED` | Commit and insert completed speech chunks on pauses | `false` | No |
+| `STREAMING_VAD_SILENCE_DURATION_MS` | Pause length before a streaming speech chunk is finalized | `700` | No |
+
+Mouse-button hotkeys are supported via evdev. Useful values include `mouse_left`,
+`mouse_middle`, `mouse_right`, `mouse_side`, `mouse_extra`, `mouse_back`, and
+`mouse_forward`. Mouse events are observed, not consumed, so the click still
+reaches the focused application. With `HOTKEY_MODE=toggle`, each click alternates
+recording on/off.
 
 ### Model Selection Guide
 
@@ -129,6 +140,9 @@ All configuration is handled through environment variables and/or a/the `.env` f
 - Verify `wtype` is installed: `which wtype`
 - Test manually: `echo "test" | wtype -`
 - Check Wayland environment variables are set
+- Use `TEXT_INSERTION_METHOD=auto` to prefer direct typing. The explicit
+  `clipboard` backend may be captured by clipboard history managers before the
+  previous clipboard is restored.
 
 **Hotkey not working:**
 - Verify Compose key is configured: e.g. `setxkbmap -option compose:lctrl`
@@ -149,6 +163,11 @@ Experimental streaming transcription is implemented behind
 hotkey is active, finalizes transcription on release, and inserts only the final
 transcript. If streaming fails or returns no transcript, captured audio is converted
 to WAV and sent through the existing batch transcription path.
+
+When `STREAMING_TURN_DETECTION_ENABLED=true`, the Realtime API uses server-side
+voice activity detection to finalize completed speech chunks during longer
+recordings. Completed chunks are inserted immediately after pauses instead of
+waiting for the hotkey release.
 
 Remaining rough edges:
 - Confirm account/model access for higher-accuracy batch transcription models.

@@ -12,6 +12,8 @@ import whisper_wayland as ww
 import whisper_wayland.text_inserter as text_inserter
 import whisper_wayland.text_inserter as text_inserter_module
 
+CLIPBOARD_RESTORE_CALL_COUNT = 4
+
 
 class TestTextInsertionMethod:
     """Test cases for TextInsertionMethod enum."""
@@ -56,7 +58,7 @@ class TestTextInserter:
             inserter = text_inserter.TextInserter(test_config)
 
             assert all(inserter._available_methods.values())
-            # Config is set to use ydotool, so even with all available, should use configured method
+            # Auto mode prefers direct typing before clipboard.
             assert inserter._preferred_method == text_inserter.TextInsertionMethod.YDOTOOL
 
     def test_detect_available_methods_partial(self, test_config: "ww.Config") -> None:
@@ -293,6 +295,7 @@ class TestTextInserter:
         """Test clipboard insertion with wl-copy."""
         mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
+        mock_result.stdout = "previous clipboard"
 
         # Mock ydotool available for paste command
         text_inserter._method_executors._available_methods[
@@ -300,19 +303,25 @@ class TestTextInserter:
         ] = True
 
         def mock_which(tool: str) -> typing.Optional[str]:
-            return "/usr/bin/tool" if tool == "wl-copy" else None
+            return "/usr/bin/tool" if tool in {"wl-copy", "wl-paste"} else None
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
-            with unittest.mock.patch(
-                "whisper_wayland.text_inserter.method_executors.shutil.which",
-                side_effect=mock_which,
-            ):
-                result = text_inserter._method_executors._insert_with_clipboard("test text")
+            with unittest.mock.patch("time.sleep"):
+                with unittest.mock.patch(
+                    "whisper_wayland.text_inserter.method_executors.shutil.which",
+                    side_effect=mock_which,
+                ):
+                    result = text_inserter._method_executors._insert_with_clipboard("test text")
 
             assert result is True
-            assert (
-                mock_run.call_count == ww.Constants.EXPECTED_DEVICE_COUNT
-            )  # wl-copy + ydotool paste
+            assert mock_run.call_count == CLIPBOARD_RESTORE_CALL_COUNT
+            mock_run.assert_any_call(
+                ["wl-paste", "--no-newline"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
             mock_run.assert_any_call(
                 ["wl-copy"],
                 check=False,
@@ -328,6 +337,55 @@ class TestTextInserter:
                 capture_output=True,
                 timeout=5,
             )
+            mock_run.assert_any_call(
+                ["wl-copy"],
+                check=False,
+                input="previous clipboard",
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                timeout=5,
+            )
+
+    def test_insert_with_clipboard_wl_copy_clears_when_no_previous_clipboard(
+        self, text_inserter: text_inserter_module.TextInserter
+    ) -> None:
+        """Test clipboard insertion clears transcript when previous clipboard cannot be read."""
+        paste_result = unittest.mock.Mock()
+        paste_result.returncode = 1
+        copy_result = unittest.mock.Mock()
+        copy_result.returncode = 0
+        ydotool_result = unittest.mock.Mock()
+        ydotool_result.returncode = 0
+        clear_result = unittest.mock.Mock()
+        clear_result.returncode = 0
+
+        text_inserter._method_executors._available_methods[
+            text_inserter_module.TextInsertionMethod.YDOTOOL
+        ] = True
+
+        def mock_which(tool: str) -> typing.Optional[str]:
+            return "/usr/bin/tool" if tool in {"wl-copy", "wl-paste"} else None
+
+        with unittest.mock.patch(
+            "subprocess.run",
+            side_effect=[paste_result, copy_result, ydotool_result, clear_result],
+        ) as mock_run:
+            with unittest.mock.patch("time.sleep"):
+                with unittest.mock.patch(
+                    "whisper_wayland.text_inserter.method_executors.shutil.which",
+                    side_effect=mock_which,
+                ):
+                    result = text_inserter._method_executors._insert_with_clipboard("test text")
+
+            assert result is True
+            mock_run.assert_any_call(
+                ["wl-copy", "--clear"],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=2,
+            )
 
     def test_insert_with_clipboard_ctrl_shift_v(
         self, text_inserter: text_inserter_module.TextInserter
@@ -335,20 +393,22 @@ class TestTextInserter:
         """Test clipboard insertion can use Ctrl+Shift+V."""
         mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
+        mock_result.stdout = "previous clipboard"
         text_inserter._method_executors._paste_hotkey = "ctrl+shift+v"
         text_inserter._method_executors._available_methods[
             text_inserter_module.TextInsertionMethod.YDOTOOL
         ] = True
 
         def mock_which(tool: str) -> typing.Optional[str]:
-            return "/usr/bin/tool" if tool == "wl-copy" else None
+            return "/usr/bin/tool" if tool in {"wl-copy", "wl-paste"} else None
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
-            with unittest.mock.patch(
-                "whisper_wayland.text_inserter.method_executors.shutil.which",
-                side_effect=mock_which,
-            ):
-                result = text_inserter._method_executors._insert_with_clipboard("test text")
+            with unittest.mock.patch("time.sleep"):
+                with unittest.mock.patch(
+                    "whisper_wayland.text_inserter.method_executors.shutil.which",
+                    side_effect=mock_which,
+                ):
+                    result = text_inserter._method_executors._insert_with_clipboard("test text")
 
             assert result is True
             mock_run.assert_any_call(
@@ -364,6 +424,7 @@ class TestTextInserter:
         """Test clipboard insertion with xclip."""
         mock_result = unittest.mock.Mock()
         mock_result.returncode = 0
+        mock_result.stdout = "previous clipboard"
 
         # Mock xdotool available for paste command
         text_inserter._method_executors._available_methods[
@@ -378,16 +439,44 @@ class TestTextInserter:
             return None
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
-            with unittest.mock.patch(
-                "whisper_wayland.text_inserter.method_executors.shutil.which",
-                side_effect=mock_which,
-            ):
-                result = text_inserter._method_executors._insert_with_clipboard("test text")
+            with unittest.mock.patch("time.sleep"):
+                with unittest.mock.patch(
+                    "whisper_wayland.text_inserter.method_executors.shutil.which",
+                    side_effect=mock_which,
+                ):
+                    result = text_inserter._method_executors._insert_with_clipboard("test text")
 
             assert result is True
-            assert (
-                mock_run.call_count == ww.Constants.EXPECTED_DEVICE_COUNT
-            )  # xclip + xdotool paste
+            assert mock_run.call_count == CLIPBOARD_RESTORE_CALL_COUNT
+            mock_run.assert_any_call(
+                ["xclip", "-selection", "clipboard", "-out"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+            mock_run.assert_any_call(
+                ["xclip", "-selection", "clipboard"],
+                check=False,
+                input="test text",
+                text=True,
+                capture_output=True,
+                timeout=5,
+            )
+            mock_run.assert_any_call(
+                ["xdotool", "key", "ctrl+v"],
+                check=False,
+                capture_output=True,
+                timeout=5,
+            )
+            mock_run.assert_any_call(
+                ["xclip", "-selection", "clipboard"],
+                check=False,
+                input="previous clipboard",
+                text=True,
+                capture_output=True,
+                timeout=5,
+            )
 
     def test_insert_method_failure(self, text_inserter: text_inserter_module.TextInserter) -> None:
         """Test handling of subprocess failures."""

@@ -85,6 +85,33 @@ class PropertyHandlers:
             _logger.error(f"Invalid AUDIO_CHUNK_SIZE: {e}")
             raise PropertyHandlerError(f"Invalid AUDIO_CHUNK_SIZE: {e}") from e
 
+    def get_audio_input_device_index(self) -> int | None:
+        """Get explicit audio input device index.
+
+        Returns:
+            Input device index, or None for automatic selection
+        """
+        value = os.getenv("AUDIO_INPUT_DEVICE_INDEX", "").strip()
+        if not value:
+            return None
+
+        try:
+            index = int(value)
+            if index < 0:
+                raise ValueError("Input device index must be non-negative")
+            return index
+        except ValueError as e:
+            _logger.error(f"Invalid AUDIO_INPUT_DEVICE_INDEX: {e}")
+            raise PropertyHandlerError(f"Invalid AUDIO_INPUT_DEVICE_INDEX: {e}") from e
+
+    def get_audio_input_device_name(self) -> str:
+        """Get explicit audio input device name match.
+
+        Returns:
+            Case-insensitive device name substring, or empty string for automatic selection
+        """
+        return os.getenv("AUDIO_INPUT_DEVICE_NAME", "").strip().lower()
+
     def get_max_recording_duration(self) -> int:
         """Get maximum recording duration in seconds.
 
@@ -194,6 +221,24 @@ class PropertyHandlers:
                 f"Invalid STREAMING_COMPLETION_TIMEOUT_SECS: {e}"
             ) from e
 
+    def get_streaming_turn_detection_enabled(self) -> bool:
+        """Get whether server-side VAD should commit chunks on speech pauses."""
+        value = os.getenv("STREAMING_TURN_DETECTION_ENABLED", "false").strip().lower()
+        return value in {"1", "true", "yes", "on"}
+
+    def get_streaming_vad_silence_duration_ms(self) -> int:
+        """Get server-side VAD silence duration in milliseconds."""
+        try:
+            duration = int(os.getenv("STREAMING_VAD_SILENCE_DURATION_MS", "700"))
+            if duration <= 0:
+                raise ValueError("Streaming VAD silence duration must be positive")
+            return duration
+        except ValueError as e:
+            _logger.error(f"Invalid STREAMING_VAD_SILENCE_DURATION_MS: {e}")
+            raise PropertyHandlerError(
+                f"Invalid STREAMING_VAD_SILENCE_DURATION_MS: {e}"
+            ) from e
+
     # Text Insertion Configuration
     def get_text_insertion_delay(self) -> float:
         """Get delay before text insertion in seconds.
@@ -221,14 +266,14 @@ class PropertyHandlers:
         Returns:
             Text insertion method name
         """
-        method = os.getenv("TEXT_INSERTION_METHOD", "ydotool").strip().lower()
-        valid_methods = ["wtype", "ydotool", "xdotool", "clipboard"]
+        method = os.getenv("TEXT_INSERTION_METHOD", "auto").strip().lower()
+        valid_methods = ["auto", "wtype", "ydotool", "xdotool", "clipboard"]
         if method not in valid_methods:
             _logger.warning(
-                f"Invalid TEXT_INSERTION_METHOD '{method}', using ydotool. "
+                f"Invalid TEXT_INSERTION_METHOD '{method}', using auto. "
                 f"Valid methods: {valid_methods}"
             )
-            return "ydotool"
+            return "auto"
         return method
 
     def get_text_paste_hotkey(self) -> str:

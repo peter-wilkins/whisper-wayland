@@ -10,6 +10,7 @@ import pytest
 
 import whisper_wayland as ww
 import whisper_wayland.key_monitor as key_monitor
+from whisper_wayland.key_monitor.monitor_loop import MonitorLoop
 
 
 class TestKeyMonitor:
@@ -54,14 +55,45 @@ class TestKeyMonitor:
         test_cases = [
             ("compose", {"compose"}),
             ("ctrl+space", {"ctrl", "space"}),
+            ("rightctrl", {"rightctrl"}),
+            ("right_ctrl", {"rightctrl"}),
+            ("rctrl", {"rightctrl"}),
+            ("altgr", {"altgr"}),
+            ("alt_gr", {"altgr"}),
+            ("rightalt", {"altgr"}),
             ("ctrl+alt+space", {"ctrl", "alt", "space"}),
             ("shift+a", {"shift", "a"}),
             ("ctrl+shift+enter", {"ctrl", "shift", "enter"}),
             ("f5", {"f5"}),
             ("menu", {"menu"}),
+            ("insert", {"insert"}),
+            ("ins", {"insert"}),
             ("pagedown", {"pagedown"}),
             ("page_down", {"pagedown"}),
             ("pgdn", {"pagedown"}),
+            ("scrolllock", {"scrolllock"}),
+            ("scroll_lock", {"scrolllock"}),
+            ("screenlock", {"scrolllock"}),
+            ("screen_lock", {"scrolllock"}),
+            ("mouse_left", {"mouse_left"}),
+            ("leftclick", {"mouse_left"}),
+            ("mouse1", {"mouse_left"}),
+            ("mouse_right", {"mouse_right"}),
+            ("rightclick", {"mouse_right"}),
+            ("mouse2", {"mouse_right"}),
+            ("mouse_middle", {"mouse_middle"}),
+            ("middleclick", {"mouse_middle"}),
+            ("mouse3", {"mouse_middle"}),
+            ("mouse_side", {"mouse_side"}),
+            ("side_button", {"mouse_side"}),
+            ("mouse4", {"mouse_side"}),
+            ("mouse_extra", {"mouse_extra"}),
+            ("extra_button", {"mouse_extra"}),
+            ("mouse5", {"mouse_extra"}),
+            ("mouse_back", {"mouse_back"}),
+            ("back_button", {"mouse_back"}),
+            ("mouse_forward", {"mouse_forward"}),
+            ("forward_button", {"mouse_forward"}),
         ]
 
         for hotkey_str, expected in test_cases:
@@ -100,8 +132,17 @@ class TestKeyMonitor:
         # Test some expected mappings
         assert key_map[57] == "space"  # KEY_SPACE
         assert key_map[28] == "enter"  # KEY_ENTER
+        assert key_map[97] == "rightctrl"  # KEY_RIGHTCTRL
+        assert key_map[100] == "altgr"  # KEY_RIGHTALT
         assert key_map[127] == "compose"  # KEY_COMPOSE
         assert key_map[109] == "pagedown"  # KEY_PAGEDOWN
+        assert key_map[110] == "insert"  # KEY_INSERT
+        assert key_map[70] == "scrolllock"  # KEY_SCROLLLOCK
+        assert key_map[272] == "mouse_left"  # BTN_LEFT
+        assert key_map[273] == "mouse_right"  # BTN_RIGHT
+        assert key_map[274] == "mouse_middle"  # BTN_MIDDLE
+        assert key_map[275] == "mouse_side"  # BTN_SIDE
+        assert key_map[276] == "mouse_extra"  # BTN_EXTRA
 
         # Test letter keys
         assert key_map[30] == "a"  # KEY_A
@@ -118,11 +159,28 @@ class TestKeyMonitor:
         # Test mapped keys
         assert monitor._key_mapping.get_key_name(57) == "space"
         assert monitor._key_mapping.get_key_name(28) == "enter"
+        assert monitor._key_mapping.get_key_name(97) == "rightctrl"
+        assert monitor._key_mapping.get_key_name(100) == "altgr"
         assert monitor._key_mapping.get_key_name(127) == "compose"
         assert monitor._key_mapping.get_key_name(109) == "pagedown"
+        assert monitor._key_mapping.get_key_name(110) == "insert"
+        assert monitor._key_mapping.get_key_name(70) == "scrolllock"
+        assert monitor._key_mapping.get_key_name(272) == "mouse_left"
+        assert monitor._key_mapping.get_key_name(273) == "mouse_right"
+        assert monitor._key_mapping.get_key_name(274) == "mouse_middle"
+        assert monitor._key_mapping.get_key_name(275) == "mouse_side"
+        assert monitor._key_mapping.get_key_name(276) == "mouse_extra"
 
         # Test unmapped key
         assert monitor._key_mapping.get_key_name(999) is None
+
+    def test_side_specific_modifier_aliases(self, test_config_with_hotkey: "ww.Config") -> None:
+        """Test right-side modifiers also satisfy generic modifier hotkeys."""
+        monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
+
+        assert monitor._key_mapping.get_key_aliases("rightctrl") == {"ctrl"}
+        assert monitor._key_mapping.get_key_aliases("altgr") == {"alt"}
+        assert monitor._key_mapping.get_key_aliases("space") == set()
 
     @unittest.mock.patch("whisper_wayland.key_monitor.monitor_loop.select.select")
     def test_start_monitoring_success(
@@ -163,8 +221,34 @@ class TestKeyMonitor:
         ):
             monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
 
-            with pytest.raises(key_monitor.KeyMonitorError, match="No keyboard devices found"):
+            with pytest.raises(
+                key_monitor.KeyMonitorError, match="No keyboard or pointer devices found"
+            ):
                 monitor.start_monitoring()
+
+    def test_start_monitoring_pointer_device(
+        self, test_config_with_hotkey: "ww.Config", mock_evdev: unittest.mock.Mock
+    ) -> None:
+        """Test pointer devices are monitored for mouse-button hotkeys."""
+        pointer_device = unittest.mock.Mock()
+        pointer_device.name = "Test Mouse"
+        pointer_device.path = "/dev/input/event9"
+        pointer_device.fd = 19
+        pointer_device.capabilities.return_value = {1: [272]}
+        pointer_device.read.return_value = []
+        pointer_device.close = unittest.mock.Mock()
+
+        mock_evdev.list_devices.return_value = ["/dev/input/event9"]
+        mock_evdev.InputDevice.side_effect = [pointer_device]
+
+        with unittest.mock.patch(
+            "whisper_wayland.key_monitor.monitor_loop.select.select", return_value=([], [], [])
+        ):
+            monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
+            monitor.start_monitoring()
+
+            assert monitor.is_monitoring()
+            assert monitor._device_manager.get_devices() == [pointer_device]
 
     def test_start_monitoring_permission_error(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test handling of permission errors."""
@@ -201,6 +285,26 @@ class TestKeyMonitor:
         # Should not raise any errors
         monitor.stop_monitoring()
         assert not monitor.is_monitoring()
+
+    @unittest.mock.patch("whisper_wayland.key_monitor.monitor_loop.select.select")
+    def test_monitor_loop_removes_disconnected_device(
+        self, mock_select: unittest.mock.Mock
+    ) -> None:
+        """Test disconnected devices are removed instead of repeatedly logged."""
+        device = unittest.mock.Mock()
+        device.fd = 10
+        device.name = "Test Keyboard"
+        device.read.side_effect = OSError("disconnected")
+        device_manager = unittest.mock.Mock()
+        device_manager.get_devices.return_value = [device]
+        event_handler = unittest.mock.Mock()
+        monitor_loop = MonitorLoop(device_manager, event_handler)
+        mock_select.return_value = ([device], [], [])
+
+        monitor_loop._monitor_loop()
+
+        device_manager.remove_device.assert_called_once_with(device)
+        assert monitor_loop._stop_event.is_set()
 
     def test_check_hotkey_state_press_release(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test hotkey state detection with press and release."""
@@ -389,3 +493,27 @@ class TestKeyMonitor:
         # Handle release event
         monitor._event_handler.handle_key_event(release_event)
         assert "compose" not in monitor.get_pressed_keys()
+
+    def test_handle_mouse_button_event(self) -> None:
+        """Test mouse button events use the same hotkey handling path."""
+        with unittest.mock.patch.dict(os.environ, {"HOTKEY": "mouse_left"}):
+            mouse_config = ww.Config()
+            monitor = key_monitor.KeyMonitor(mouse_config)
+
+            press_event = unittest.mock.Mock()
+            press_event.type = 1  # EV_KEY
+            press_event.code = 272  # BTN_LEFT
+            press_event.value = 1  # Press
+
+            release_event = unittest.mock.Mock()
+            release_event.type = 1  # EV_KEY
+            release_event.code = 272  # BTN_LEFT
+            release_event.value = 0  # Release
+
+            monitor._event_handler.handle_key_event(press_event)
+            assert "mouse_left" in monitor.get_pressed_keys()
+            assert monitor.is_hotkey_pressed()
+
+            monitor._event_handler.handle_key_event(release_event)
+            assert "mouse_left" not in monitor.get_pressed_keys()
+            assert not monitor.is_hotkey_pressed()

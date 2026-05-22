@@ -13,8 +13,11 @@ import whisper_wayland as ww
 
 STREAMING_DEFAULT_SAMPLE_RATE = 24000
 STREAMING_DEFAULT_TIMEOUT_SECS = 4
+STREAMING_DEFAULT_VAD_SILENCE_MS = 700
 STREAMING_CUSTOM_SAMPLE_RATE = 16000
 STREAMING_CUSTOM_TIMEOUT_SECS = 3.5
+STREAMING_CUSTOM_VAD_SILENCE_MS = 900
+CUSTOM_AUDIO_INPUT_DEVICE_INDEX = 3
 
 
 class TestConfig:
@@ -32,6 +35,8 @@ class TestConfig:
                 assert test_config.whisper_model == "gpt-4o-transcribe"
                 assert test_config.audio_sample_rate == ww.Constants.DEFAULT_SAMPLE_RATE
                 assert test_config.audio_chunk_size == ww.Constants.DEFAULT_CHUNK_SIZE
+                assert test_config.audio_input_device_index is None
+                assert test_config.audio_input_device_name == ""
                 assert test_config.max_recording_duration == ww.Constants.DEFAULT_RECORDING_DURATION
                 assert test_config.log_level == "INFO"
                 assert test_config.hotkey == "ctrl+compose"
@@ -43,6 +48,11 @@ class TestConfig:
                 assert (
                     test_config.streaming_completion_timeout_secs
                     == STREAMING_DEFAULT_TIMEOUT_SECS
+                )
+                assert not test_config.streaming_turn_detection_enabled
+                assert (
+                    test_config.streaming_vad_silence_duration_ms
+                    == STREAMING_DEFAULT_VAD_SILENCE_MS
                 )
         finally:
             # Restore LOG_LEVEL if it existed
@@ -69,6 +79,8 @@ class TestConfig:
             "WHISPER_MODEL": "large",
             "AUDIO_SAMPLE_RATE": "44100",
             "AUDIO_CHUNK_SIZE": "2048",
+            "AUDIO_INPUT_DEVICE_INDEX": str(CUSTOM_AUDIO_INPUT_DEVICE_INDEX),
+            "AUDIO_INPUT_DEVICE_NAME": "rode",
             "MAX_RECORDING_DURATION": "60",
             "LOG_LEVEL": "DEBUG",
             "HOTKEY": "alt+space",
@@ -80,6 +92,8 @@ class TestConfig:
             "STREAMING_TRANSCRIPTION_MODEL": "whisper-1",
             "STREAMING_SAMPLE_RATE": "16000",
             "STREAMING_COMPLETION_TIMEOUT_SECS": "3.5",
+            "STREAMING_TURN_DETECTION_ENABLED": "true",
+            "STREAMING_VAD_SILENCE_DURATION_MS": str(STREAMING_CUSTOM_VAD_SILENCE_MS),
         }
 
         with unittest.mock.patch.dict(os.environ, env_vars):
@@ -89,6 +103,8 @@ class TestConfig:
             assert test_config.whisper_model == "large"
             assert test_config.audio_sample_rate == ww.Constants.HIGH_QUALITY_SAMPLE_RATE
             assert test_config.audio_chunk_size == ww.Constants.LARGE_CHUNK_SIZE
+            assert test_config.audio_input_device_index == CUSTOM_AUDIO_INPUT_DEVICE_INDEX
+            assert test_config.audio_input_device_name == "rode"
             assert test_config.max_recording_duration == ww.Constants.LONG_RECORDING_DURATION
             assert test_config.log_level == "DEBUG"
             assert test_config.hotkey == "alt+space"
@@ -100,6 +116,11 @@ class TestConfig:
             assert test_config.streaming_transcription_model == "whisper-1"
             assert test_config.streaming_sample_rate == STREAMING_CUSTOM_SAMPLE_RATE
             assert test_config.streaming_completion_timeout_secs == STREAMING_CUSTOM_TIMEOUT_SECS
+            assert test_config.streaming_turn_detection_enabled
+            assert (
+                test_config.streaming_vad_silence_duration_ms
+                == STREAMING_CUSTOM_VAD_SILENCE_MS
+            )
 
     def test_config_invalid_hotkey_mode(self) -> None:
         """Test config handles invalid hotkey modes gracefully."""
@@ -127,6 +148,16 @@ class TestConfig:
                 with pytest.raises(ww.ConfigError, match="AUDIO_CHUNK_SIZE"):
                     ww.Config()
 
+            # Invalid input device index
+            with unittest.mock.patch.dict(os.environ, {"AUDIO_INPUT_DEVICE_INDEX": "invalid"}):
+                with pytest.raises(ww.ConfigError, match="AUDIO_INPUT_DEVICE_INDEX"):
+                    ww.Config()
+
+            # Negative input device index
+            with unittest.mock.patch.dict(os.environ, {"AUDIO_INPUT_DEVICE_INDEX": "-1"}):
+                with pytest.raises(ww.ConfigError, match="AUDIO_INPUT_DEVICE_INDEX"):
+                    ww.Config()
+
             # Invalid recording duration
             with unittest.mock.patch.dict(os.environ, {"MAX_RECORDING_DURATION": "zero"}):
                 with pytest.raises(ww.ConfigError, match="MAX_RECORDING_DURATION"):
@@ -142,6 +173,13 @@ class TestConfig:
                 os.environ, {"STREAMING_COMPLETION_TIMEOUT_SECS": "-1"}
             ):
                 with pytest.raises(ww.ConfigError, match="STREAMING_COMPLETION_TIMEOUT_SECS"):
+                    ww.Config()
+
+            # Invalid streaming VAD silence duration
+            with unittest.mock.patch.dict(
+                os.environ, {"STREAMING_VAD_SILENCE_DURATION_MS": "0"}
+            ):
+                with pytest.raises(ww.ConfigError, match="STREAMING_VAD_SILENCE_DURATION_MS"):
                     ww.Config()
 
     def test_config_invalid_log_level(self) -> None:
@@ -182,14 +220,17 @@ class TestConfig:
             with unittest.mock.patch.dict(
                 os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True
             ):
-                # Default value (per config.py line 203)
                 test_config = ww.Config("/nonexistent/test.env")
-                assert test_config.text_insertion_method == "ydotool"
+                assert test_config.text_insertion_method == "auto"
 
                 # Valid custom value
                 with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "xdotool"}):
                     test_config = ww.Config("/nonexistent/test.env")
                     assert test_config.text_insertion_method == "xdotool"
+
+                with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "auto"}):
+                    test_config = ww.Config("/nonexistent/test.env")
+                    assert test_config.text_insertion_method == "auto"
         finally:
             # Restore TEXT_INSERTION_METHOD if it existed
             if old_method:
@@ -200,9 +241,7 @@ class TestConfig:
             # Invalid value (should fallback to default)
             with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "invalid_method"}):
                 test_config = ww.Config("/nonexistent/test.env")
-                assert (
-                    test_config.text_insertion_method == "ydotool"
-                )  # Fallback per config.py line 210
+                assert test_config.text_insertion_method == "auto"
 
     def test_config_text_paste_hotkey(self) -> None:
         """Test paste hotkey configuration."""

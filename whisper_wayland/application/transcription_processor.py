@@ -4,6 +4,7 @@ Coordinates audio transcription and text insertion workflow.
 """
 
 import logging
+import typing
 
 import whisper_wayland as ww
 from whisper_wayland.application.audio_processor import AudioProcessor
@@ -22,21 +23,27 @@ class TranscriptionProcessor:
         self,
         transcription_client: "ww.TranscriptionClient",
         text_inserter: "ww.TextInserter",
+        status_indicator: typing.Any = None,
     ) -> None:
         """Initialize transcription processor.
 
         Args:
             transcription_client: Transcription client instance
             text_inserter: Text inserter instance
+            status_indicator: Optional desktop status indicator
         """
         self.audio_processor = AudioProcessor.new(transcription_client)
         self.text_handler = TextHandler.new(text_inserter)
+        self.status_indicator = status_indicator
         self._transcription_client = transcription_client
         streaming_enabled = (
             getattr(transcription_client.config, "streaming_transcription_enabled", False) is True
         )
         self._streaming_client = (
-            RealtimeStreamingTranscriptionClient.new(transcription_client.config)
+            RealtimeStreamingTranscriptionClient.new(
+                transcription_client.config,
+                transcript_callback=self._handle_streaming_chunk,
+            )
             if streaming_enabled
             else None
         )
@@ -71,15 +78,37 @@ class TranscriptionProcessor:
             result = self._streaming_client.stop()
             if result.text:
                 processed_text = self._transcription_client.post_process_text(result.text)
-                self.text_handler.insert_text(processed_text)
+                self._handle_insert_result(self.text_handler.insert_text(processed_text))
             elif result.fallback_audio:
                 self.process_audio(result.fallback_audio)
+            elif result.chunks_delivered:
+                self._show_idle()
             elif result.error:
                 _logger.error(f"No realtime transcript available: {result.error}")
+                self._show_error("Transcription failed")
             else:
                 _logger.info("No realtime transcription result")
+                self._show_error("No transcript")
         except Exception as e:
             _logger.error(f"Error stopping realtime streaming transcription: {e}")
+            self._show_error("Transcription failed")
+
+    def _handle_streaming_chunk(self, text: str) -> None:
+        """Post-process and insert one completed realtime transcription chunk."""
+        processed_text = self._transcription_client.post_process_text(text)
+        self._handle_insert_result(self.text_handler.insert_text(processed_text))
+
+    def cancel_streaming(self) -> None:
+        """Cancel realtime streaming without transcribing or inserting text."""
+        if not self._streaming_client:
+            return
+
+        try:
+            self._streaming_client.cancel()
+            self._show_idle()
+        except Exception as e:
+            _logger.debug(f"Error cancelling realtime streaming transcription: {e}")
+            self._show_idle()
 
     def process_audio(self, audio_data: bytes) -> None:
         """Process audio data through transcription and text insertion.
@@ -91,29 +120,50 @@ class TranscriptionProcessor:
             transcribed_text = self.audio_processor.transcribe_audio(audio_data)
 
             if transcribed_text:
-                self.text_handler.insert_text(transcribed_text)
+                self._handle_insert_result(self.text_handler.insert_text(transcribed_text))
             else:
                 _logger.info("No transcription result")
+                self._show_error("No transcript")
         except Exception as e:
             _logger.error(f"Error processing transcription: {e}")
+            self._show_error("Transcription failed")
 
     def close(self) -> None:
         """Clean up processor resources."""
         if self._streaming_client:
             self._streaming_client.close()
 
+    def _handle_insert_result(self, success: bool) -> None:
+        """Update status indicator after text insertion."""
+        if success:
+            self._show_idle()
+        else:
+            self._show_error("Text insertion failed")
+
+    def _show_idle(self) -> None:
+        """Update indicator to idle state."""
+        if self.status_indicator:
+            self.status_indicator.idle()
+
+    def _show_error(self, message: str) -> None:
+        """Update indicator to error state."""
+        if self.status_indicator:
+            self.status_indicator.error(message)
+
     @staticmethod
     def new(
         transcription_client: "ww.TranscriptionClient",
         text_inserter: "ww.TextInserter",
+        status_indicator: typing.Any = None,
     ) -> "TranscriptionProcessor":
         """Create transcription processor instance.
 
         Args:
             transcription_client: Transcription client instance
             text_inserter: Text inserter instance
+            status_indicator: Optional desktop status indicator
 
         Returns:
             TranscriptionProcessor instance
         """
-        return TranscriptionProcessor(transcription_client, text_inserter)
+        return TranscriptionProcessor(transcription_client, text_inserter, status_indicator)

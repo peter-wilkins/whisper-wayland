@@ -21,11 +21,14 @@ class TextHandler:
         """
         self.text_inserter = text_inserter
 
-    def insert_text(self, text: str) -> None:
+    def insert_text(self, text: str) -> bool:
         """Insert transcribed text at cursor position.
 
         Args:
             text: Transcribed text to insert
+
+        Returns:
+            True when insertion succeeded, False otherwise.
         """
         try:
             preview_len = ww.Constants.TEXT_PREVIEW_LENGTH
@@ -37,19 +40,23 @@ class TextHandler:
             if success:
                 _logger.info("Text insertion successful")
                 print(f"✓ Inserted: {text}")
+                return True
             else:
                 _logger.error("Text insertion failed")
                 print(f"✗ Failed to insert text: {text}")
                 print("Check that you have focus on a text input field")
+                return False
 
         except ww.TextInsertionError as e:
             _logger.error(f"Text insertion error: {e}")
             print(f"Text insertion error: {e}")
             print(f"Transcribed text: {text}")
+            return False
         except Exception as e:
             _logger.error(f"Unexpected error during text insertion: {e}")
             print(f"Unexpected error during text insertion: {e}")
             print(f"Transcribed text: {text}")
+            return False
 
     @staticmethod
     def new(text_inserter: "ww.TextInserter") -> "TextHandler":

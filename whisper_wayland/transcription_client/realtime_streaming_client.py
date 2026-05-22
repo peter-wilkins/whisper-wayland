@@ -16,6 +16,7 @@ import pyaudio
 import websockets
 
 import whisper_wayland as ww
+from whisper_wayland.audio_recorder.audio_system_validator import AudioSystemValidator
 
 _logger = logging.getLogger(__name__)
 
@@ -27,22 +28,40 @@ class StreamingTranscriptionResult:
     text: str = ""
     fallback_audio: typing.Optional[bytes] = None
     error: typing.Optional[str] = None
+    chunks_delivered: bool = False
 
 
 class RealtimeStreamingTranscriptionClient:
     """Streams microphone audio to OpenAI Realtime transcription."""
 
     REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription"
+    MIN_COMMIT_AUDIO_SECS = 0.1
+    WEBSOCKET_SHUTDOWN_GRACE_SECS = 1.0
 
     def __init__(
         self,
         config: "ww.Config",
         audio: typing.Optional[pyaudio.PyAudio] = None,
+        transcript_callback: typing.Optional[typing.Callable[[str], None]] = None,
     ) -> None:
         """Initialize realtime streaming client."""
         self._config = config
         self._audio = audio or pyaudio.PyAudio()
+        self._transcript_callback = transcript_callback
         self._owns_audio = audio is None
+        self._audio_validator = AudioSystemValidator.new()
+        self._input_device_index = self._audio_validator.find_preferred_input_device(
+            self._audio,
+            config,
+        )
+        input_device_name = self._audio_validator.get_input_device_name(
+            self._audio,
+            self._input_device_index,
+        )
+        _logger.info(
+            f"Realtime streaming input device: {input_device_name} "
+            f"(index {self._input_device_index})"
+        )
         self._lock = threading.Lock()
         self._audio_queue: queue.Queue[typing.Optional[bytes]] = queue.Queue()
         self._stop_event = threading.Event()
@@ -51,8 +70,10 @@ class RealtimeStreamingTranscriptionClient:
         self._websocket_thread: typing.Optional[threading.Thread] = None
         self._frames: list[bytes] = []
         self._transcript_parts: list[str] = []
+        self._chunks_delivered = False
         self._error: typing.Optional[str] = None
         self._streaming = False
+        self._cancel_requested = False
 
     def start(self) -> bool:
         """Start recording and streaming audio.
@@ -94,9 +115,11 @@ class RealtimeStreamingTranscriptionClient:
 
         self._audio_queue.put(None)
 
-        timeout = self._config.streaming_completion_timeout_secs + 5.0
+        timeout = self._stop_join_timeout_secs()
         if self._websocket_thread and self._websocket_thread.is_alive():
             self._websocket_thread.join(timeout=timeout)
+            if self._websocket_thread.is_alive():
+                _logger.warning("Realtime websocket did not finish before fallback timeout")
 
         with self._lock:
             self._streaming = False
@@ -106,15 +129,47 @@ class RealtimeStreamingTranscriptionClient:
             _logger.info("Realtime streaming transcription completed")
             return StreamingTranscriptionResult(text=text)
 
-        fallback_audio = self._frames_to_wav() if self._frames else None
+        if self._chunks_delivered:
+            _logger.info("Realtime streaming transcription completed with delivered chunks")
+            return StreamingTranscriptionResult(chunks_delivered=True)
+
+        audio_duration_secs = self._captured_audio_duration_secs()
+        fallback_audio = (
+            self._frames_to_wav()
+            if self._frames and audio_duration_secs >= self.MIN_COMMIT_AUDIO_SECS
+            else None
+        )
         if fallback_audio:
             _logger.warning("Realtime streaming returned no transcript; using batch fallback")
+        elif self._frames and audio_duration_secs < self.MIN_COMMIT_AUDIO_SECS:
+            _logger.warning(
+                "Realtime streaming captured %.2fms of audio; skipping batch fallback",
+                audio_duration_secs * 1000,
+            )
         elif self._error:
             _logger.error(f"Realtime streaming failed without fallback audio: {self._error}")
         else:
             _logger.warning("Realtime streaming captured no audio")
 
         return StreamingTranscriptionResult(fallback_audio=fallback_audio, error=self._error)
+
+    def cancel(self) -> None:
+        """Stop streaming without committing or falling back to batch transcription."""
+        self._cancel_requested = True
+        self._stop_event.set()
+
+        if self._audio_thread and self._audio_thread.is_alive():
+            self._audio_thread.join(timeout=1.0)
+
+        self._audio_queue.put(None)
+
+        if self._websocket_thread and self._websocket_thread.is_alive():
+            self._websocket_thread.join(timeout=1.0)
+
+        with self._lock:
+            self._streaming = False
+
+        _logger.info("Realtime streaming transcription cancelled")
 
     def close(self) -> None:
         """Clean up audio resources."""
@@ -133,6 +188,8 @@ class RealtimeStreamingTranscriptionClient:
         self._frames = []
         self._transcript_parts = []
         self._error = None
+        self._cancel_requested = False
+        self._chunks_delivered = False
 
     def _record_audio_loop(self) -> None:
         """Capture PCM16 microphone audio and feed the websocket sender."""
@@ -145,6 +202,7 @@ class RealtimeStreamingTranscriptionClient:
                 rate=self._config.streaming_sample_rate,
                 input=True,
                 frames_per_buffer=self._config.audio_chunk_size,
+                input_device_index=self._input_device_index,
             )
             self._audio_started_event.set()
 
@@ -233,10 +291,22 @@ class RealtimeStreamingTranscriptionClient:
                             "model": self._config.streaming_transcription_model,
                             "language": "en",
                         },
-                        "turn_detection": None,
+                        "turn_detection": self._turn_detection_config(),
                     },
                 },
             },
+        }
+
+    def _turn_detection_config(self) -> typing.Optional[dict[str, typing.Any]]:
+        """Return realtime turn detection config, or None for manual commit on release."""
+        if not self._config.streaming_turn_detection_enabled:
+            return None
+
+        return {
+            "type": "server_vad",
+            "threshold": 0.5,
+            "prefix_padding_ms": 300,
+            "silence_duration_ms": self._config.streaming_vad_silence_duration_ms,
         }
 
     async def _send_audio(self, websocket: typing.Any) -> None:
@@ -251,7 +321,39 @@ class RealtimeStreamingTranscriptionClient:
                 json.dumps({"type": "input_audio_buffer.append", "audio": encoded_audio})
             )
 
-        await websocket.send(json.dumps({"type": "input_audio_buffer.commit"}))
+        if self._captured_audio_duration_secs() < self.MIN_COMMIT_AUDIO_SECS:
+            self._error = "Audio too short for realtime transcription"
+            _logger.warning(self._error)
+            await websocket.close()
+            return
+
+        if self._cancel_requested:
+            await websocket.close()
+            return
+
+        if not self._config.streaming_turn_detection_enabled:
+            await websocket.send(json.dumps({"type": "input_audio_buffer.commit"}))
+
+    def _captured_audio_duration_secs(self) -> float:
+        """Return captured PCM16 mono audio duration in seconds."""
+        if not self._frames:
+            return 0.0
+
+        bytes_per_second = self._config.streaming_sample_rate * 2
+        if bytes_per_second <= 0:
+            return 0.0
+
+        return sum(len(frame) for frame in self._frames) / bytes_per_second
+
+    def _stop_join_timeout_secs(self) -> float:
+        """Return websocket join timeout for stop."""
+        if self._chunks_delivered and self._config.streaming_turn_detection_enabled:
+            return self.WEBSOCKET_SHUTDOWN_GRACE_SECS
+
+        return (
+            self._config.streaming_completion_timeout_secs
+            + self.WEBSOCKET_SHUTDOWN_GRACE_SECS
+        )
 
     async def _receive_events(self, websocket: typing.Any) -> None:
         """Receive realtime transcription events."""
@@ -266,15 +368,35 @@ class RealtimeStreamingTranscriptionClient:
                 _logger.error(f"Realtime transcription error: {self._error}")
                 return
 
-            if event_type.endswith(".delta") and isinstance(event.get("delta"), str):
+            if (
+                not self._config.streaming_turn_detection_enabled
+                and event_type.endswith(".delta")
+                and isinstance(event.get("delta"), str)
+            ):
                 self._transcript_parts.append(event["delta"])
                 continue
 
             if event_type.endswith(".completed"):
                 transcript = event.get("transcript")
                 if isinstance(transcript, str) and transcript.strip():
+                    if self._config.streaming_turn_detection_enabled:
+                        self._deliver_transcript_chunk(transcript)
+                        continue
+
                     self._transcript_parts = [transcript]
-                return
+                    return
+
+    def _deliver_transcript_chunk(self, transcript: str) -> None:
+        """Deliver one completed VAD transcript chunk."""
+        text = transcript.strip()
+        if not text:
+            return
+
+        self._chunks_delivered = True
+        if self._transcript_callback:
+            self._transcript_callback(text)
+        else:
+            self._transcript_parts.append(text)
 
     def _frames_to_wav(self) -> bytes:
         """Convert captured PCM frames to WAV bytes for batch fallback."""
@@ -289,6 +411,9 @@ class RealtimeStreamingTranscriptionClient:
         return wav_buffer.read()
 
     @staticmethod
-    def new(config: "ww.Config") -> "RealtimeStreamingTranscriptionClient":
+    def new(
+        config: "ww.Config",
+        transcript_callback: typing.Optional[typing.Callable[[str], None]] = None,
+    ) -> "RealtimeStreamingTranscriptionClient":
         """Create realtime streaming transcription client."""
-        return RealtimeStreamingTranscriptionClient(config)
+        return RealtimeStreamingTranscriptionClient(config, transcript_callback=transcript_callback)

@@ -20,6 +20,7 @@ class ComponentManager:
         self.transcription_client = ww.TranscriptionClient.new(config)
         self.key_monitor = ww.KeyMonitor.new(config)
         self.text_inserter = ww.TextInserter.new(config)
+        self.status_indicator = ww.StatusIndicator.new()
 
     @staticmethod
     def new(config: "ww.Config") -> "ComponentManager":

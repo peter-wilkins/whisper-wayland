@@ -68,11 +68,14 @@ class EventHandler:
         with self._lock:
             if event.value == 1:  # Key press
                 self._pressed_keys.add(key_name)
+                self._pressed_keys.update(self._key_mapping.get_key_aliases(key_name))
                 _logger.debug(f"Key pressed: {key_name}")
                 _logger.debug(f"Currently pressed keys: {self._pressed_keys}")
 
             elif event.value == 0:  # Key release
                 self._pressed_keys.discard(key_name)
+                for alias in self._key_mapping.get_key_aliases(key_name):
+                    self._pressed_keys.discard(alias)
                 _logger.debug(f"Key released: {key_name}")
                 _logger.debug(f"Currently pressed keys: {self._pressed_keys}")
 

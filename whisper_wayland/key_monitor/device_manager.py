@@ -22,14 +22,27 @@ class DeviceManagerError(Exception):
 
 
 class DeviceManager:
-    """Manages keyboard input device discovery and lifecycle."""
+    """Manages input device discovery and lifecycle."""
+
+    _INPUT_HOTKEY_CODE_NAMES = (
+        "KEY_SPACE",
+        "KEY_ENTER",
+        "BTN_LEFT",
+        "BTN_RIGHT",
+        "BTN_MIDDLE",
+        "BTN_SIDE",
+        "BTN_EXTRA",
+        "BTN_FORWARD",
+        "BTN_BACK",
+        "BTN_TASK",
+    )
 
     def __init__(self) -> None:
         """Initialize device manager."""
         self._devices: list[evdev.InputDevice] = []
 
     def find_keyboard_devices(self) -> bool:
-        """Find and open keyboard input devices.
+        """Find and open keyboard or pointer input devices.
 
         Returns:
             True if devices were found, False otherwise
@@ -43,14 +56,13 @@ class DeviceManager:
             devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
 
             for device in devices:
-                # Check if device has keyboard capabilities
+                # Check if device has hotkey-capable input events.
                 capabilities = device.capabilities()
                 if evdev.ecodes.EV_KEY in capabilities:
-                    # Check if it has common keyboard keys
                     keys = capabilities[evdev.ecodes.EV_KEY]
-                    if evdev.ecodes.KEY_SPACE in keys or evdev.ecodes.KEY_ENTER in keys:
+                    if self._has_hotkey_capable_input(keys):
                         devices_found.append(device)
-                        _logger.debug(f"Found keyboard device: {device.name} ({device.path})")
+                        _logger.debug(f"Found input device: {device.name} ({device.path})")
 
         except PermissionError as e:
             _logger.error(f"Permission denied accessing input devices: {e}")
@@ -61,20 +73,42 @@ class DeviceManager:
             raise DeviceManagerError(f"Error finding keyboard devices: {e}") from e
 
         if not devices_found:
-            _logger.error("No keyboard devices found")
-            raise DeviceManagerError("No keyboard devices found")
+            _logger.error("No keyboard or pointer devices found")
+            raise DeviceManagerError("No keyboard or pointer devices found")
 
         self._devices = devices_found
-        _logger.info(f"Monitoring {len(self._devices)} keyboard device(s)")
+        _logger.info(f"Monitoring {len(self._devices)} input device(s)")
         return True
 
     def get_devices(self) -> list[evdev.InputDevice]:
-        """Get list of managed keyboard devices.
+        """Get list of managed input devices.
 
         Returns:
             List of keyboard input devices
         """
         return self._devices.copy()
+
+    @classmethod
+    def _hotkey_capable_input_codes(cls) -> set[int]:
+        codes = set()
+        for code_name in cls._INPUT_HOTKEY_CODE_NAMES:
+            code = getattr(evdev.ecodes, code_name, None)
+            if isinstance(code, int):
+                codes.add(code)
+        return codes
+
+    @classmethod
+    def _has_hotkey_capable_input(cls, keys: list[int]) -> bool:
+        return bool(cls._hotkey_capable_input_codes().intersection(keys))
+
+    def remove_device(self, device: evdev.InputDevice) -> None:
+        """Remove and close a disconnected input device."""
+        try:
+            if device in self._devices:
+                self._devices.remove(device)
+            device.close()
+        except Exception as e:
+            _logger.debug(f"Error removing device {device.name}: {e}")
 
     def cleanup_devices(self) -> None:
         """Clean up input devices."""
