@@ -70,6 +70,18 @@ class KeyMapping:
             evdev.ecodes.KEY_F10: "f10",
             evdev.ecodes.KEY_F11: "f11",
             evdev.ecodes.KEY_F12: "f12",
+            evdev.ecodes.KEY_F13: "f13",
+            evdev.ecodes.KEY_F14: "f14",
+            evdev.ecodes.KEY_F15: "f15",
+            evdev.ecodes.KEY_F16: "f16",
+            evdev.ecodes.KEY_F17: "f17",
+            evdev.ecodes.KEY_F18: "f18",
+            evdev.ecodes.KEY_F19: "f19",
+            evdev.ecodes.KEY_F20: "f20",
+            evdev.ecodes.KEY_F21: "f21",
+            evdev.ecodes.KEY_F22: "f22",
+            evdev.ecodes.KEY_F23: "f23",
+            evdev.ecodes.KEY_F24: "f24",
         }
 
         # Add letter keys (keyboard layout order, not alphabetical)

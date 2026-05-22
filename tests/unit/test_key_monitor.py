@@ -65,6 +65,8 @@ class TestKeyMonitor:
             ("shift+a", {"shift", "a"}),
             ("ctrl+shift+enter", {"ctrl", "shift", "enter"}),
             ("f5", {"f5"}),
+            ("f13", {"f13"}),
+            ("f24", {"f24"}),
             ("menu", {"menu"}),
             ("insert", {"insert"}),
             ("ins", {"insert"}),
@@ -138,6 +140,8 @@ class TestKeyMonitor:
         assert key_map[109] == "pagedown"  # KEY_PAGEDOWN
         assert key_map[110] == "insert"  # KEY_INSERT
         assert key_map[70] == "scrolllock"  # KEY_SCROLLLOCK
+        assert key_map[183] == "f13"  # KEY_F13
+        assert key_map[194] == "f24"  # KEY_F24
         assert key_map[272] == "mouse_left"  # BTN_LEFT
         assert key_map[273] == "mouse_right"  # BTN_RIGHT
         assert key_map[274] == "mouse_middle"  # BTN_MIDDLE
@@ -165,6 +169,8 @@ class TestKeyMonitor:
         assert monitor._key_mapping.get_key_name(109) == "pagedown"
         assert monitor._key_mapping.get_key_name(110) == "insert"
         assert monitor._key_mapping.get_key_name(70) == "scrolllock"
+        assert monitor._key_mapping.get_key_name(183) == "f13"
+        assert monitor._key_mapping.get_key_name(194) == "f24"
         assert monitor._key_mapping.get_key_name(272) == "mouse_left"
         assert monitor._key_mapping.get_key_name(273) == "mouse_right"
         assert monitor._key_mapping.get_key_name(274) == "mouse_middle"
@@ -249,6 +255,32 @@ class TestKeyMonitor:
 
             assert monitor.is_monitoring()
             assert monitor._device_manager.get_devices() == [pointer_device]
+
+    def test_start_monitoring_macro_pad_function_key_device(
+        self, test_config_with_hotkey: "ww.Config", mock_evdev: unittest.mock.Mock
+    ) -> None:
+        """Test tiny macro pads exposing only F13-F24 keys are monitored."""
+        macro_pad = unittest.mock.Mock()
+        macro_pad.name = "Test Macro Pad"
+        macro_pad.path = "/dev/input/event21"
+        macro_pad.fd = 21
+        macro_pad.capabilities.return_value = {1: [183, 184]}
+        macro_pad.read.return_value = []
+        macro_pad.close = unittest.mock.Mock()
+
+        mock_evdev.ecodes.KEY_F13 = 183
+        mock_evdev.ecodes.KEY_F14 = 184
+        mock_evdev.list_devices.return_value = ["/dev/input/event21"]
+        mock_evdev.InputDevice.side_effect = [macro_pad]
+
+        with unittest.mock.patch(
+            "whisper_wayland.key_monitor.monitor_loop.select.select", return_value=([], [], [])
+        ):
+            monitor = key_monitor.KeyMonitor(test_config_with_hotkey)
+            monitor.start_monitoring()
+
+            assert monitor.is_monitoring()
+            assert monitor._device_manager.get_devices() == [macro_pad]
 
     def test_start_monitoring_permission_error(self, test_config_with_hotkey: "ww.Config") -> None:
         """Test handling of permission errors."""
