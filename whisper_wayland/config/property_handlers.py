@@ -221,6 +221,23 @@ class PropertyHandlers:
                 f"Invalid STREAMING_COMPLETION_TIMEOUT_SECS: {e}"
             ) from e
 
+    def get_streaming_delta_idle_timeout_secs(self) -> float:
+        """Get seconds to wait after the last realtime partial transcript.
+
+        Returns:
+            Timeout in seconds
+        """
+        try:
+            timeout = float(os.getenv("STREAMING_DELTA_IDLE_TIMEOUT_SECS", "0.75"))
+            if timeout <= 0:
+                raise ValueError("Streaming delta idle timeout must be positive")
+            return timeout
+        except ValueError as e:
+            _logger.error(f"Invalid STREAMING_DELTA_IDLE_TIMEOUT_SECS: {e}")
+            raise PropertyHandlerError(
+                f"Invalid STREAMING_DELTA_IDLE_TIMEOUT_SECS: {e}"
+            ) from e
+
     def get_streaming_turn_detection_enabled(self) -> bool:
         """Get whether server-side VAD should commit chunks on speech pauses."""
         value = os.getenv("STREAMING_TURN_DETECTION_ENABLED", "false").strip().lower()
@@ -296,10 +313,10 @@ class PropertyHandlers:
         """Get transcript post-processing mode.
 
         Returns:
-            Post-processing mode: "raw", "clean", or "snappy"
+            Post-processing mode: "raw", "clean", "snappy", or "caveman"
         """
         mode = os.getenv("TEXT_POST_PROCESS_MODE", "raw").strip().lower()
-        valid_modes = ["raw", "clean", "snappy"]
+        valid_modes = ["raw", "clean", "snappy", "caveman"]
         if mode not in valid_modes:
             _logger.warning(
                 f"Invalid TEXT_POST_PROCESS_MODE '{mode}', using raw. "

@@ -13,9 +13,11 @@ import whisper_wayland as ww
 
 STREAMING_DEFAULT_SAMPLE_RATE = 24000
 STREAMING_DEFAULT_TIMEOUT_SECS = 4
+STREAMING_DEFAULT_DELTA_IDLE_TIMEOUT_SECS = 0.75
 STREAMING_DEFAULT_VAD_SILENCE_MS = 700
 STREAMING_CUSTOM_SAMPLE_RATE = 16000
 STREAMING_CUSTOM_TIMEOUT_SECS = 3.5
+STREAMING_CUSTOM_DELTA_IDLE_TIMEOUT_SECS = 0.5
 STREAMING_CUSTOM_VAD_SILENCE_MS = 900
 CUSTOM_AUDIO_INPUT_DEVICE_INDEX = 3
 
@@ -48,6 +50,10 @@ class TestConfig:
                 assert (
                     test_config.streaming_completion_timeout_secs
                     == STREAMING_DEFAULT_TIMEOUT_SECS
+                )
+                assert (
+                    test_config.streaming_delta_idle_timeout_secs
+                    == STREAMING_DEFAULT_DELTA_IDLE_TIMEOUT_SECS
                 )
                 assert not test_config.streaming_turn_detection_enabled
                 assert (
@@ -92,6 +98,7 @@ class TestConfig:
             "STREAMING_TRANSCRIPTION_MODEL": "whisper-1",
             "STREAMING_SAMPLE_RATE": "16000",
             "STREAMING_COMPLETION_TIMEOUT_SECS": "3.5",
+            "STREAMING_DELTA_IDLE_TIMEOUT_SECS": "0.5",
             "STREAMING_TURN_DETECTION_ENABLED": "true",
             "STREAMING_VAD_SILENCE_DURATION_MS": str(STREAMING_CUSTOM_VAD_SILENCE_MS),
         }
@@ -116,6 +123,10 @@ class TestConfig:
             assert test_config.streaming_transcription_model == "whisper-1"
             assert test_config.streaming_sample_rate == STREAMING_CUSTOM_SAMPLE_RATE
             assert test_config.streaming_completion_timeout_secs == STREAMING_CUSTOM_TIMEOUT_SECS
+            assert (
+                test_config.streaming_delta_idle_timeout_secs
+                == STREAMING_CUSTOM_DELTA_IDLE_TIMEOUT_SECS
+            )
             assert test_config.streaming_turn_detection_enabled
             assert (
                 test_config.streaming_vad_silence_duration_ms
@@ -267,6 +278,10 @@ class TestConfig:
             with unittest.mock.patch.dict(os.environ, {"TEXT_POST_PROCESS_MODE": "clean"}):
                 test_config = ww.Config("/nonexistent/test.env")
                 assert test_config.text_post_process_mode == "clean"
+
+            with unittest.mock.patch.dict(os.environ, {"TEXT_POST_PROCESS_MODE": "caveman"}):
+                test_config = ww.Config("/nonexistent/test.env")
+                assert test_config.text_post_process_mode == "caveman"
 
             with unittest.mock.patch.dict(os.environ, {"TEXT_POST_PROCESS_MODE": "invalid"}):
                 test_config = ww.Config("/nonexistent/test.env")

@@ -110,7 +110,7 @@ class TranscriptionClient:
                     },
                 ],
                 temperature=0.2,
-                max_output_tokens=512,
+                max_output_tokens=self._post_process_max_output_tokens(mode),
             )
             processed_text = response.output_text.strip()
             if processed_text:
@@ -124,6 +124,15 @@ class TranscriptionClient:
     @staticmethod
     def _post_process_system_prompt(mode: str) -> str:
         """Build post-processing system prompt for the configured mode."""
+        if mode == "caveman":
+            return (
+                "Rewrite this dictated transcript into one concise, Codex-ready message. "
+                "Use terse caveman style: remove filler, false starts, repeated words, "
+                "hedging, and unnecessary articles. Keep technical terms, commands, file "
+                "paths, names, constraints, and user intent exact. Do not add facts, do not "
+                "answer the text, and return only the rewritten message."
+            )
+
         if mode == "snappy":
             return (
                 "Rewrite the transcript into concise, natural text with a clear, snappy tone. "
@@ -138,6 +147,13 @@ class TranscriptionClient:
             "meaning and wording as much as possible. Do not add facts, do not answer the "
             "text, and return only the cleaned text."
         )
+
+    @staticmethod
+    def _post_process_max_output_tokens(mode: str) -> int:
+        """Return a small output budget for transcript post-processing."""
+        if mode == "caveman":
+            return 256
+        return 512
 
     def test_connection(self) -> bool:
         """Test connection to OpenAI API with a minimal request.

@@ -105,12 +105,13 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
 | `TEXT_INSERTION_METHOD` | Text insertion backend (`auto`, `ydotool`, `wtype`, `xdotool`, or `clipboard`) | `auto` | No |
 | `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard fallback insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
-| `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, or `snappy`) | `raw` | No |
+| `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, `snappy`, or `caveman`) | `raw` | No |
 | `TEXT_POST_PROCESS_MODEL` | OpenAI text model for transcript rewriting | `gpt-4.1-mini` | No |
 | `STREAMING_TRANSCRIPTION_ENABLED` | Enable experimental OpenAI Realtime streaming transcription | `false` | No |
 | `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `gpt-realtime-whisper` | No |
 | `STREAMING_SAMPLE_RATE` | PCM sample rate sent to Realtime streaming transcription | `24000` | No |
 | `STREAMING_COMPLETION_TIMEOUT_SECS` | Seconds to wait for final streaming transcript after release | `4` | No |
+| `STREAMING_DELTA_IDLE_TIMEOUT_SECS` | Seconds to wait after the last partial realtime transcript before using it | `0.75` | No |
 | `STREAMING_TURN_DETECTION_ENABLED` | Commit and insert completed speech chunks on pauses | `false` | No |
 | `STREAMING_VAD_SILENCE_DURATION_MS` | Pause length before a streaming speech chunk is finalized | `700` | No |
 
@@ -166,8 +167,8 @@ to WAV and sent through the existing batch transcription path.
 
 When `STREAMING_TURN_DETECTION_ENABLED=true`, the Realtime API uses server-side
 voice activity detection to finalize completed speech chunks during longer
-recordings. Completed chunks are inserted immediately after pauses instead of
-waiting for the hotkey release.
+recordings. Completed chunks are aggregated and inserted once when recording
+stops, after any configured transcript post-processing.
 
 Remaining rough edges:
 - Confirm account/model access for higher-accuracy batch transcription models.

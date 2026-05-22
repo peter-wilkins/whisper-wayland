@@ -341,6 +341,35 @@ class TestTranscriptionClient:
             assert call_args.kwargs["model"] == "gpt-test"
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_post_process_text_caveman_mode(
+        self, mock_openai_class: unittest.mock.MagicMock
+    ) -> None:
+        """Test caveman mode rewrites transcript into terse text."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "TEXT_POST_PROCESS_MODE": "caveman",
+                "TEXT_POST_PROCESS_MODEL": "gpt-test",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_response = unittest.mock.Mock()
+            mock_response.output_text = "UX slow. Need one blob paste."
+            mock_client.responses.create.return_value = mock_response
+            mock_openai_class.return_value = mock_client
+            client = transcription_client.TranscriptionClient(test_config)
+
+            assert client.post_process_text("the UX is really slow") == (
+                "UX slow. Need one blob paste."
+            )
+            call_args = mock_client.responses.create.call_args
+            assert call_args.kwargs["max_output_tokens"] == 256
+            assert "caveman style" in call_args.kwargs["input"][0]["content"]
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_post_process_text_falls_back_on_error(
         self, mock_openai_class: unittest.mock.MagicMock
     ) -> None:

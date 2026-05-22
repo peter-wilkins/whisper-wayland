@@ -40,6 +40,7 @@ def test_stop_returns_fallback_audio_when_no_transcript() -> None:
     config = unittest.mock.Mock(spec=ww.Config)
     config.streaming_sample_rate = STREAMING_SAMPLE_RATE
     config.streaming_completion_timeout_secs = 0.1
+    config.streaming_turn_detection_enabled = False
     config.audio_input_device_index = None
     config.audio_input_device_name = ""
     audio = unittest.mock.Mock()
@@ -58,6 +59,7 @@ def test_stop_skips_fallback_for_too_short_audio() -> None:
     config = unittest.mock.Mock(spec=ww.Config)
     config.streaming_sample_rate = STREAMING_SAMPLE_RATE
     config.streaming_completion_timeout_secs = 0.1
+    config.streaming_turn_detection_enabled = False
     config.audio_input_device_index = None
     config.audio_input_device_name = ""
     audio = unittest.mock.Mock()
@@ -209,20 +211,23 @@ def test_completed_vad_chunk_is_delivered_to_callback() -> None:
 
 
 def test_stop_reports_delivered_chunks_without_fallback() -> None:
-    """Test stop does not duplicate text after chunks were already inserted."""
+    """Test completed VAD chunks are returned as one final transcript."""
     config = unittest.mock.Mock(spec=ww.Config)
     config.streaming_sample_rate = STREAMING_SAMPLE_RATE
     config.streaming_completion_timeout_secs = 0.1
+    config.streaming_turn_detection_enabled = True
     config.audio_input_device_index = None
     config.audio_input_device_name = ""
     audio = unittest.mock.Mock()
     client = RealtimeStreamingTranscriptionClient(config, audio=audio)
     client._chunks_delivered = True
+    client._transcript_parts = ["Sentence one.", "Sentence two."]
     client._frames = [b"\x00\x00" * 2400]
 
     result = client.stop()
 
-    assert result.chunks_delivered
+    assert result.text == "Sentence one. Sentence two."
+    assert not result.chunks_delivered
     assert result.fallback_audio is None
 
 
@@ -230,6 +235,7 @@ def test_stop_uses_short_timeout_after_delivered_vad_chunks() -> None:
     """Test stop does not wait full completion timeout once chunks were inserted."""
     config = unittest.mock.Mock(spec=ww.Config)
     config.streaming_completion_timeout_secs = 4
+    config.streaming_delta_idle_timeout_secs = 0.75
     config.streaming_turn_detection_enabled = True
     config.audio_input_device_index = None
     config.audio_input_device_name = ""

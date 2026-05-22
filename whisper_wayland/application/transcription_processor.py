@@ -40,10 +40,7 @@ class TranscriptionProcessor:
             getattr(transcription_client.config, "streaming_transcription_enabled", False) is True
         )
         self._streaming_client = (
-            RealtimeStreamingTranscriptionClient.new(
-                transcription_client.config,
-                transcript_callback=self._handle_streaming_chunk,
-            )
+            RealtimeStreamingTranscriptionClient.new(transcription_client.config)
             if streaming_enabled
             else None
         )
@@ -92,11 +89,6 @@ class TranscriptionProcessor:
         except Exception as e:
             _logger.error(f"Error stopping realtime streaming transcription: {e}")
             self._show_error("Transcription failed")
-
-    def _handle_streaming_chunk(self, text: str) -> None:
-        """Post-process and insert one completed realtime transcription chunk."""
-        processed_text = self._transcription_client.post_process_text(text)
-        self._handle_insert_result(self.text_handler.insert_text(processed_text))
 
     def cancel_streaming(self) -> None:
         """Cancel realtime streaming without transcribing or inserting text."""

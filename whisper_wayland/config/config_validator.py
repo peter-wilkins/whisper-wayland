@@ -67,6 +67,9 @@ class ConfigValidator:
             "streaming_transcription_model": config_instance.streaming_transcription_model,
             "streaming_sample_rate": config_instance.streaming_sample_rate,
             "streaming_completion_timeout_secs": config_instance.streaming_completion_timeout_secs,
+            "streaming_delta_idle_timeout_secs": (
+                config_instance.streaming_delta_idle_timeout_secs
+            ),
             "streaming_turn_detection_enabled": (
                 config_instance.streaming_turn_detection_enabled
             ),

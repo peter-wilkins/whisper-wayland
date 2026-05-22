@@ -87,6 +87,11 @@ class Config:
         return self._property_handlers.get_streaming_completion_timeout_secs()
 
     @property
+    def streaming_delta_idle_timeout_secs(self) -> float:
+        """Seconds to wait after the last realtime partial transcript."""
+        return self._property_handlers.get_streaming_delta_idle_timeout_secs()
+
+    @property
     def streaming_turn_detection_enabled(self) -> bool:
         """Whether realtime streaming should commit speech chunks on pauses."""
         return self._property_handlers.get_streaming_turn_detection_enabled()

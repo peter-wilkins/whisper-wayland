@@ -70,6 +70,7 @@ class RealtimeStreamingTranscriptionClient:
         self._websocket_thread: typing.Optional[threading.Thread] = None
         self._frames: list[bytes] = []
         self._transcript_parts: list[str] = []
+        self._last_transcript_event_at: typing.Optional[float] = None
         self._chunks_delivered = False
         self._error: typing.Optional[str] = None
         self._streaming = False
@@ -124,7 +125,7 @@ class RealtimeStreamingTranscriptionClient:
         with self._lock:
             self._streaming = False
 
-        text = "".join(self._transcript_parts).strip()
+        text = self._combined_transcript_text()
         if text:
             _logger.info("Realtime streaming transcription completed")
             return StreamingTranscriptionResult(text=text)
@@ -187,6 +188,7 @@ class RealtimeStreamingTranscriptionClient:
         self._audio_started_event = threading.Event()
         self._frames = []
         self._transcript_parts = []
+        self._last_transcript_event_at = None
         self._error = None
         self._cancel_requested = False
         self._chunks_delivered = False
@@ -263,10 +265,7 @@ class RealtimeStreamingTranscriptionClient:
 
             if sender.done() and not receiver.done():
                 try:
-                    await asyncio.wait_for(
-                        receiver,
-                        timeout=self._config.streaming_completion_timeout_secs,
-                    )
+                    await self._wait_for_receiver_completion(receiver)
                 except TimeoutError:
                     receiver.cancel()
                     _logger.warning("Timed out waiting for realtime transcription completion")
@@ -374,6 +373,7 @@ class RealtimeStreamingTranscriptionClient:
                 and isinstance(event.get("delta"), str)
             ):
                 self._transcript_parts.append(event["delta"])
+                self._last_transcript_event_at = time.monotonic()
                 continue
 
             if event_type.endswith(".completed"):
@@ -384,6 +384,7 @@ class RealtimeStreamingTranscriptionClient:
                         continue
 
                     self._transcript_parts = [transcript]
+                    self._last_transcript_event_at = time.monotonic()
                     return
 
     def _deliver_transcript_chunk(self, transcript: str) -> None:
@@ -393,10 +394,53 @@ class RealtimeStreamingTranscriptionClient:
             return
 
         self._chunks_delivered = True
+        self._last_transcript_event_at = time.monotonic()
         if self._transcript_callback:
             self._transcript_callback(text)
         else:
             self._transcript_parts.append(text)
+
+    async def _wait_for_receiver_completion(self, receiver: asyncio.Task[typing.Any]) -> None:
+        """Wait for final realtime transcript without lingering after partial text arrives."""
+        completion_deadline = time.monotonic() + self._config.streaming_completion_timeout_secs
+
+        while not receiver.done():
+            now = time.monotonic()
+            deadline = completion_deadline
+            if self._has_partial_transcript():
+                last_event_at = self._last_transcript_event_at or now
+                delta_idle_deadline = last_event_at + self._config.streaming_delta_idle_timeout_secs
+                deadline = min(deadline, delta_idle_deadline)
+
+            wait_secs = min(deadline - now, 0.25)
+            if wait_secs <= 0:
+                break
+
+            try:
+                await asyncio.wait_for(asyncio.shield(receiver), timeout=wait_secs)
+            except TimeoutError:
+                continue
+
+        if receiver.done():
+            receiver.result()
+            return
+
+        receiver.cancel()
+        if self._has_partial_transcript():
+            _logger.info("Using partial realtime transcript after delta idle timeout")
+        else:
+            _logger.warning("Timed out waiting for realtime transcription completion")
+
+    def _has_partial_transcript(self) -> bool:
+        """Return whether any realtime transcript text has arrived."""
+        return any(part.strip() for part in self._transcript_parts)
+
+    def _combined_transcript_text(self) -> str:
+        """Return final transcript text from realtime parts."""
+        if self._config.streaming_turn_detection_enabled:
+            return " ".join(part.strip() for part in self._transcript_parts if part.strip())
+
+        return "".join(self._transcript_parts).strip()
 
     def _frames_to_wav(self) -> bytes:
         """Convert captured PCM frames to WAV bytes for batch fallback."""
