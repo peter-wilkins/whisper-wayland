@@ -370,6 +370,54 @@ class TestTranscriptionClient:
             assert "caveman style" in call_args.kwargs["input"][0]["content"]
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_post_process_text_caveman_local_model(
+        self, mock_openai_class: unittest.mock.MagicMock
+    ) -> None:
+        """Test local caveman mode skips API and removes filler."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "TEXT_POST_PROCESS_MODE": "caveman",
+                "TEXT_POST_PROCESS_MODEL": "local",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_openai_class.return_value = mock_client
+            client = transcription_client.TranscriptionClient(test_config)
+
+            assert client.post_process_text(
+                "uh well yes yes it is basically working thank you"
+            ) == "Yes it is working"
+            mock_client.responses.create.assert_not_called()
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_post_process_text_caveman_falls_back_to_local_on_error(
+        self, mock_openai_class: unittest.mock.MagicMock
+    ) -> None:
+        """Test caveman mode uses local cleanup if model post-processing fails."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "TEXT_POST_PROCESS_MODE": "caveman",
+                "TEXT_POST_PROCESS_MODEL": "gpt-test",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_client.responses.create.side_effect = Exception("model blocked")
+            mock_openai_class.return_value = mock_client
+            client = transcription_client.TranscriptionClient(test_config)
+
+            assert client.post_process_text("um this is actually actually fine") == (
+                "This is fine"
+            )
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_post_process_text_falls_back_on_error(
         self, mock_openai_class: unittest.mock.MagicMock
     ) -> None:

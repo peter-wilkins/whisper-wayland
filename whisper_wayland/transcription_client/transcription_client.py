@@ -4,6 +4,7 @@ Main transcription client orchestrator that coordinates all transcription compon
 """
 
 import logging
+import re
 import typing
 
 import openai
@@ -93,8 +94,14 @@ class TranscriptionClient:
             Post-processed text, or the original text if post-processing is disabled or fails
         """
         mode = self.config.text_post_process_mode
-        if mode == "raw" or not text.strip() or not self._client:
+        if mode == "raw" or not text.strip():
             return text
+
+        if mode == "caveman" and self.config.text_post_process_model == "local":
+            return self._local_caveman_rewrite(text)
+
+        if not self._client:
+            return self._local_caveman_rewrite(text) if mode == "caveman" else text
 
         try:
             response = self._client.responses.create(
@@ -118,6 +125,8 @@ class TranscriptionClient:
                 return processed_text
         except Exception as e:
             _logger.warning(f"Transcript post-processing failed, using raw transcript: {e}")
+            if mode == "caveman":
+                return self._local_caveman_rewrite(text)
 
         return text
 
@@ -154,6 +163,42 @@ class TranscriptionClient:
         if mode == "caveman":
             return 256
         return 512
+
+    @staticmethod
+    def _local_caveman_rewrite(text: str) -> str:
+        """Apply cheap local cleanup when text-model post-processing is unavailable."""
+        cleaned = " ".join(text.strip().split())
+        if not cleaned:
+            return text
+
+        filler_patterns = [
+            r"\b(um+|uh+|erm+|ah+)\b[, ]*",
+            r"\b(you know|i mean|sort of|kind of)\b[, ]*",
+            r"\b(basically|actually|really|just|simply)\b[, ]*",
+            r"^(well|so|okay|ok|yeah|yes|no)[, ]+",
+        ]
+        for pattern in filler_patterns:
+            cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+
+        words = cleaned.split()
+        deduped_words = []
+        previous = ""
+        for word in words:
+            normalized = word.strip(".,!?;:").lower()
+            if normalized and normalized == previous:
+                continue
+            deduped_words.append(word)
+            previous = normalized
+
+        cleaned = " ".join(deduped_words)
+        cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
+        cleaned = re.sub(r"\b(thank you|thanks)\.?$", "", cleaned, flags=re.IGNORECASE).strip()
+
+        if cleaned:
+            _logger.info("Transcript post-processing completed using local caveman fallback")
+            return cleaned[0].upper() + cleaned[1:]
+
+        return text
 
     def test_connection(self) -> bool:
         """Test connection to OpenAI API with a minimal request.
