@@ -89,6 +89,7 @@ class HotkeyHandler:
                 self._show_recording()
                 return
 
+            self.audio_recorder.refresh_input_device()
             self.audio_recorder.start_recording()
             self._show_recording()
         except ww.AudioRecordingError as e:

@@ -283,6 +283,11 @@ class RecordingEngine:
         with self._lock:
             return self._recording
 
+    @property
+    def input_device_index(self) -> typing.Optional[int]:
+        """Input device index used by this engine, or None for system default."""
+        return self._input_device_index
+
     @staticmethod
     def _resolve_sample_rate(
         audio: pyaudio.PyAudio,

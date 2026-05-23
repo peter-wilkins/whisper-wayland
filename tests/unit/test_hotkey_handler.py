@@ -54,6 +54,7 @@ class TestHotkeyHandler:
         ):
             handler._on_hotkey_press()
             assert handler.is_recording_active
+            audio_recorder.refresh_input_device.assert_called_once()
             audio_recorder.start_recording.assert_called_once()
             status_indicator.recording.assert_called_once()
 

@@ -3,9 +3,13 @@
 Main transcription client orchestrator that coordinates all transcription components.
 """
 
+import json
 import logging
+import os
 import re
 import typing
+import urllib.error
+import urllib.request
 
 import openai
 
@@ -21,6 +25,13 @@ from whisper_wayland.transcription_client.transcription_engine import (
 )
 
 _logger = logging.getLogger(__name__)
+
+LOCAL_API_PROVIDER_NAMES = {"local-api", "local_api"}
+LOCAL_PROVIDER_NAME = "local"
+OPENAI_PROVIDER_NAME = "openai"
+DEFAULT_PRINCIPAL_ID = "local-user"
+DEFAULT_TARGET = "codex-terminal"
+HTTP_BAD_REQUEST = 400
 
 
 class TranscriptionError(Exception):
@@ -97,11 +108,40 @@ class TranscriptionClient:
         if mode == "raw" or not text.strip():
             return text
 
-        if mode == "caveman" and self.config.text_post_process_model == "local":
-            return self._local_caveman_rewrite(text)
+        for provider in self.config.text_post_process_providers:
+            processed_text = self._post_process_with_provider(provider, text, mode)
+            if processed_text:
+                return processed_text
+
+        return text
+
+    def _post_process_with_provider(
+        self,
+        provider: str,
+        text: str,
+        mode: str,
+    ) -> str | None:
+        """Try one configured transcript rewrite provider."""
+        if provider in LOCAL_API_PROVIDER_NAMES:
+            return self._post_process_with_local_api(text, mode)
+
+        if provider == OPENAI_PROVIDER_NAME:
+            return self._post_process_with_openai(text, mode)
+
+        if provider == LOCAL_PROVIDER_NAME:
+            return self._post_process_with_local_cleanup(text, mode)
+
+        _logger.warning("Unknown transcript post-processing provider '%s'; skipping", provider)
+        return None
+
+    def _post_process_with_openai(self, text: str, mode: str) -> str | None:
+        """Try OpenAI Responses API transcript rewriting."""
+        if self.config.text_post_process_model == LOCAL_PROVIDER_NAME:
+            _logger.debug("Skipping OpenAI post-processing because model is local")
+            return None
 
         if not self._client:
-            return self._local_caveman_rewrite(text) if mode == "caveman" else text
+            return None
 
         try:
             response = self._client.responses.create(
@@ -121,14 +161,65 @@ class TranscriptionClient:
             )
             processed_text = response.output_text.strip()
             if processed_text:
-                _logger.info(f"Transcript post-processing completed using mode: {mode}")
+                _logger.info(f"Transcript post-processing completed using OpenAI mode: {mode}")
                 return processed_text
         except Exception as e:
-            _logger.warning(f"Transcript post-processing failed, using raw transcript: {e}")
-            if mode == "caveman":
-                return self._local_caveman_rewrite(text)
+            _logger.warning(f"OpenAI transcript post-processing failed: {e}")
 
-        return text
+        return None
+
+    def _post_process_with_local_api(self, text: str, mode: str) -> str | None:
+        """Try same-machine personal dictionary rewrite API."""
+        payload = {
+            "principalId": DEFAULT_PRINCIPAL_ID,
+            "dictionaryScope": {
+                "kind": "repo",
+                "id": os.path.basename(os.getcwd()) or "whisper-wayland",
+            },
+            "rawTranscriptText": text,
+            "mode": mode,
+            "target": DEFAULT_TARGET,
+        }
+
+        try:
+            request = urllib.request.Request(
+                self.config.text_post_process_local_api_url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(  # noqa: S310 - localhost user-configured endpoint
+                request,
+                timeout=self.config.text_post_process_local_api_timeout_secs,
+            ) as response:
+                if getattr(response, "status", 200) >= HTTP_BAD_REQUEST:
+                    _logger.warning(
+                        "Local transcript rewrite API returned HTTP %s",
+                        response.status,
+                    )
+                    return None
+                response_payload = json.load(response)
+
+            insertion_text = str(response_payload.get("insertionText", "")).strip()
+            if insertion_text:
+                backend = response_payload.get("backend", "local-api")
+                confidence = response_payload.get("confidence")
+                _logger.info(
+                    "Transcript post-processing completed using %s confidence=%s",
+                    backend,
+                    confidence,
+                )
+                return insertion_text
+        except (TimeoutError, urllib.error.URLError, OSError, json.JSONDecodeError) as e:
+            _logger.warning(f"Local transcript rewrite API unavailable: {e}")
+
+        return None
+
+    def _post_process_with_local_cleanup(self, text: str, mode: str) -> str | None:
+        """Try cheap in-process cleanup."""
+        if mode == "caveman":
+            return self._local_caveman_rewrite(text)
+        return None
 
     @staticmethod
     def _post_process_system_prompt(mode: str) -> str:

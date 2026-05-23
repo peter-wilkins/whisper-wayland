@@ -416,13 +416,31 @@ class PropertyHandlers:
 
     def get_text_post_process_providers(self) -> list[str]:
         """Get ordered transcript rewrite provider names."""
-        raw_providers = os.getenv("TEXT_POST_PROCESS_PROVIDERS", "local,openai")
+        raw_providers = os.getenv("TEXT_POST_PROCESS_PROVIDERS", "openai,local")
         providers = [
             provider.strip().lower()
             for provider in raw_providers.split(",")
             if provider.strip()
         ]
         return providers or ["local", "openai"]
+
+    def get_text_post_process_local_api_url(self) -> str:
+        """Get local transcript rewrite API endpoint."""
+        return (
+            os.getenv(
+                "TEXT_POST_PROCESS_LOCAL_API_URL",
+                "http://127.0.0.1:8765/v1/transcript/rewrite",
+            ).strip()
+            or "http://127.0.0.1:8765/v1/transcript/rewrite"
+        )
+
+    def get_text_post_process_local_api_timeout_secs(self) -> float:
+        """Get local transcript rewrite API timeout."""
+        return self._get_float_env(
+            "TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS",
+            "1.5",
+            allow_zero=False,
+        )
 
     def get_continuum_capture_inlet_dir(self) -> str:
         """Get optional Continuum local capture inlet directory."""

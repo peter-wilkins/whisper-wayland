@@ -3,6 +3,7 @@
 Unit tests for transcription client module including
 OpenAI API integration and error handling."""
 
+import json
 import os
 import unittest.mock
 
@@ -13,6 +14,7 @@ import whisper_wayland as ww
 import whisper_wayland.transcription_client as transcription_client
 
 CAVEMAN_MAX_OUTPUT_TOKENS = 256
+LOCAL_API_CUSTOM_TIMEOUT_SECS = 0.75
 
 
 class TestTranscriptionClient:
@@ -394,6 +396,84 @@ class TestTranscriptionClient:
                 "uh well yes yes it is basically working thank you"
             ) == "Yes it is working"
             mock_client.responses.create.assert_not_called()
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.transcription_client.urllib.request.urlopen")
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_post_process_text_uses_local_api_provider(
+        self,
+        mock_openai_class: unittest.mock.MagicMock,
+        mock_urlopen: unittest.mock.MagicMock,
+    ) -> None:
+        """Test local personal dictionary API rewrites transcript first."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "TEXT_POST_PROCESS_MODE": "clean",
+                "TEXT_POST_PROCESS_PROVIDERS": "local-api,openai,local",
+                "TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS": "0.75",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_openai_class.return_value = mock_client
+            response = unittest.mock.Mock()
+            response.status = 200
+            response.read.return_value = json.dumps(
+                {
+                    "insertionText": "Core Product Principle",
+                    "backend": "workflow-manager-local-rules",
+                    "confidence": 0.94,
+                }
+            ).encode("utf-8")
+            response.__enter__ = unittest.mock.Mock(return_value=response)
+            response.__exit__ = unittest.mock.Mock(return_value=None)
+            mock_urlopen.return_value = response
+            client = transcription_client.TranscriptionClient(test_config)
+
+            assert client.post_process_text("yeah call product principle") == (
+                "Core Product Principle"
+            )
+
+            mock_client.responses.create.assert_not_called()
+            request = mock_urlopen.call_args.args[0]
+            payload = json.loads(request.data.decode("utf-8"))
+            assert request.full_url == "http://127.0.0.1:8765/v1/transcript/rewrite"
+            assert mock_urlopen.call_args.kwargs["timeout"] == LOCAL_API_CUSTOM_TIMEOUT_SECS
+            assert payload["rawTranscriptText"] == "yeah call product principle"
+            assert payload["principalId"] == "local-user"
+            assert payload["target"] == "codex-terminal"
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.transcription_client.urllib.request.urlopen")
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_post_process_text_local_api_falls_back_to_openai(
+        self,
+        mock_openai_class: unittest.mock.MagicMock,
+        mock_urlopen: unittest.mock.MagicMock,
+    ) -> None:
+        """Test local API failure falls through to next configured provider."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "TEXT_POST_PROCESS_MODE": "clean",
+                "TEXT_POST_PROCESS_MODEL": "gpt-test",
+                "TEXT_POST_PROCESS_PROVIDERS": "local-api,openai,local",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_urlopen.side_effect = TimeoutError("slow")
+            mock_client = unittest.mock.Mock()
+            mock_response = unittest.mock.Mock()
+            mock_response.output_text = "OpenAI cleaned."
+            mock_client.responses.create.return_value = mock_response
+            mock_openai_class.return_value = mock_client
+            client = transcription_client.TranscriptionClient(test_config)
+
+            assert client.post_process_text("openai clean this") == "OpenAI cleaned."
+            mock_client.responses.create.assert_called_once()
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_post_process_text_caveman_falls_back_to_local_on_error(

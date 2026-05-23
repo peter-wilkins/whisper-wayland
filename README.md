@@ -113,7 +113,9 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard fallback insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
 | `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, `snappy`, or `caveman`) | `raw` | No |
 | `TEXT_POST_PROCESS_MODEL` | OpenAI text model for transcript rewriting, or `local` for local caveman cleanup | `gpt-4.1-mini` | No |
-| `TEXT_POST_PROCESS_PROVIDERS` | Ordered comma-separated rewrite providers for future fallback wiring | `local,openai` | No |
+| `TEXT_POST_PROCESS_PROVIDERS` | Ordered comma-separated rewrite providers (`local-api`, `openai`, `local`) | `openai,local` | No |
+| `TEXT_POST_PROCESS_LOCAL_API_URL` | Same-machine personal dictionary rewrite API endpoint | `http://127.0.0.1:8765/v1/transcript/rewrite` | No |
+| `TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS` | Timeout for local API transcript rewrite requests | `1.5` | No |
 | `CONTINUUM_CAPTURE_INLET_DIR` | Optional local Continuum audio capture file-drop directory | - | No |
 | `STREAMING_TRANSCRIPTION_ENABLED` | Enable experimental OpenAI Realtime streaming transcription | `false` | No |
 | `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `gpt-realtime-whisper` | No |

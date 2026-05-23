@@ -233,6 +233,16 @@ class Config:
         return self._property_handlers.get_text_post_process_providers()
 
     @property
+    def text_post_process_local_api_url(self) -> str:
+        """Local transcript rewrite API endpoint."""
+        return self._property_handlers.get_text_post_process_local_api_url()
+
+    @property
+    def text_post_process_local_api_timeout_secs(self) -> float:
+        """Local transcript rewrite API timeout in seconds."""
+        return self._property_handlers.get_text_post_process_local_api_timeout_secs()
+
+    @property
     def continuum_capture_inlet_dir(self) -> str:
         """Local Continuum capture inlet directory, blank when disabled."""
         return self._property_handlers.get_continuum_capture_inlet_dir()

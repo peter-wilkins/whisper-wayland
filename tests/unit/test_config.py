@@ -30,8 +30,12 @@ DEFAULT_NORMALIZATION_MAX_GAIN = 6
 CUSTOM_NORMALIZATION_TARGET_RMS_DBFS = -24
 CUSTOM_NORMALIZATION_MAX_PEAK_AMPLITUDE = 0.9
 CUSTOM_NORMALIZATION_MAX_GAIN = 4
-DEFAULT_TEXT_POST_PROCESS_PROVIDERS = ["local", "openai"]
+DEFAULT_TEXT_POST_PROCESS_PROVIDERS = ["openai", "local"]
 CUSTOM_TEXT_POST_PROCESS_PROVIDERS = ["local-api", "openai", "local"]
+DEFAULT_TEXT_POST_PROCESS_LOCAL_API_URL = "http://127.0.0.1:8765/v1/transcript/rewrite"
+CUSTOM_TEXT_POST_PROCESS_LOCAL_API_URL = "http://127.0.0.1:9999/v1/transcript/rewrite"
+DEFAULT_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS = 1.5
+CUSTOM_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS = 0.75
 
 
 class TestConfig:
@@ -82,6 +86,14 @@ class TestConfig:
                 assert (
                     test_config.text_post_process_providers
                     == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
+                )
+                assert (
+                    test_config.text_post_process_local_api_url
+                    == DEFAULT_TEXT_POST_PROCESS_LOCAL_API_URL
+                )
+                assert (
+                    test_config.text_post_process_local_api_timeout_secs
+                    == DEFAULT_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS
                 )
                 assert test_config.continuum_capture_inlet_dir == ""
                 assert not test_config.streaming_transcription_enabled
@@ -149,6 +161,10 @@ class TestConfig:
             "TEXT_POST_PROCESS_MODE": "snappy",
             "TEXT_POST_PROCESS_MODEL": "gpt-test-model",
             "TEXT_POST_PROCESS_PROVIDERS": "local-api, openai, local",
+            "TEXT_POST_PROCESS_LOCAL_API_URL": CUSTOM_TEXT_POST_PROCESS_LOCAL_API_URL,
+            "TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS": str(
+                CUSTOM_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS
+            ),
             "CONTINUUM_CAPTURE_INLET_DIR": "/tmp/continuum/audio",
             "STREAMING_TRANSCRIPTION_ENABLED": "true",
             "STREAMING_TRANSCRIPTION_MODEL": "whisper-1",
@@ -199,6 +215,14 @@ class TestConfig:
             assert test_config.text_post_process_mode == "snappy"
             assert test_config.text_post_process_model == "gpt-test-model"
             assert test_config.text_post_process_providers == CUSTOM_TEXT_POST_PROCESS_PROVIDERS
+            assert (
+                test_config.text_post_process_local_api_url
+                == CUSTOM_TEXT_POST_PROCESS_LOCAL_API_URL
+            )
+            assert (
+                test_config.text_post_process_local_api_timeout_secs
+                == CUSTOM_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS
+            )
             assert test_config.continuum_capture_inlet_dir == "/tmp/continuum/audio"
             assert test_config.streaming_transcription_enabled
             assert test_config.streaming_transcription_model == "whisper-1"
@@ -302,6 +326,17 @@ class TestConfig:
             # Invalid streaming VAD silence duration
             with unittest.mock.patch.dict(os.environ, {"STREAMING_VAD_SILENCE_DURATION_MS": "0"}):
                 with pytest.raises(ww.ConfigError, match="STREAMING_VAD_SILENCE_DURATION_MS"):
+                    ww.Config()
+
+            # Invalid local post-process API timeout
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS": "0"},
+            ):
+                with pytest.raises(
+                    ww.ConfigError,
+                    match="TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS",
+                ):
                     ww.Config()
 
     def test_config_invalid_log_level(self) -> None:
@@ -455,6 +490,14 @@ class TestConfig:
             assert summary["audio_level_manage_mics_enabled"] is False
             assert summary["audio_transcription_normalization_enabled"] is False
             assert summary["text_post_process_providers"] == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
+            assert (
+                summary["text_post_process_local_api_url"]
+                == DEFAULT_TEXT_POST_PROCESS_LOCAL_API_URL
+            )
+            assert (
+                summary["text_post_process_local_api_timeout_secs"]
+                == DEFAULT_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS
+            )
             assert "sk-sensitive123" not in str(summary)
 
     def test_config_get_static_method(self) -> None:
