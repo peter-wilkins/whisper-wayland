@@ -25,6 +25,7 @@ TEST_DURATION_SECONDS = 0.1
 QUIET_SAMPLE = 120
 CLIPPED_SAMPLE = 32767
 FULL_CLIPPING_RATIO = 1.0
+SUPPRESSED_CAPTURE_EVENT_COUNT = 2
 
 
 def _test_wav(sample_rate: int = TEST_SAMPLE_RATE, frame_count: int = TEST_FRAME_COUNT) -> bytes:
@@ -51,6 +52,54 @@ def _constant_wav(sample: int, frame_count: int = TEST_FRAME_COUNT) -> bytes:
 
 def _fixed_clock() -> datetime:
     return datetime(2026, 5, 23, 9, 15, 30, 123000, tzinfo=timezone.utc)
+
+
+def _assert_accepted_continuum_audio_metadata(
+    envelope: dict,
+    result: object,
+    tmp_path: Path,
+) -> None:
+    artifact = envelope["audioArtifact"]
+    health = envelope["captureHealth"]
+
+    assert envelope["continuumAudio"] == {
+        "artifactConcept": "audio segment",
+        "eventNames": [
+            "intentional_capture.v1",
+            "capture_health.v1",
+        ],
+        "eventNamespace": "continuum.audio",
+        "layerName": "Continuum Audio",
+        "sourceConcept": "intentional capture",
+        "stability": "concepts_and_event_names_only",
+    }
+    assert envelope["audioSegments"] == [
+        {
+            "durationSeconds": TEST_DURATION_SECONDS,
+            "eventName": "audio_segment.v1",
+            "kind": "full_intentional_capture",
+            "provenance": "batch_capture_artifact",
+            "relativePath": artifact["relativePath"],
+            "segmentId": f"{envelope['captureId']}:segment:0001",
+            "startOffsetSeconds": 0,
+        }
+    ]
+    assert envelope["captureContext"]["intentionalCapture"] is True
+    assert envelope["localEventArtifacts"] == [
+        {
+            "eventName": "capture_health.v1",
+            "relativePath": result.event_paths[0].relative_to(tmp_path).as_posix(),
+        }
+    ]
+
+    event = json.loads(result.event_paths[0].read_text(encoding="utf-8"))
+    assert event["schemaVersion"] == "whisper-wayland.continuum-audio-local-event.v1"
+    assert event["eventNamespace"] == "continuum.audio"
+    assert event["eventName"] == "capture_health.v1"
+    assert event["captureId"] == envelope["captureId"]
+    assert event["createdAt"] == envelope["captureTap"]["createdAt"]
+    assert event["localPayload"]["captureHealth"] == health
+    assert event["localPayload"]["audioArtifact"] == artifact
 
 
 class TestCaptureTap:
@@ -97,6 +146,8 @@ class TestCaptureTap:
         assert result.artifact_path.read_bytes() == audio_data
         assert result.envelope_path.exists()
         assert not Path(f"{result.envelope_path}.tmp").exists()
+        assert len(result.event_paths) == 1
+        assert result.event_paths[0].exists()
 
         envelope = json.loads(result.envelope_path.read_text(encoding="utf-8"))
         assert envelope["schemaVersion"] == "continuum.audio-capture-tap.v1"
@@ -148,6 +199,7 @@ class TestCaptureTap:
         assert envelope["captureContext"]["contextClues"][0]["text"] == (
             "push-to-talk hotkey released"
         )
+        _assert_accepted_continuum_audio_metadata(envelope, result, tmp_path)
         assert envelope["processor"]["provider"] == "openai"
         assert envelope["processor"]["processorId"] == "whisper-1"
         assert envelope["processor"]["processorKind"] == "transcription"
@@ -168,7 +220,7 @@ class TestCaptureTap:
         def spy_replace(self: Path, target: Path | str) -> Path:
             if str(self).endswith(".json.tmp"):
                 target_path = Path(target)
-                replace_calls.append((self.exists(), target_path.exists()))
+                replace_calls.append((self.exists(), target_path.exists(), target_path))
             return original_replace(self, target)
 
         monkeypatch.setattr(Path, "replace", spy_replace)
@@ -187,9 +239,12 @@ class TestCaptureTap:
             result = tap.write(_test_wav(), "raw", "insert")
 
         assert result is not None
-        assert replace_calls == [(True, False)]
+        assert replace_calls
+        assert replace_calls[-1] == (True, False, result.envelope_path)
+        assert all(call[:2] == (True, False) for call in replace_calls)
         assert result.envelope_path.exists()
-        assert not list((tmp_path / "envelopes").glob("*.tmp"))
+        assert result.event_paths
+        assert not list(tmp_path.rglob("*.tmp"))
 
     def test_clipped_capture_is_still_written_with_health_flags(self, tmp_path: Path) -> None:
         """Clipped captures are marked, not dropped."""
@@ -307,6 +362,29 @@ class TestCaptureTap:
         assert envelope["transcript"]["rejectedInsertionText"] == "you"
         assert envelope["captureHealth"]["likelySilent"] is True
         assert envelope["captureContext"]["membraneDecision"] == "needs_review"
+        assert envelope["continuumAudio"]["eventNames"] == [
+            "intentional_capture.v1",
+            "capture_health.v1",
+            "transcript_feedback.v1",
+        ]
+        assert len(envelope["localEventArtifacts"]) == SUPPRESSED_CAPTURE_EVENT_COUNT
+        event_paths = sorted((tmp_path / "events").rglob("*.json"))
+        assert len(event_paths) == SUPPRESSED_CAPTURE_EVENT_COUNT
+        feedback_event = next(
+            json.loads(path.read_text(encoding="utf-8"))
+            for path in event_paths
+            if path.name.endswith("transcript_feedback.v1.json")
+        )
+        assert feedback_event["eventName"] == "transcript_feedback.v1"
+        assert feedback_event["captureId"] == envelope["captureId"]
+        assert feedback_event["localPayload"] == {
+            "feedbackKind": "transcript_rejected",
+            "membraneDecision": "needs_review",
+            "postProcessMode": "raw",
+            "rejectedInsertionText": "you",
+            "rejectedRawTranscriptText": "you",
+            "suppressionReason": "likely-empty-recording-hallucination",
+        }
 
     def test_processor_suppresses_short_stock_caption_hallucination(
         self,

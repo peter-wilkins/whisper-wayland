@@ -35,6 +35,7 @@ class CaptureTapWriteResult:
     capture_id: str
     artifact_path: Path
     envelope_path: Path
+    event_paths: tuple[Path, ...]
 
 
 @dataclass(frozen=True)
@@ -58,12 +59,20 @@ class CaptureEnvelopeInput:
     capture_id: str
     created_at_text: str
     artifact_rel: Path
+    event_rels: tuple[Path, ...]
 
 
 class CaptureTap:
     """Opt-in local file-drop capture tap for Continuum."""
 
     SCHEMA_VERSION = "continuum.audio-capture-tap.v1"
+    LOCAL_EVENT_SCHEMA_VERSION = "whisper-wayland.continuum-audio-local-event.v1"
+    AUDIO_LAYER_NAME = "Continuum Audio"
+    EVENT_NAMESPACE = "continuum.audio"
+    INTENTIONAL_CAPTURE_EVENT_NAME = "intentional_capture.v1"
+    AUDIO_SEGMENT_EVENT_NAME = "audio_segment.v1"
+    CAPTURE_HEALTH_EVENT_NAME = "capture_health.v1"
+    TRANSCRIPT_FEEDBACK_EVENT_NAME = "transcript_feedback.v1"
     SOURCE_TOOL_NAME = "whisper-wayland"
     TAP_POINT = "after_batch_transcription_before_text_insertion"
 
@@ -116,11 +125,19 @@ class CaptureTap:
                 Path("artifacts") / created_at.date().isoformat() / f"{filename_stem}.wav"
             )
             envelope_rel = Path("envelopes") / f"{filename_stem}.json"
+            event_rels = self._event_relative_paths(
+                created_at=created_at,
+                filename_stem=filename_stem,
+                transcript_suppressed=transcript_suppressed,
+            )
             artifact_path = self._inlet_dir / artifact_rel
             envelope_path = self._inlet_dir / envelope_rel
+            event_paths = tuple(self._inlet_dir / event_rel for event_rel in event_rels)
 
             artifact_path.parent.mkdir(parents=True, exist_ok=True)
             envelope_path.parent.mkdir(parents=True, exist_ok=True)
+            for event_path in event_paths:
+                event_path.parent.mkdir(parents=True, exist_ok=True)
 
             artifact_path.write_bytes(audio_data)
             envelope = self._build_envelope(
@@ -133,8 +150,12 @@ class CaptureTap:
                     capture_id=capture_id,
                     created_at_text=created_at_text,
                     artifact_rel=artifact_rel,
+                    event_rels=event_rels,
                 )
             )
+            events = self._build_local_events(envelope)
+            for event_path, event in zip(event_paths, events, strict=True):
+                self._write_json_atomically(event_path, event)
             self._write_envelope_atomically(envelope_path, envelope)
 
             _logger.info("Continuum capture tap wrote envelope: %s", envelope_path)
@@ -142,6 +163,7 @@ class CaptureTap:
                 capture_id=capture_id,
                 artifact_path=artifact_path,
                 envelope_path=envelope_path,
+                event_paths=event_paths,
             )
         except Exception as e:
             _logger.error("Continuum capture tap write failed: %s", e)
@@ -153,10 +175,21 @@ class CaptureTap:
         wav_metadata = self._read_wav_metadata(audio_data)
         artifact_hash = hashlib.sha256(audio_data).hexdigest()
         processor_id = self._model_mapper.map_model_name(self._config.whisper_model)
+        capture_health = self._build_capture_health(audio_data, wav_metadata)
+        transcript = self._build_transcript(envelope_input)
+        event_names = self._event_names_for_capture(envelope_input.transcript_suppressed)
 
         return {
             "schemaVersion": self.SCHEMA_VERSION,
             "captureId": envelope_input.capture_id,
+            "continuumAudio": {
+                "layerName": self.AUDIO_LAYER_NAME,
+                "eventNamespace": self.EVENT_NAMESPACE,
+                "sourceConcept": "intentional capture",
+                "artifactConcept": "audio segment",
+                "eventNames": event_names,
+                "stability": "concepts_and_event_names_only",
+            },
             "sourceTool": {
                 "name": self.SOURCE_TOOL_NAME,
                 "version": self._source_tool_version(),
@@ -176,11 +209,23 @@ class CaptureTap:
                 "byteLength": len(audio_data),
                 "sha256": artifact_hash,
             },
-            "captureHealth": self._build_capture_health(audio_data, wav_metadata),
-            "transcript": self._build_transcript(envelope_input),
+            "audioSegments": [
+                {
+                    "segmentId": f"{envelope_input.capture_id}:segment:0001",
+                    "eventName": self.AUDIO_SEGMENT_EVENT_NAME,
+                    "kind": "full_intentional_capture",
+                    "relativePath": envelope_input.artifact_rel.as_posix(),
+                    "startOffsetSeconds": 0,
+                    "durationSeconds": wav_metadata.duration_seconds,
+                    "provenance": "batch_capture_artifact",
+                }
+            ],
+            "captureHealth": capture_health,
+            "transcript": transcript,
             "captureContext": {
                 "hostApp": self.SOURCE_TOOL_NAME,
                 "captureInlet": "local-file-drop",
+                "intentionalCapture": True,
                 "deviceLabel": self._device_label(),
                 "membraneDecision": (
                     "needs_review" if envelope_input.transcript_suppressed else "accepted"
@@ -194,6 +239,13 @@ class CaptureTap:
                     }
                 ],
             },
+            "localEventArtifacts": [
+                {
+                    "eventName": event_name,
+                    "relativePath": event_rel.as_posix(),
+                }
+                for event_name, event_rel in zip(event_names[1:], envelope_input.event_rels)
+            ],
             "processor": {
                 "provider": "openai",
                 "processorId": processor_id,
@@ -203,6 +255,44 @@ class CaptureTap:
                 "knowledgeTime": envelope_input.created_at_text,
             },
         }
+
+    def _build_local_events(
+        self,
+        envelope: dict[str, typing.Any],
+    ) -> tuple[dict[str, typing.Any], ...]:
+        """Build local sidecar event artifacts using stable Continuum Audio event names."""
+        base_event = {
+            "schemaVersion": self.LOCAL_EVENT_SCHEMA_VERSION,
+            "eventNamespace": self.EVENT_NAMESPACE,
+            "captureId": envelope["captureId"],
+            "createdAt": envelope["captureTap"]["createdAt"],
+            "sourceTool": envelope["sourceTool"],
+        }
+        health_event = {
+            **base_event,
+            "eventName": self.CAPTURE_HEALTH_EVENT_NAME,
+            "localPayload": {
+                "captureHealth": envelope["captureHealth"],
+                "audioArtifact": envelope["audioArtifact"],
+            },
+        }
+        if envelope["captureContext"]["membraneDecision"] != "needs_review":
+            return (health_event,)
+
+        transcript = envelope["transcript"]
+        feedback_event = {
+            **base_event,
+            "eventName": self.TRANSCRIPT_FEEDBACK_EVENT_NAME,
+            "localPayload": {
+                "feedbackKind": "transcript_rejected",
+                "membraneDecision": "needs_review",
+                "suppressionReason": transcript.get("suppressionReason"),
+                "rejectedRawTranscriptText": transcript.get("rejectedRawTranscriptText", ""),
+                "rejectedInsertionText": transcript.get("rejectedInsertionText", ""),
+                "postProcessMode": transcript["postProcessMode"],
+            },
+        }
+        return (health_event, feedback_event)
 
     def _build_transcript(
         self,
@@ -295,10 +385,15 @@ class CaptureTap:
     @staticmethod
     def _write_envelope_atomically(envelope_path: Path, envelope: dict[str, typing.Any]) -> None:
         """Write envelope via tmp file then atomic rename."""
-        tmp_path = Path(f"{envelope_path}.tmp")
-        payload = json.dumps(envelope, indent=2, sort_keys=True) + "\n"
-        tmp_path.write_text(payload, encoding="utf-8")
-        tmp_path.replace(envelope_path)
+        CaptureTap._write_json_atomically(envelope_path, envelope)
+
+    @staticmethod
+    def _write_json_atomically(path: Path, payload: dict[str, typing.Any]) -> None:
+        """Write JSON via tmp file then atomic rename."""
+        tmp_path = Path(f"{path}.tmp")
+        text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+        tmp_path.write_text(text, encoding="utf-8")
+        tmp_path.replace(path)
 
     def _read_wav_metadata(self, audio_data: bytes) -> WavMetadata:
         """Read basic WAV metadata, falling back to config if parsing fails."""
@@ -340,6 +435,34 @@ class CaptureTap:
         if self._config.audio_input_device_index is not None:
             return f"input device index {self._config.audio_input_device_index}"
         return "system default microphone"
+
+    @classmethod
+    def _event_names_for_capture(cls, transcript_suppressed: bool) -> list[str]:
+        event_names = [
+            cls.INTENTIONAL_CAPTURE_EVENT_NAME,
+            cls.CAPTURE_HEALTH_EVENT_NAME,
+        ]
+        if transcript_suppressed:
+            event_names.append(cls.TRANSCRIPT_FEEDBACK_EVENT_NAME)
+        return event_names
+
+    @classmethod
+    def _event_relative_paths(
+        cls,
+        *,
+        created_at: datetime,
+        filename_stem: str,
+        transcript_suppressed: bool,
+    ) -> tuple[Path, ...]:
+        event_dir = Path("events") / created_at.date().isoformat()
+        event_rels = [
+            event_dir / f"{filename_stem}-{cls.CAPTURE_HEALTH_EVENT_NAME}.json",
+        ]
+        if transcript_suppressed:
+            event_rels.append(
+                event_dir / f"{filename_stem}-{cls.TRANSCRIPT_FEEDBACK_EVENT_NAME}.json"
+            )
+        return tuple(event_rels)
 
     @staticmethod
     def _next_counter() -> int:
