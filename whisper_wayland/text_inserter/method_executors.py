@@ -19,6 +19,19 @@ class MethodExecutors:
 
     CLIPBOARD_RESTORE_DELAY_SECS = 0.35
     TMUX_BUFFER_NAME = "whisper-wayland-transcript"
+    YDOTOOL_MODIFIER_SETTLE_DELAY_SECS = 0.05
+
+    YDOTOOL_MODIFIER_RELEASE_KEYS = [
+        "29:0",  # left ctrl
+        "97:0",  # right ctrl
+        "42:0",  # left shift
+        "54:0",  # right shift
+        "56:0",  # left alt
+        "100:0",  # right alt / AltGr
+        "125:0",  # left meta
+        "126:0",  # right meta
+        "127:0",  # compose
+    ]
 
     YDOTOOL_PASTE_HOTKEYS = {
         "ctrl+v": ["29:1", "47:1", "47:0", "29:0"],
@@ -144,6 +157,9 @@ class MethodExecutors:
             True if successful
         """
         _logger.debug("Inserting text with ydotool")
+        if not self._release_ydotool_modifiers():
+            return False
+
         result = subprocess.run(
             ["ydotool", "type", "--key-delay", "0", "--key-hold", "0", "--file", "-"],
             check=False,
@@ -199,6 +215,8 @@ class MethodExecutors:
                 if result.returncode == 0:
                     # Send Ctrl+V to paste
                     if self._available_methods.get(TextInsertionMethod.YDOTOOL, False):
+                        if not self._release_ydotool_modifiers():
+                            return False
                         paste_result = subprocess.run(
                             ["ydotool", "key", *self._get_ydotool_paste_sequence()],
                             check=False,
@@ -260,6 +278,27 @@ class MethodExecutors:
             self._paste_hotkey,
             self.YDOTOOL_PASTE_HOTKEYS["ctrl+v"],
         )
+
+    def _release_ydotool_modifiers(self) -> bool:
+        """Release common modifiers before synthetic ydotool input."""
+        result = subprocess.run(
+            ["ydotool", "key", *self.YDOTOOL_MODIFIER_RELEASE_KEYS],
+            check=False,
+            capture_output=True,
+            timeout=5,
+        )
+        if result.returncode != 0:
+            _logger.warning(
+                "ydotool modifier release failed with code %s: %s",
+                result.returncode,
+                result.stderr.decode(errors="replace")
+                if isinstance(result.stderr, bytes)
+                else result.stderr,
+            )
+            return False
+
+        time.sleep(self.YDOTOOL_MODIFIER_SETTLE_DELAY_SECS)
+        return True
 
     def _read_wayland_clipboard(self) -> typing.Optional[str]:
         """Read current Wayland clipboard contents."""

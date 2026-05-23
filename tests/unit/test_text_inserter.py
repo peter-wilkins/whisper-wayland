@@ -13,6 +13,7 @@ import whisper_wayland.text_inserter as text_inserter
 import whisper_wayland.text_inserter as text_inserter_module
 
 CLIPBOARD_RESTORE_CALL_COUNT = 4
+WAYLAND_CLIPBOARD_RESTORE_CALL_COUNT = 5
 TMUX_TARGET_PANE = "whisper-wayland:0.0"
 
 
@@ -279,16 +280,52 @@ class TestTextInserter:
         mock_result.returncode = 0
 
         with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = text_inserter._method_executors._insert_with_ydotool("test text")
+            with unittest.mock.patch("time.sleep"):
+                result = text_inserter._method_executors._insert_with_ydotool("test text")
 
             assert result is True
+            assert mock_run.call_args_list == [
+                unittest.mock.call(
+                    [
+                        "ydotool",
+                        "key",
+                        *text_inserter._method_executors.YDOTOOL_MODIFIER_RELEASE_KEYS,
+                    ],
+                    check=False,
+                    capture_output=True,
+                    timeout=5,
+                ),
+                unittest.mock.call(
+                    ["ydotool", "type", "--key-delay", "0", "--key-hold", "0", "--file", "-"],
+                    check=False,
+                    input="test text",
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                ),
+            ]
+
+    def test_insert_with_ydotool_stops_when_modifier_release_fails(
+        self, text_inserter: text_inserter_module.TextInserter
+    ) -> None:
+        """Test ydotool does not type while modifiers may still be active."""
+        mock_result = unittest.mock.Mock()
+        mock_result.returncode = 1
+        mock_result.stderr = b"failed"
+
+        with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
+            result = text_inserter._method_executors._insert_with_ydotool("test text")
+
+            assert result is False
             mock_run.assert_called_once_with(
-                ["ydotool", "type", "--key-delay", "0", "--key-hold", "0", "--file", "-"],
+                [
+                    "ydotool",
+                    "key",
+                    *text_inserter._method_executors.YDOTOOL_MODIFIER_RELEASE_KEYS,
+                ],
                 check=False,
-                input="test text",
                 capture_output=True,
-                text=True,
-                timeout=10,
+                timeout=5,
             )
 
     def test_insert_with_tmux(self, text_inserter: text_inserter_module.TextInserter) -> None:
@@ -377,7 +414,7 @@ class TestTextInserter:
                     result = text_inserter._method_executors._insert_with_clipboard("test text")
 
             assert result is True
-            assert mock_run.call_count == CLIPBOARD_RESTORE_CALL_COUNT
+            assert mock_run.call_count == WAYLAND_CLIPBOARD_RESTORE_CALL_COUNT
             mock_run.assert_any_call(
                 ["wl-paste", "--no-newline"],
                 check=False,
@@ -392,6 +429,16 @@ class TestTextInserter:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 text=True,
+                timeout=5,
+            )
+            mock_run.assert_any_call(
+                [
+                    "ydotool",
+                    "key",
+                    *text_inserter._method_executors.YDOTOOL_MODIFIER_RELEASE_KEYS,
+                ],
+                check=False,
+                capture_output=True,
                 timeout=5,
             )
             mock_run.assert_any_call(
@@ -418,6 +465,8 @@ class TestTextInserter:
         paste_result.returncode = 1
         copy_result = unittest.mock.Mock()
         copy_result.returncode = 0
+        ydotool_release_result = unittest.mock.Mock()
+        ydotool_release_result.returncode = 0
         ydotool_result = unittest.mock.Mock()
         ydotool_result.returncode = 0
         clear_result = unittest.mock.Mock()
@@ -432,7 +481,13 @@ class TestTextInserter:
 
         with unittest.mock.patch(
             "subprocess.run",
-            side_effect=[paste_result, copy_result, ydotool_result, clear_result],
+            side_effect=[
+                paste_result,
+                copy_result,
+                ydotool_release_result,
+                ydotool_result,
+                clear_result,
+            ],
         ) as mock_run:
             with unittest.mock.patch("time.sleep"):
                 with unittest.mock.patch(
@@ -474,6 +529,16 @@ class TestTextInserter:
                     result = text_inserter._method_executors._insert_with_clipboard("test text")
 
             assert result is True
+            mock_run.assert_any_call(
+                [
+                    "ydotool",
+                    "key",
+                    *text_inserter._method_executors.YDOTOOL_MODIFIER_RELEASE_KEYS,
+                ],
+                check=False,
+                capture_output=True,
+                timeout=5,
+            )
             mock_run.assert_any_call(
                 ["ydotool", "key", "29:1", "42:1", "47:1", "47:0", "42:0", "29:0"],
                 check=False,
