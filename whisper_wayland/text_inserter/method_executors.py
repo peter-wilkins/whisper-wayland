@@ -91,8 +91,9 @@ class MethodExecutors:
         """
         _logger.debug("Inserting text with ydotool")
         result = subprocess.run(
-            ["ydotool", "type", text],
+            ["ydotool", "type", "--key-delay", "0", "--key-hold", "0", "--file", "-"],
             check=False,
+            input=text,
             capture_output=True,
             text=True,
             timeout=10,

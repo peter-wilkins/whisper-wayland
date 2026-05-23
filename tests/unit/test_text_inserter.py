@@ -265,8 +265,9 @@ class TestTextInserter:
 
             assert result is True
             mock_run.assert_called_once_with(
-                ["ydotool", "type", "test text"],
+                ["ydotool", "type", "--key-delay", "0", "--key-hold", "0", "--file", "-"],
                 check=False,
+                input="test text",
                 capture_output=True,
                 text=True,
                 timeout=10,
