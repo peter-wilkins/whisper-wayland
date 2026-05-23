@@ -132,13 +132,18 @@ class HotkeyHandler:
                 ).start()
                 return
 
+            audio_source = self.audio_recorder.get_active_input_source()
             audio_data = self.audio_recorder.stop_recording()
 
             if audio_data:
                 # Process transcription in background
                 threading.Thread(
                     target=self._run_transcription_task,
-                    args=(self.transcription_processor.process_audio, audio_data),
+                    args=(
+                        self.transcription_processor.process_audio,
+                        audio_data,
+                        audio_source,
+                    ),
                     daemon=True,
                 ).start()
             else:

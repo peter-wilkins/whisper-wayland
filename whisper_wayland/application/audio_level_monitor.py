@@ -32,17 +32,20 @@ class AudioLevelMonitor:
         self._monotonic = monotonic or time.monotonic
         self._last_checked_at: float | None = None
 
-    def check_audio(self, audio_data: bytes) -> None:
+    def check_audio(self, audio_data: bytes, source: str | None = None) -> None:
         """Check audio levels if monitor is enabled and cooldown elapsed."""
         if not self._enabled or not self._should_check():
             return
 
         self._last_checked_at = self._monotonic()
+        source_to_adjust = self._resolve_source(source)
         try:
             stats = analyze_wav(audio_data)
-            current_volume = get_source_volume_percent(self._source)
+            current_volume = get_source_volume_percent(source_to_adjust)
             _logger.info(
-                "Audio level check: verdict=%s rms=%.1fdBFS peak=%.1fdBFS clipping=%.3f%%",
+                "Audio level check for %s: verdict=%s rms=%.1fdBFS peak=%.1fdBFS "
+                "clipping=%.3f%%",
+                source_to_adjust,
                 stats.verdict,
                 stats.rms_dbfs,
                 stats.peak_dbfs,
@@ -58,36 +61,50 @@ class AudioLevelMonitor:
                 return
 
             if self._auto_adjust and self._manage_mics:
-                if set_source_volume_percent(self._source, recommended):
+                if set_source_volume_percent(source_to_adjust, recommended):
                     _logger.info(
                         "Audio level auto-adjust set %s from %d%% to %d%%",
-                        self._source,
+                        source_to_adjust,
                         current_volume,
                         recommended,
                     )
                 else:
                     _logger.warning(
                         "Audio level auto-adjust failed for %s; suggested %d%%",
-                        self._source,
+                        source_to_adjust,
                         recommended,
                     )
             elif self._auto_adjust:
                 _logger.info(
                     "Audio level auto-adjust skipped for %s; set "
                     "AUDIO_LEVEL_MANAGE_MICS_ENABLED=true to allow changing from %d%% to %d%%",
-                    self._source,
+                    source_to_adjust,
                     current_volume,
                     recommended,
                 )
             else:
                 _logger.info(
                     "Audio level monitor suggests setting %s from %d%% to %d%%",
-                    self._source,
+                    source_to_adjust,
                     current_volume,
                     recommended,
                 )
         except Exception as e:
             _logger.warning("Audio level check failed: %s", e)
+
+    def _resolve_source(self, source: str | None) -> str:
+        """Prefer the concrete recording source, falling back to configured source."""
+        if not source:
+            return self._source
+
+        normalized = source.strip()
+        if not normalized:
+            return self._source
+
+        if normalized.lower() in {"default", "default source", "pipewire"}:
+            return self._source
+
+        return normalized
 
     def _should_check(self) -> bool:
         if self._last_checked_at is None:

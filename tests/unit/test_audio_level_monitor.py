@@ -17,6 +17,7 @@ CLIPPED_SAMPLE = 32767
 CURRENT_VOLUME = 27
 EXPECTED_REDUCED_VOLUME = 20
 CHECK_INTERVAL_SECS = 60
+HEADSET_SOURCE = "bluez_input.C4:A9:B8:37:BD:CE"
 
 
 def _clipped_wav() -> bytes:
@@ -56,6 +57,44 @@ def test_audio_level_monitor_auto_adjusts_clipped_audio(monkeypatch) -> None:
 
     monitor = AudioLevelMonitor(_config())
     monitor.check_audio(_clipped_wav())
+
+    assert set_calls == [("@DEFAULT_SOURCE@", EXPECTED_REDUCED_VOLUME)]
+
+
+def test_audio_level_monitor_adjusts_active_recording_source(monkeypatch) -> None:
+    """Monitor adjusts the concrete recording source instead of default source."""
+    set_calls = []
+
+    monkeypatch.setattr(
+        "whisper_wayland.application.audio_level_monitor.get_source_volume_percent",
+        lambda source: CURRENT_VOLUME,
+    )
+    monkeypatch.setattr(
+        "whisper_wayland.application.audio_level_monitor.set_source_volume_percent",
+        lambda source, volume: set_calls.append((source, volume)) or True,
+    )
+
+    monitor = AudioLevelMonitor(_config())
+    monitor.check_audio(_clipped_wav(), source=HEADSET_SOURCE)
+
+    assert set_calls == [(HEADSET_SOURCE, EXPECTED_REDUCED_VOLUME)]
+
+
+def test_audio_level_monitor_uses_configured_source_for_generic_default(monkeypatch) -> None:
+    """Generic PyAudio default names resolve to configured monitor source."""
+    set_calls = []
+
+    monkeypatch.setattr(
+        "whisper_wayland.application.audio_level_monitor.get_source_volume_percent",
+        lambda source: CURRENT_VOLUME,
+    )
+    monkeypatch.setattr(
+        "whisper_wayland.application.audio_level_monitor.set_source_volume_percent",
+        lambda source, volume: set_calls.append((source, volume)) or True,
+    )
+
+    monitor = AudioLevelMonitor(_config())
+    monitor.check_audio(_clipped_wav(), source="default")
 
     assert set_calls == [("@DEFAULT_SOURCE@", EXPECTED_REDUCED_VOLUME)]
 

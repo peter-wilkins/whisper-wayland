@@ -106,11 +106,12 @@ class TranscriptionProcessor:
             _logger.debug(f"Error cancelling realtime streaming transcription: {e}")
             self._show_idle()
 
-    def process_audio(self, audio_data: bytes) -> None:
+    def process_audio(self, audio_data: bytes, audio_source: str | None = None) -> None:
         """Process audio data through transcription and text insertion.
 
         Args:
             audio_data: Audio data to process
+            audio_source: Optional Pulse/PipeWire source captured by the recorder
         """
         try:
             transcription_result = self.audio_processor.transcribe_audio_with_result(audio_data)
@@ -124,7 +125,7 @@ class TranscriptionProcessor:
                 self._handle_insert_result(
                     self.text_handler.insert_text(transcription_result.insertion_text)
                 )
-                self._audio_level_monitor.check_audio(audio_data)
+                self._audio_level_monitor.check_audio(audio_data, audio_source)
             else:
                 _logger.info("No transcription result")
                 self._show_error("No transcript")

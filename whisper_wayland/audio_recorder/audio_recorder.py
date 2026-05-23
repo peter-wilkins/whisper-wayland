@@ -139,6 +139,10 @@ class AudioRecorder:
         """
         return self._audio_validator.get_audio_devices(self._audio)
 
+    def get_active_input_source(self) -> str:
+        """Get the active input device/source name used for recordings."""
+        return self._input_device_name
+
     def close(self) -> None:
         """Clean up audio resources."""
         try:

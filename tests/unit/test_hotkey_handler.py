@@ -175,6 +175,7 @@ class TestHotkeyHandler:
         audio_recorder = unittest.mock.Mock()
         transcription_processor = unittest.mock.Mock()
         transcription_processor.streaming_enabled = False
+        audio_recorder.get_active_input_source.return_value = "bluez_input.test"
         audio_recorder.stop_recording.return_value = b"audio"
         handler = application.HotkeyHandler(
             audio_recorder,
@@ -193,7 +194,7 @@ class TestHotkeyHandler:
 
         mock_thread.assert_called_once_with(
             target=handler._run_transcription_task,
-            args=(transcription_processor.process_audio, b"audio"),
+            args=(transcription_processor.process_audio, b"audio", "bluez_input.test"),
             daemon=True,
         )
         mock_thread.return_value.start.assert_called_once()
