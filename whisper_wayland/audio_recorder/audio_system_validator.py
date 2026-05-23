@@ -92,7 +92,10 @@ class AudioSystemValidator:
             raise AudioSystemValidationError(f"Audio system validation failed: {e}") from e
 
     def find_preferred_input_device(
-        self, audio: pyaudio.PyAudio, config: "ww.Config"
+        self,
+        audio: pyaudio.PyAudio,
+        config: "ww.Config",
+        warn_on_missing_explicit: bool = True,
     ) -> typing.Optional[int]:
         """Find the preferred input device.
 
@@ -104,6 +107,7 @@ class AudioSystemValidator:
         Args:
             audio: PyAudio instance
             config: Configuration instance
+            warn_on_missing_explicit: Log missing configured devices at warning level
 
         Returns:
             Device index of preferred device, or None to use the system default
@@ -118,9 +122,10 @@ class AudioSystemValidator:
                 name = self.get_input_device_name(audio, explicit_index)
                 _logger.info(f"Using configured input device: {name} (index {explicit_index})")
                 return explicit_index
-            _logger.warning(
+            self._log_missing_explicit_device(
                 f"Configured AUDIO_INPUT_DEVICE_INDEX={explicit_index} is not a valid "
-                "input device; using system default input device"
+                "input device; using system default input device",
+                warn_on_missing_explicit,
             )
 
         if explicit_index is None:
@@ -131,9 +136,10 @@ class AudioSystemValidator:
                     name = self.get_input_device_name(audio, matched_index)
                     _logger.info(f"Using configured input device: {name} (index {matched_index})")
                     return matched_index
-                _logger.warning(
+                self._log_missing_explicit_device(
                     f"No input device matched AUDIO_INPUT_DEVICE_NAME='{explicit_name}'; "
-                    "using system default input device"
+                    "using system default input device",
+                    warn_on_missing_explicit,
                 )
 
         if explicit_device_requested:
@@ -182,6 +188,14 @@ class AudioSystemValidator:
         """Log the current default input and return None for PyAudio default routing."""
         name = self.get_input_device_name(audio, None)
         _logger.info(f"Using system default input device: {name}")
+
+    @staticmethod
+    def _log_missing_explicit_device(message: str, warn: bool) -> None:
+        """Log missing configured device once loudly, and refresh checks quietly."""
+        if warn:
+            _logger.warning(message)
+        else:
+            _logger.debug(message)
 
     def get_input_device_name(
         self, audio: pyaudio.PyAudio, input_device_index: typing.Optional[int]

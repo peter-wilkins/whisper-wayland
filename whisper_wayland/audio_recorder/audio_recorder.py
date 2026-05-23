@@ -85,6 +85,7 @@ class AudioRecorder:
             input_device_index = self._audio_validator.find_preferred_input_device(
                 self._audio,
                 self.config,
+                warn_on_missing_explicit=False,
             )
             input_device_name = self._audio_validator.get_input_device_name(
                 self._audio,
