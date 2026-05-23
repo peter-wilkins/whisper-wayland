@@ -260,3 +260,73 @@ class TestCaptureTap:
         assert artifact_path.read_bytes() == audio_data
         assert envelope["transcript"]["rawTranscriptText"] == "uh raw raw transcript"
         assert envelope["transcript"]["insertionText"] == "Raw transcript"
+
+    def test_processor_suppresses_silent_hallucination_insert(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Silent captures are preserved but not pasted when Whisper hallucinates."""
+        audio_data = _test_wav()
+        text_inserter = unittest.mock.Mock()
+        status_indicator = unittest.mock.Mock()
+
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "CONTINUUM_CAPTURE_INLET_DIR": str(tmp_path),
+                "WHISPER_MODEL": "whisper-1",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            transcription_client = unittest.mock.Mock()
+            transcription_client.config = test_config
+            transcription_client.transcribe_audio.return_value = "you"
+            transcription_client.post_process_text.return_value = "you"
+            processor = TranscriptionProcessor(
+                transcription_client,
+                text_inserter,
+                status_indicator=status_indicator,
+            )
+
+            processor.process_audio(audio_data)
+
+        text_inserter.insert_text.assert_not_called()
+        status_indicator.idle.assert_called_once()
+        envelopes = list((tmp_path / "envelopes").glob("*.json"))
+        assert envelopes
+        envelope = json.loads(envelopes[0].read_text(encoding="utf-8"))
+        assert envelope["transcript"]["rawTranscriptText"] == "you"
+        assert envelope["transcript"]["insertionText"] == "you"
+        assert envelope["captureHealth"]["likelySilent"] is True
+
+    def test_processor_suppresses_short_stock_caption_hallucination(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Known short Whisper stock captions are captured but not pasted."""
+        audio_data = _constant_wav(5000)
+        text_inserter = unittest.mock.Mock()
+
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "CONTINUUM_CAPTURE_INLET_DIR": str(tmp_path),
+                "WHISPER_MODEL": "whisper-1",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            transcription_client = unittest.mock.Mock()
+            transcription_client.config = test_config
+            transcription_client.transcribe_audio.return_value = "Thank you for watching."
+            transcription_client.post_process_text.return_value = "Thank you for watching."
+            processor = TranscriptionProcessor(transcription_client, text_inserter)
+
+            processor.process_audio(audio_data)
+
+        text_inserter.insert_text.assert_not_called()
+        envelopes = list((tmp_path / "envelopes").glob("*.json"))
+        assert envelopes

@@ -4,6 +4,7 @@ Coordinates audio transcription and text insertion workflow.
 """
 
 import logging
+import re
 import typing
 
 import whisper_wayland as ww
@@ -11,11 +12,20 @@ from whisper_wayland.application.audio_level_monitor import AudioLevelMonitor
 from whisper_wayland.application.audio_processor import AudioProcessor
 from whisper_wayland.application.capture_tap import CaptureTap
 from whisper_wayland.application.text_handler import TextHandler
+from whisper_wayland.audio_recorder.level_meter import analyze_wav
 from whisper_wayland.transcription_client.realtime_streaming_client import (
     RealtimeStreamingTranscriptionClient,
 )
 
 _logger = logging.getLogger(__name__)
+
+SHORT_HALLUCINATION_DURATION_SECONDS = 4.0
+MAX_SILENT_TRANSCRIPT_WORDS = 3
+KNOWN_SHORT_HALLUCINATIONS = {
+    "thank you for watching",
+    "thanks for watching",
+    "go to beadaholique com for all of your beading supply needs",
+}
 
 
 class TranscriptionProcessor:
@@ -122,9 +132,16 @@ class TranscriptionProcessor:
                     raw_transcript_text=transcription_result.raw_text,
                     insertion_text=transcription_result.insertion_text,
                 )
-                self._handle_insert_result(
-                    self.text_handler.insert_text(transcription_result.insertion_text)
-                )
+                if self._should_suppress_insertion(audio_data, transcription_result.raw_text):
+                    _logger.info(
+                        "Suppressing likely empty recording transcript: '%s'",
+                        transcription_result.raw_text,
+                    )
+                    self._show_idle()
+                else:
+                    self._handle_insert_result(
+                        self.text_handler.insert_text(transcription_result.insertion_text)
+                    )
                 self._audio_level_monitor.check_audio(audio_data, audio_source)
             else:
                 _logger.info("No transcription result")
@@ -154,6 +171,46 @@ class TranscriptionProcessor:
         """Update indicator to error state."""
         if self.status_indicator:
             self.status_indicator.error(message)
+
+    @staticmethod
+    def _should_suppress_insertion(audio_data: bytes, raw_transcript_text: str) -> bool:
+        """Return whether a transcript should be captured but not pasted."""
+        try:
+            stats = analyze_wav(audio_data)
+        except Exception as e:
+            _logger.debug("Could not analyze audio before insertion: %s", e)
+            return False
+
+        normalized_text = TranscriptionProcessor._normalize_transcript_for_guard(
+            raw_transcript_text
+        )
+
+        if stats.likely_silent and (
+            TranscriptionProcessor._word_count(normalized_text) <= MAX_SILENT_TRANSCRIPT_WORDS
+            or normalized_text in KNOWN_SHORT_HALLUCINATIONS
+        ):
+            return True
+
+        if (
+            stats.duration_seconds <= SHORT_HALLUCINATION_DURATION_SECONDS
+            and normalized_text in KNOWN_SHORT_HALLUCINATIONS
+        ):
+            return True
+
+        return False
+
+    @staticmethod
+    def _normalize_transcript_for_guard(text: str) -> str:
+        normalized = text.lower().strip()
+        normalized = normalized.replace(".com", " com")
+        normalized = re.sub(r"[^a-z0-9]+", " ", normalized)
+        return " ".join(normalized.split())
+
+    @staticmethod
+    def _word_count(normalized_text: str) -> int:
+        if not normalized_text:
+            return 0
+        return len(normalized_text.split())
 
     @staticmethod
     def new(
