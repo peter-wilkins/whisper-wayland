@@ -392,6 +392,40 @@ class TestCaptureTap:
         )
         assert envelope["captureContext"]["membraneDecision"] == "needs_review"
 
+    def test_processor_suppresses_short_next_rainbow_hallucination(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Observed short quiet next-rainbow hallucination is not pasted."""
+        audio_data = _constant_wav(100, frame_count=TEST_SAMPLE_RATE * 2)
+        text_inserter = unittest.mock.Mock()
+
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "CONTINUUM_CAPTURE_INLET_DIR": str(tmp_path),
+                "WHISPER_MODEL": "whisper-1",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            transcription_client = unittest.mock.Mock()
+            transcription_client.config = test_config
+            transcription_client.transcribe_audio.return_value = "It's the next rainbow."
+            transcription_client.post_process_text.return_value = "It's the next rainbow."
+            processor = TranscriptionProcessor(transcription_client, text_inserter)
+
+            processor.process_audio(audio_data)
+
+        text_inserter.insert_text.assert_not_called()
+        envelopes = list((tmp_path / "envelopes").glob("*.json"))
+        assert envelopes
+        envelope = json.loads(envelopes[0].read_text(encoding="utf-8"))
+        assert envelope["transcript"]["rawTranscriptText"] == ""
+        assert envelope["transcript"]["rejectedRawTranscriptText"] == "It's the next rainbow."
+        assert envelope["captureContext"]["membraneDecision"] == "needs_review"
+
     def test_processor_keeps_short_spoken_count(
         self,
         tmp_path: Path,

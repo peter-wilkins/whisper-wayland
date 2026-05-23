@@ -29,6 +29,7 @@ KNOWN_SHORT_HALLUCINATIONS = {
     "thank you thank you",
     "thanks for watching",
     "thats it thank you thank you",
+    "its the next rainbow",
     "go to beadaholique com for all of your beading supply needs",
 }
 
