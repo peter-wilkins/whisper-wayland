@@ -17,6 +17,7 @@ from whisper_wayland.audio_recorder.recording_engine import RecordingEngine
 
 PRE_ROLL_FRAME = b"\x01\x00" * 512
 CURRENT_FRAME = b"\x02\x00" * 512
+EXPECTED_PYAUDIO_REINIT_CALL_COUNT = 2
 
 
 class TestAudioRecorder:
@@ -423,18 +424,23 @@ class TestAudioRecorder:
             {"name": "Laptop Digital Mic", "maxInputChannels": 2, "defaultSampleRate": 48000},
             {"name": "External USB Microphone", "maxInputChannels": 1, "defaultSampleRate": 48000},
         ]
-        active_devices = first_devices
-        mock_audio_instance = unittest.mock.Mock()
-        mock_audio_instance.get_device_count.side_effect = lambda: len(active_devices)
-        mock_audio_instance.get_device_info_by_index.side_effect = (
-            lambda index: active_devices[index]
-        )
-        mock_audio_instance.get_default_input_device_info.return_value = {
+        first_audio = unittest.mock.Mock()
+        first_audio.get_device_count.return_value = len(first_devices)
+        first_audio.get_device_info_by_index.side_effect = lambda index: first_devices[index]
+        first_audio.get_default_input_device_info.return_value = {
             "index": 0,
             "name": "Laptop Digital Mic",
         }
-        mock_audio_instance.is_format_supported.return_value = True
-        mock_pyaudio.return_value = mock_audio_instance
+        first_audio.is_format_supported.return_value = True
+        second_audio = unittest.mock.Mock()
+        second_audio.get_device_count.return_value = len(second_devices)
+        second_audio.get_device_info_by_index.side_effect = lambda index: second_devices[index]
+        second_audio.get_default_input_device_info.return_value = {
+            "index": 0,
+            "name": "Laptop Digital Mic",
+        }
+        second_audio.is_format_supported.return_value = True
+        mock_pyaudio.side_effect = [first_audio, second_audio]
 
         with unittest.mock.patch.dict(
             os.environ,
@@ -448,11 +454,75 @@ class TestAudioRecorder:
             recorder = audio_recorder.AudioRecorder(test_config)
             assert recorder._recording_engine.input_device_index is None
 
-            active_devices = second_devices
-            recorder.refresh_input_device()
+            with unittest.mock.patch.object(
+                recorder,
+                "_available_pipewire_sources",
+                return_value={"Laptop Digital Mic", "External USB Microphone"},
+            ):
+                recorder.refresh_input_device()
 
         assert recorder._recording_engine.input_device_index == 1
-        mock_pyaudio.assert_called_once()
+        assert mock_pyaudio.call_count == EXPECTED_PYAUDIO_REINIT_CALL_COUNT
+        first_audio.terminate.assert_called_once()
+
+    @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
+    def test_refresh_input_device_rebuilds_when_active_source_disappears(
+        self, mock_pyaudio: unittest.mock.Mock
+    ) -> None:
+        """Refresh should rebuild PyAudio when the active headset source vanished."""
+        headset_devices = [
+            {
+                "name": "bluez_input.C4:A9:B8:37:BD:CE",
+                "maxInputChannels": 1,
+                "defaultSampleRate": 48000,
+            },
+            {"name": "Laptop Digital Mic", "maxInputChannels": 2, "defaultSampleRate": 48000},
+        ]
+        fallback_devices = [
+            {"name": "Laptop Digital Mic", "maxInputChannels": 2, "defaultSampleRate": 48000},
+            {"name": "USB Audio Device", "maxInputChannels": 1, "defaultSampleRate": 48000},
+        ]
+        first_audio = unittest.mock.Mock()
+        first_audio.get_device_count.return_value = len(headset_devices)
+        first_audio.get_device_info_by_index.side_effect = lambda index: headset_devices[index]
+        first_audio.get_default_input_device_info.return_value = {
+            "index": 1,
+            "name": "Laptop Digital Mic",
+        }
+        first_audio.is_format_supported.return_value = True
+        second_audio = unittest.mock.Mock()
+        second_audio.get_device_count.return_value = len(fallback_devices)
+        second_audio.get_device_info_by_index.side_effect = lambda index: fallback_devices[index]
+        second_audio.get_default_input_device_info.return_value = {
+            "index": 0,
+            "name": "Laptop Digital Mic",
+        }
+        second_audio.is_format_supported.return_value = True
+        mock_pyaudio.side_effect = [first_audio, second_audio]
+
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "AUDIO_INPUT_DEVICE_NAME": "bluez_input.c4:a9:b8:37:bd:ce",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            recorder = audio_recorder.AudioRecorder(test_config)
+            assert recorder._recording_engine.input_device_index == 0
+
+            with unittest.mock.patch.object(
+                recorder,
+                "_available_pipewire_sources",
+                return_value={"Laptop Digital Mic", "USB Audio Device"},
+            ):
+                recorder.refresh_input_device()
+
+        assert recorder._recording_engine.input_device_index is None
+        assert recorder.get_active_input_source() == "Laptop Digital Mic"
+        assert mock_pyaudio.call_count == EXPECTED_PYAUDIO_REINIT_CALL_COUNT
+        first_audio.terminate.assert_called_once()
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_preferred_device_falls_back_to_default(

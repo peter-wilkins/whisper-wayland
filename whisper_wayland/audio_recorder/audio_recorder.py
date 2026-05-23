@@ -4,6 +4,7 @@ Main audio recorder orchestrator that coordinates all audio recording components
 """
 
 import logging
+import subprocess
 import typing
 
 import whisper_wayland as ww
@@ -14,6 +15,8 @@ from whisper_wayland.audio_recorder.audio_system_validator import (
 from whisper_wayland.audio_recorder.recording_engine import RecordingEngine, RecordingEngineError
 
 _logger = logging.getLogger(__name__)
+
+PACTL_SOURCE_NAME_FIELD_COUNT = 2
 
 
 class AudioRecordingError(Exception):
@@ -82,6 +85,10 @@ class AudioRecorder:
             return
 
         try:
+            if self._should_reinitialize_audio():
+                _logger.info("Refreshing PyAudio device list before selecting input")
+                self._reinitialize_recording_engine()
+
             input_device_index = self._audio_validator.find_preferred_input_device(
                 self._audio,
                 self.config,
@@ -175,6 +182,21 @@ class AudioRecorder:
         )
         self._replace_recording_engine(audio, input_device_index, input_device_name)
 
+    def _reinitialize_recording_engine(self) -> None:
+        """Recreate PyAudio so hotplugged devices are visible."""
+        old_engine = self._recording_engine
+        old_audio = self._audio
+        self._recording_engine = None
+        self._audio = None
+
+        try:
+            self._initialize_recording_engine()
+        finally:
+            if old_engine:
+                old_engine.close()
+            if old_audio:
+                old_audio.terminate()
+
     def _replace_recording_engine(
         self,
         audio: typing.Any,
@@ -196,6 +218,54 @@ class AudioRecorder:
             old_engine.close()
         if old_audio and old_audio is not audio:
             old_audio.terminate()
+
+    def _should_reinitialize_audio(self) -> bool:
+        """Return true when PipeWire source state says PyAudio may be stale."""
+        available_sources = self._available_pipewire_sources()
+        if available_sources is None:
+            return False
+
+        active_source = self._input_device_name.strip()
+        configured_source = self.config.audio_input_device_name.strip()
+
+        if self._is_concrete_source(active_source) and active_source not in available_sources:
+            _logger.info("Active audio source disappeared: %s", active_source)
+            return True
+
+        if (
+            configured_source
+            and active_source.lower() != configured_source.lower()
+            and any(configured_source in source.lower() for source in available_sources)
+        ):
+            _logger.info("Configured audio source appeared: %s", configured_source)
+            return True
+
+        return False
+
+    @staticmethod
+    def _available_pipewire_sources() -> set[str] | None:
+        """Return current pactl source names, or None if pactl is unavailable."""
+        result = subprocess.run(
+            ["pactl", "list", "short", "sources"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            return None
+
+        sources = set()
+        for line in result.stdout.splitlines():
+            fields = line.split()
+            if len(fields) >= PACTL_SOURCE_NAME_FIELD_COUNT:
+                sources.add(fields[1])
+        return sources
+
+    @staticmethod
+    def _is_concrete_source(source: str) -> bool:
+        """Return whether a PyAudio device name is a concrete PipeWire source name."""
+        normalized = source.lower()
+        return normalized.startswith(("alsa_input.", "bluez_input."))
 
     def __del__(self) -> None:
         """Cleanup resources on object destruction."""
