@@ -38,9 +38,9 @@ def _test_wav(sample_rate: int = TEST_SAMPLE_RATE, frame_count: int = TEST_FRAME
     return buffer.getvalue()
 
 
-def _constant_wav(sample: int) -> bytes:
+def _constant_wav(sample: int, frame_count: int = TEST_FRAME_COUNT) -> bytes:
     buffer = io.BytesIO()
-    payload = struct.pack(f"<{TEST_FRAME_COUNT}h", *([sample] * TEST_FRAME_COUNT))
+    payload = struct.pack(f"<{frame_count}h", *([sample] * frame_count))
     with wave.open(buffer, "wb") as wav_file:
         wav_file.setnchannels(1)
         wav_file.setsampwidth(2)
@@ -350,4 +350,112 @@ class TestCaptureTap:
         assert envelope["transcript"]["rejectedInsertionText"] == (
             "Thank you for watching."
         )
+        assert envelope["captureContext"]["membraneDecision"] == "needs_review"
+
+    def test_processor_suppresses_short_stock_signoff_hallucination(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Short stock signoff hallucinations are not pasted."""
+        audio_data = _constant_wav(120, frame_count=TEST_SAMPLE_RATE * 5)
+        text_inserter = unittest.mock.Mock()
+
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "CONTINUUM_CAPTURE_INLET_DIR": str(tmp_path),
+                "WHISPER_MODEL": "whisper-1",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            transcription_client = unittest.mock.Mock()
+            transcription_client.config = test_config
+            transcription_client.transcribe_audio.return_value = (
+                "That's it. Thank you. Thank you."
+            )
+            transcription_client.post_process_text.return_value = (
+                "That's it. Thank you. Thank you."
+            )
+            processor = TranscriptionProcessor(transcription_client, text_inserter)
+
+            processor.process_audio(audio_data)
+
+        text_inserter.insert_text.assert_not_called()
+        envelopes = list((tmp_path / "envelopes").glob("*.json"))
+        assert envelopes
+        envelope = json.loads(envelopes[0].read_text(encoding="utf-8"))
+        assert envelope["transcript"]["rawTranscriptText"] == ""
+        assert envelope["transcript"]["rejectedRawTranscriptText"] == (
+            "That's it. Thank you. Thank you."
+        )
+        assert envelope["captureContext"]["membraneDecision"] == "needs_review"
+
+    def test_processor_keeps_short_spoken_count(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Short valid speech near the hallucination cases still pastes."""
+        audio_data = _constant_wav(5000)
+        text_inserter = unittest.mock.Mock()
+
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "CONTINUUM_CAPTURE_INLET_DIR": str(tmp_path),
+                "WHISPER_MODEL": "whisper-1",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            transcription_client = unittest.mock.Mock()
+            transcription_client.config = test_config
+            transcription_client.transcribe_audio.return_value = "1, 2, 3, 4..."
+            transcription_client.post_process_text.return_value = "1, 2, 3, 4..."
+            processor = TranscriptionProcessor(transcription_client, text_inserter)
+
+            processor.process_audio(audio_data)
+
+        text_inserter.insert_text.assert_called_once_with("1, 2, 3, 4...")
+        envelopes = list((tmp_path / "envelopes").glob("*.json"))
+        assert envelopes
+        envelope = json.loads(envelopes[0].read_text(encoding="utf-8"))
+        assert envelope["transcript"]["rawTranscriptText"] == "1, 2, 3, 4..."
+        assert "rejectedRawTranscriptText" not in envelope["transcript"]
+        assert envelope["captureContext"]["membraneDecision"] == "accepted"
+
+    def test_processor_suppresses_short_punctuation_only_transcript(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Punctuation-only short transcripts are not pasted as user intent."""
+        audio_data = _constant_wav(5000)
+        text_inserter = unittest.mock.Mock()
+
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "CONTINUUM_CAPTURE_INLET_DIR": str(tmp_path),
+                "WHISPER_MODEL": "whisper-1",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            transcription_client = unittest.mock.Mock()
+            transcription_client.config = test_config
+            transcription_client.transcribe_audio.return_value = "..."
+            transcription_client.post_process_text.return_value = "..."
+            processor = TranscriptionProcessor(transcription_client, text_inserter)
+
+            processor.process_audio(audio_data)
+
+        text_inserter.insert_text.assert_not_called()
+        envelopes = list((tmp_path / "envelopes").glob("*.json"))
+        assert envelopes
+        envelope = json.loads(envelopes[0].read_text(encoding="utf-8"))
+        assert envelope["transcript"]["rawTranscriptText"] == ""
+        assert envelope["transcript"]["rejectedRawTranscriptText"] == "..."
         assert envelope["captureContext"]["membraneDecision"] == "needs_review"

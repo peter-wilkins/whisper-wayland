@@ -19,14 +19,16 @@ from whisper_wayland.transcription_client.realtime_streaming_client import (
 
 _logger = logging.getLogger(__name__)
 
-SHORT_HALLUCINATION_DURATION_SECONDS = 4.0
+SHORT_HALLUCINATION_DURATION_SECONDS = 6.0
 MAX_SILENT_TRANSCRIPT_WORDS = 3
 SUPPRESSION_REASON_LIKELY_EMPTY_RECORDING_HALLUCINATION = (
     "likely-empty-recording-hallucination"
 )
 KNOWN_SHORT_HALLUCINATIONS = {
     "thank you for watching",
+    "thank you thank you",
     "thanks for watching",
+    "thats it thank you thank you",
     "go to beadaholique com for all of your beading supply needs",
 }
 
@@ -208,6 +210,12 @@ class TranscriptionProcessor:
             raw_transcript_text
         )
 
+        if (
+            not normalized_text
+            and stats.duration_seconds <= SHORT_HALLUCINATION_DURATION_SECONDS
+        ):
+            return SUPPRESSION_REASON_LIKELY_EMPTY_RECORDING_HALLUCINATION
+
         if stats.likely_silent and (
             TranscriptionProcessor._word_count(normalized_text) <= MAX_SILENT_TRANSCRIPT_WORDS
             or normalized_text in KNOWN_SHORT_HALLUCINATIONS
@@ -226,6 +234,12 @@ class TranscriptionProcessor:
     def _normalize_transcript_for_guard(text: str) -> str:
         normalized = text.lower().strip()
         normalized = normalized.replace(".com", " com")
+        normalized = (
+            normalized.replace("'", "")
+            .replace("\u2018", "")
+            .replace("\u2019", "")
+            .replace("`", "")
+        )
         normalized = re.sub(r"[^a-z0-9]+", " ", normalized)
         return " ".join(normalized.split())
 
