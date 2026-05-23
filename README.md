@@ -108,10 +108,12 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
 | `HOTKEY` | Push-to-talk key or mouse-button combination | `ctrl+compose` | No |
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
-| `TEXT_INSERTION_METHOD` | Text insertion backend (`auto`, `ydotool`, `wtype`, `xdotool`, or `clipboard`) | `auto` | No |
+| `TEXT_INSERTION_METHOD` | Text insertion backend (`auto`, `tmux`, `ydotool`, `wtype`, `xdotool`, or `clipboard`) | `auto` | No |
+| `TEXT_TMUX_TARGET_PANE` | Explicit tmux pane target for `TEXT_INSERTION_METHOD=tmux`, e.g. `%1` or `session:0.0` | - | No |
 | `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard fallback insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
 | `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, `snappy`, or `caveman`) | `raw` | No |
 | `TEXT_POST_PROCESS_MODEL` | OpenAI text model for transcript rewriting, or `local` for local caveman cleanup | `gpt-4.1-mini` | No |
+| `TEXT_POST_PROCESS_PROVIDERS` | Ordered comma-separated rewrite providers for future fallback wiring | `local,openai` | No |
 | `CONTINUUM_CAPTURE_INLET_DIR` | Optional local Continuum audio capture file-drop directory | - | No |
 | `STREAMING_TRANSCRIPTION_ENABLED` | Enable experimental OpenAI Realtime streaming transcription | `false` | No |
 | `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `gpt-realtime-whisper` | No |

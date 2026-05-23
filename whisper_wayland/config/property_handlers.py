@@ -361,7 +361,7 @@ class PropertyHandlers:
             Text insertion method name
         """
         method = os.getenv("TEXT_INSERTION_METHOD", "auto").strip().lower()
-        valid_methods = ["auto", "wtype", "ydotool", "xdotool", "clipboard"]
+        valid_methods = ["auto", "tmux", "wtype", "ydotool", "xdotool", "clipboard"]
         if method not in valid_methods:
             _logger.warning(
                 f"Invalid TEXT_INSERTION_METHOD '{method}', using auto. "
@@ -369,6 +369,10 @@ class PropertyHandlers:
             )
             return "auto"
         return method
+
+    def get_text_tmux_target_pane(self) -> str:
+        """Get explicit tmux target pane for tmux insertion."""
+        return os.getenv("TEXT_TMUX_TARGET_PANE", "").strip()
 
     def get_text_paste_hotkey(self) -> str:
         """Get hotkey used to paste clipboard text.
@@ -409,6 +413,16 @@ class PropertyHandlers:
             OpenAI text model name
         """
         return os.getenv("TEXT_POST_PROCESS_MODEL", "gpt-4.1-mini").strip()
+
+    def get_text_post_process_providers(self) -> list[str]:
+        """Get ordered transcript rewrite provider names."""
+        raw_providers = os.getenv("TEXT_POST_PROCESS_PROVIDERS", "local,openai")
+        providers = [
+            provider.strip().lower()
+            for provider in raw_providers.split(",")
+            if provider.strip()
+        ]
+        return providers or ["local", "openai"]
 
     def get_continuum_capture_inlet_dir(self) -> str:
         """Get optional Continuum local capture inlet directory."""

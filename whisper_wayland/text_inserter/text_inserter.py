@@ -57,6 +57,7 @@ class TextInserter:
         self._method_executors = MethodExecutors.new(
             self._available_methods,
             config.text_paste_hotkey,
+            config.text_tmux_target_pane,
         )
         self._fallback_handler = FallbackHandler.new(self._method_executors)
 

@@ -38,35 +38,31 @@ class CapabilityTester:
             return False
 
         try:
-            # For testing, we'll just verify the command exists and runs without immediate error
-            if preferred_method == TextInsertionMethod.WTYPE:
-                result = subprocess.run(
-                    ["wtype", "--version"], check=False, capture_output=True, timeout=5
-                )
-                return result.returncode == 0
+            if preferred_method == TextInsertionMethod.CLIPBOARD:
+                # Test clipboard access
+                return shutil.which("wl-copy") is not None or shutil.which("xclip") is not None
 
-            elif preferred_method == TextInsertionMethod.YDOTOOL:
+            commands = {
+                TextInsertionMethod.TMUX: ["tmux", "-V"],
+                TextInsertionMethod.WTYPE: ["wtype", "--version"],
+                TextInsertionMethod.YDOTOOL: ["ydotool", "--help"],
+                TextInsertionMethod.XDOTOOL: ["xdotool", "--version"],
+            }
+            command = commands.get(preferred_method)
+            if command:
                 result = subprocess.run(
-                    ["ydotool", "--help"], check=False, capture_output=True, timeout=5
-                )
-                return result.returncode == 0
-
-            elif preferred_method == TextInsertionMethod.XDOTOOL:
-                result = subprocess.run(
-                    ["xdotool", "--version"],
+                    command,
                     check=False,
                     capture_output=True,
                     timeout=5,
                 )
                 return result.returncode == 0
 
-            elif preferred_method == TextInsertionMethod.CLIPBOARD:
-                # Test clipboard access
-                return shutil.which("wl-copy") is not None or shutil.which("xclip") is not None
-
         except Exception as e:
             _logger.error(f"Text insertion test failed: {e}")
             return False
+
+        return False
 
     @staticmethod
     def new() -> "CapabilityTester":

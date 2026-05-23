@@ -18,6 +18,7 @@ class MethodExecutors:
     """Executes text insertion using various methods."""
 
     CLIPBOARD_RESTORE_DELAY_SECS = 0.35
+    TMUX_BUFFER_NAME = "whisper-wayland-transcript"
 
     YDOTOOL_PASTE_HOTKEYS = {
         "ctrl+v": ["29:1", "47:1", "47:0", "29:0"],
@@ -28,15 +29,18 @@ class MethodExecutors:
         self,
         available_methods: dict[TextInsertionMethod, bool],
         paste_hotkey: str = "ctrl+v",
+        tmux_target_pane: str = "",
     ) -> None:
         """Initialize method executors.
 
         Args:
             available_methods: Dictionary of available methods
             paste_hotkey: Hotkey used to paste clipboard text
+            tmux_target_pane: Explicit tmux target pane, e.g. "session:0.0" or "%1"
         """
         self._available_methods = available_methods
         self._paste_hotkey = paste_hotkey
+        self._tmux_target_pane = tmux_target_pane
 
     def insert_with_method(self, method: TextInsertionMethod, text: str) -> bool:
         """Insert text using specific method.
@@ -49,14 +53,15 @@ class MethodExecutors:
             True if successful, False otherwise
         """
         try:
-            if method == TextInsertionMethod.WTYPE:
-                return self._insert_with_wtype(text)
-            elif method == TextInsertionMethod.YDOTOOL:
-                return self._insert_with_ydotool(text)
-            elif method == TextInsertionMethod.XDOTOOL:
-                return self._insert_with_xdotool(text)
-            elif method == TextInsertionMethod.CLIPBOARD:
-                return self._insert_with_clipboard(text)
+            handlers = {
+                TextInsertionMethod.TMUX: self._insert_with_tmux,
+                TextInsertionMethod.WTYPE: self._insert_with_wtype,
+                TextInsertionMethod.YDOTOOL: self._insert_with_ydotool,
+                TextInsertionMethod.XDOTOOL: self._insert_with_xdotool,
+                TextInsertionMethod.CLIPBOARD: self._insert_with_clipboard,
+            }
+            handler = handlers.get(method)
+            return handler(text) if handler else False
 
         except subprocess.CalledProcessError as e:
             _logger.error(f"Command failed for {method.value}: {e}")
@@ -64,6 +69,55 @@ class MethodExecutors:
         except Exception as e:
             _logger.error(f"Unexpected error with {method.value}: {e}")
             return False
+
+    def _insert_with_tmux(self, text: str) -> bool:
+        """Insert text by loading a tmux paste buffer into an explicit target pane."""
+        target_pane = self._tmux_target_pane.strip()
+        if not target_pane:
+            _logger.warning("tmux insertion skipped: TEXT_TMUX_TARGET_PANE is not set")
+            return False
+
+        _logger.debug("Inserting text into tmux target %s", target_pane)
+        load_result = subprocess.run(
+            ["tmux", "load-buffer", "-b", self.TMUX_BUFFER_NAME, "-"],
+            check=False,
+            input=text,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if load_result.returncode != 0:
+            _logger.warning(
+                "tmux load-buffer failed with code %s: %s",
+                load_result.returncode,
+                load_result.stderr,
+            )
+            return False
+
+        paste_result = subprocess.run(
+            [
+                "tmux",
+                "paste-buffer",
+                "-d",
+                "-b",
+                self.TMUX_BUFFER_NAME,
+                "-t",
+                target_pane,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if paste_result.returncode != 0:
+            _logger.warning(
+                "tmux paste-buffer failed with code %s: %s",
+                paste_result.returncode,
+                paste_result.stderr,
+            )
+            return False
+
+        return True
 
     def _insert_with_wtype(self, text: str) -> bool:
         """Insert text using wtype (Wayland).
@@ -293,14 +347,16 @@ class MethodExecutors:
     def new(
         available_methods: dict[TextInsertionMethod, bool],
         paste_hotkey: str = "ctrl+v",
+        tmux_target_pane: str = "",
     ) -> "MethodExecutors":
         """Create method executors instance.
 
         Args:
             available_methods: Dictionary of available methods
             paste_hotkey: Hotkey used to paste clipboard text
+            tmux_target_pane: Explicit tmux target pane
 
         Returns:
             MethodExecutors instance
         """
-        return MethodExecutors(available_methods, paste_hotkey)
+        return MethodExecutors(available_methods, paste_hotkey, tmux_target_pane)

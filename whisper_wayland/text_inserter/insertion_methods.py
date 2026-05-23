@@ -13,6 +13,7 @@ _logger = logging.getLogger(__name__)
 class TextInsertionMethod(enum.Enum):
     """Available text insertion methods."""
 
+    TMUX = "tmux"  # Direct tmux pane paste, bypasses system clipboard
     WTYPE = "wtype"  # Wayland text insertion (preferred)
     YDOTOOL = "ydotool"  # Universal tool for Wayland/X11
     XDOTOOL = "xdotool"  # X11 text insertion
@@ -45,6 +46,11 @@ class MethodDetector:
         available_methods[TextInsertionMethod.YDOTOOL] = ydotool_available
         if ydotool_available:
             _logger.debug("ydotool available for universal text insertion")
+
+        tmux_available = shutil.which("tmux") is not None
+        available_methods[TextInsertionMethod.TMUX] = tmux_available
+        if tmux_available:
+            _logger.debug("tmux available for direct pane text insertion")
 
         # Check for xdotool (X11)
         xdotool_available = shutil.which("xdotool") is not None

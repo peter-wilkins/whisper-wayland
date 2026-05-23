@@ -30,6 +30,8 @@ DEFAULT_NORMALIZATION_MAX_GAIN = 6
 CUSTOM_NORMALIZATION_TARGET_RMS_DBFS = -24
 CUSTOM_NORMALIZATION_MAX_PEAK_AMPLITUDE = 0.9
 CUSTOM_NORMALIZATION_MAX_GAIN = 4
+DEFAULT_TEXT_POST_PROCESS_PROVIDERS = ["local", "openai"]
+CUSTOM_TEXT_POST_PROCESS_PROVIDERS = ["local-api", "openai", "local"]
 
 
 class TestConfig:
@@ -75,7 +77,12 @@ class TestConfig:
                 assert test_config.log_level == "INFO"
                 assert test_config.hotkey == "ctrl+compose"
                 assert test_config.hotkey_mode == "push_to_talk"
+                assert test_config.text_tmux_target_pane == ""
                 assert test_config.text_paste_hotkey == "ctrl+v"
+                assert (
+                    test_config.text_post_process_providers
+                    == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
+                )
                 assert test_config.continuum_capture_inlet_dir == ""
                 assert not test_config.streaming_transcription_enabled
                 assert test_config.streaming_transcription_model == "gpt-realtime-whisper"
@@ -137,9 +144,11 @@ class TestConfig:
             "LOG_LEVEL": "DEBUG",
             "HOTKEY": "alt+space",
             "HOTKEY_MODE": "toggle",
+            "TEXT_TMUX_TARGET_PANE": "whisper-wayland:0.0",
             "TEXT_PASTE_HOTKEY": "ctrl+shift+v",
             "TEXT_POST_PROCESS_MODE": "snappy",
             "TEXT_POST_PROCESS_MODEL": "gpt-test-model",
+            "TEXT_POST_PROCESS_PROVIDERS": "local-api, openai, local",
             "CONTINUUM_CAPTURE_INLET_DIR": "/tmp/continuum/audio",
             "STREAMING_TRANSCRIPTION_ENABLED": "true",
             "STREAMING_TRANSCRIPTION_MODEL": "whisper-1",
@@ -185,9 +194,11 @@ class TestConfig:
             assert test_config.log_level == "DEBUG"
             assert test_config.hotkey == "alt+space"
             assert test_config.hotkey_mode == "toggle"
+            assert test_config.text_tmux_target_pane == "whisper-wayland:0.0"
             assert test_config.text_paste_hotkey == "ctrl+shift+v"
             assert test_config.text_post_process_mode == "snappy"
             assert test_config.text_post_process_model == "gpt-test-model"
+            assert test_config.text_post_process_providers == CUSTOM_TEXT_POST_PROCESS_PROVIDERS
             assert test_config.continuum_capture_inlet_dir == "/tmp/continuum/audio"
             assert test_config.streaming_transcription_enabled
             assert test_config.streaming_transcription_model == "whisper-1"
@@ -366,6 +377,10 @@ class TestConfig:
                 test_config = ww.Config("/nonexistent/test.env")
                 assert test_config.text_paste_hotkey == "ctrl+v"
 
+            with unittest.mock.patch.dict(os.environ, {"TEXT_INSERTION_METHOD": "tmux"}):
+                test_config = ww.Config("/nonexistent/test.env")
+                assert test_config.text_insertion_method == "tmux"
+
     def test_config_text_post_process_mode(self) -> None:
         """Test text post-processing mode configuration."""
         with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
@@ -439,6 +454,7 @@ class TestConfig:
             assert summary["audio_level_monitor_enabled"] is False
             assert summary["audio_level_manage_mics_enabled"] is False
             assert summary["audio_transcription_normalization_enabled"] is False
+            assert summary["text_post_process_providers"] == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
             assert "sk-sensitive123" not in str(summary)
 
     def test_config_get_static_method(self) -> None:

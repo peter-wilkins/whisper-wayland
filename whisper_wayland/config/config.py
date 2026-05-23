@@ -208,6 +208,11 @@ class Config:
         return self._property_handlers.get_text_insertion_method()
 
     @property
+    def text_tmux_target_pane(self) -> str:
+        """Explicit tmux target pane for tmux insertion."""
+        return self._property_handlers.get_text_tmux_target_pane()
+
+    @property
     def text_paste_hotkey(self) -> str:
         """Hotkey used to paste clipboard text."""
         return self._property_handlers.get_text_paste_hotkey()
@@ -221,6 +226,11 @@ class Config:
     def text_post_process_model(self) -> str:
         """Model used for transcript post-processing."""
         return self._property_handlers.get_text_post_process_model()
+
+    @property
+    def text_post_process_providers(self) -> list[str]:
+        """Ordered transcript rewrite providers."""
+        return self._property_handlers.get_text_post_process_providers()
 
     @property
     def continuum_capture_inlet_dir(self) -> str:

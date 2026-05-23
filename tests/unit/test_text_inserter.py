@@ -13,6 +13,7 @@ import whisper_wayland.text_inserter as text_inserter
 import whisper_wayland.text_inserter as text_inserter_module
 
 CLIPBOARD_RESTORE_CALL_COUNT = 4
+TMUX_TARGET_PANE = "whisper-wayland:0.0"
 
 
 class TestTextInsertionMethod:
@@ -20,6 +21,7 @@ class TestTextInsertionMethod:
 
     def test_enum_values(self) -> None:
         """Test that enum has correct values."""
+        assert text_inserter.TextInsertionMethod.TMUX.value == "tmux"
         assert text_inserter.TextInsertionMethod.WTYPE.value == "wtype"
         assert text_inserter.TextInsertionMethod.YDOTOOL.value == "ydotool"
         assert text_inserter.TextInsertionMethod.XDOTOOL.value == "xdotool"
@@ -74,6 +76,7 @@ class TestTextInserter:
 
             assert inserter._available_methods[text_inserter.TextInsertionMethod.WTYPE] is False
             assert inserter._available_methods[text_inserter.TextInsertionMethod.YDOTOOL] is True
+            assert inserter._available_methods[text_inserter.TextInsertionMethod.TMUX] is False
             assert inserter._available_methods[text_inserter.TextInsertionMethod.XDOTOOL] is True
             assert inserter._available_methods[text_inserter.TextInsertionMethod.CLIPBOARD] is True
 
@@ -92,6 +95,21 @@ class TestTextInserter:
             inserter = text_inserter.TextInserter(xdotool_config)
 
             assert inserter._preferred_method == text_inserter.TextInsertionMethod.XDOTOOL
+
+    def test_tmux_method_configuration_respected(
+        self, mock_shutil_which: unittest.mock.Mock
+    ) -> None:
+        """Test that configured tmux method is used when available."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {"OPENAI_API_KEY": "sk-test123", "TEXT_INSERTION_METHOD": "tmux"},
+        ):
+            mock_shutil_which.side_effect = lambda tool: tool == "tmux"
+
+            tmux_config = ww.Config()
+            inserter = text_inserter.TextInserter(tmux_config)
+
+            assert inserter._preferred_method == text_inserter.TextInsertionMethod.TMUX
 
     def test_preferred_method_fallback_when_configured_unavailable(self) -> None:
         """Test fallback when configured method is unavailable."""
@@ -272,6 +290,50 @@ class TestTextInserter:
                 text=True,
                 timeout=10,
             )
+
+    def test_insert_with_tmux(self, text_inserter: text_inserter_module.TextInserter) -> None:
+        """Test tmux insertion method."""
+        text_inserter._method_executors._tmux_target_pane = TMUX_TARGET_PANE
+        mock_result = unittest.mock.Mock()
+        mock_result.returncode = 0
+
+        with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
+            result = text_inserter._method_executors._insert_with_tmux("test text")
+
+            assert result is True
+            mock_run.assert_any_call(
+                ["tmux", "load-buffer", "-b", "whisper-wayland-transcript", "-"],
+                check=False,
+                input="test text",
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            mock_run.assert_any_call(
+                [
+                    "tmux",
+                    "paste-buffer",
+                    "-d",
+                    "-b",
+                    "whisper-wayland-transcript",
+                    "-t",
+                    TMUX_TARGET_PANE,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+
+    def test_insert_with_tmux_requires_target(
+        self, text_inserter: text_inserter_module.TextInserter
+    ) -> None:
+        """tmux insertion is explicit-target only."""
+        with unittest.mock.patch("subprocess.run") as mock_run:
+            result = text_inserter._method_executors._insert_with_tmux("test text")
+
+        assert result is False
+        mock_run.assert_not_called()
 
     def test_insert_with_xdotool(self, text_inserter: text_inserter_module.TextInserter) -> None:
         """Test xdotool insertion method."""
