@@ -81,6 +81,7 @@ class ConfigValidator:
             "text_paste_hotkey": config_instance.text_paste_hotkey,
             "text_post_process_mode": config_instance.text_post_process_mode,
             "text_post_process_model": config_instance.text_post_process_model,
+            "continuum_capture_inlet_dir": config_instance.continuum_capture_inlet_dir,
         }
 
     @staticmethod

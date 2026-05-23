@@ -170,6 +170,11 @@ class Config:
         """Model used for transcript post-processing."""
         return self._property_handlers.get_text_post_process_model()
 
+    @property
+    def continuum_capture_inlet_dir(self) -> str:
+        """Local Continuum capture inlet directory, blank when disabled."""
+        return self._property_handlers.get_continuum_capture_inlet_dir()
+
     def setup_logging(self, log_file: typing.Optional[str] = None) -> None:
         """Set up logging configuration for the application.
 

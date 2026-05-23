@@ -107,6 +107,7 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard fallback insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
 | `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, `snappy`, or `caveman`) | `raw` | No |
 | `TEXT_POST_PROCESS_MODEL` | OpenAI text model for transcript rewriting, or `local` for local caveman cleanup | `gpt-4.1-mini` | No |
+| `CONTINUUM_CAPTURE_INLET_DIR` | Optional local Continuum audio capture file-drop directory | - | No |
 | `STREAMING_TRANSCRIPTION_ENABLED` | Enable experimental OpenAI Realtime streaming transcription | `false` | No |
 | `STREAMING_TRANSCRIPTION_MODEL` | Model for Realtime streaming transcription | `gpt-realtime-whisper` | No |
 | `STREAMING_SAMPLE_RATE` | PCM sample rate sent to Realtime streaming transcription | `24000` | No |
@@ -195,7 +196,8 @@ Whisper Wayland uses OpenAI's API on a pay-per-use basis:
 ## Privacy & Security
 
 - **Audio processing**: Audio is sent to OpenAI for transcription only
-- **No local storage**: Audio data is not saved to your computer
+- **No local storage by default**: Audio data is not saved locally unless `CONTINUUM_CAPTURE_INLET_DIR` is set
+- **Opt-in Continuum capture**: When enabled, batch recordings are written only to local WAV/JSON files before text insertion
 - **API key security**: Store your API key securely in `.env` file
 - **Network only**: Service only activates when you press the hotkey
 

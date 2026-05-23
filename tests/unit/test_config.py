@@ -44,6 +44,7 @@ class TestConfig:
                 assert test_config.hotkey == "ctrl+compose"
                 assert test_config.hotkey_mode == "push_to_talk"
                 assert test_config.text_paste_hotkey == "ctrl+v"
+                assert test_config.continuum_capture_inlet_dir == ""
                 assert not test_config.streaming_transcription_enabled
                 assert test_config.streaming_transcription_model == "gpt-realtime-whisper"
                 assert test_config.streaming_sample_rate == STREAMING_DEFAULT_SAMPLE_RATE
@@ -94,6 +95,7 @@ class TestConfig:
             "TEXT_PASTE_HOTKEY": "ctrl+shift+v",
             "TEXT_POST_PROCESS_MODE": "snappy",
             "TEXT_POST_PROCESS_MODEL": "gpt-test-model",
+            "CONTINUUM_CAPTURE_INLET_DIR": "/tmp/continuum/audio",
             "STREAMING_TRANSCRIPTION_ENABLED": "true",
             "STREAMING_TRANSCRIPTION_MODEL": "whisper-1",
             "STREAMING_SAMPLE_RATE": "16000",
@@ -119,6 +121,7 @@ class TestConfig:
             assert test_config.text_paste_hotkey == "ctrl+shift+v"
             assert test_config.text_post_process_mode == "snappy"
             assert test_config.text_post_process_model == "gpt-test-model"
+            assert test_config.continuum_capture_inlet_dir == "/tmp/continuum/audio"
             assert test_config.streaming_transcription_enabled
             assert test_config.streaming_transcription_model == "whisper-1"
             assert test_config.streaming_sample_rate == STREAMING_CUSTOM_SAMPLE_RATE
@@ -336,6 +339,7 @@ class TestConfig:
 
             assert summary["openai_api_key"] == "***"
             assert summary["whisper_model"] == "gpt-4o-transcribe"
+            assert summary["continuum_capture_inlet_dir"] == ""
             assert "sk-sensitive123" not in str(summary)
 
     def test_config_get_static_method(self) -> None:

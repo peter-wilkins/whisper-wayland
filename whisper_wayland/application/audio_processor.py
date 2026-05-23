@@ -5,10 +5,20 @@ Handles audio transcription with error handling and logging.
 
 import logging
 import typing
+from dataclasses import dataclass
 
 import whisper_wayland as ww
 
 _logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class BatchTranscriptionResult:
+    """Raw and insertion text from a batch transcription."""
+
+    raw_text: str
+    insertion_text: str
+    post_process_mode: str
 
 
 class AudioProcessor:
@@ -31,20 +41,31 @@ class AudioProcessor:
         Returns:
             Transcribed text or None if transcription failed
         """
+        result = self.transcribe_audio_with_result(audio_data)
+        return result.insertion_text if result else None
+
+    def transcribe_audio_with_result(
+        self, audio_data: bytes
+    ) -> typing.Optional[BatchTranscriptionResult]:
+        """Transcribe audio and preserve raw and post-processed text."""
         try:
             _logger.info("Starting audio transcription...")
-            transcribed_text = self.transcription_client.transcribe_audio(audio_data)
+            raw_text = self.transcription_client.transcribe_audio(audio_data)
 
-            if transcribed_text:
-                transcribed_text = self.transcription_client.post_process_text(transcribed_text)
+            if raw_text:
+                insertion_text = self.transcription_client.post_process_text(raw_text)
                 preview_len = ww.Constants.TRANSCRIPTION_PREVIEW_LENGTH
-                preview_text = transcribed_text[:preview_len]
-                ellipsis = "..." if len(transcribed_text) > preview_len else ""
+                preview_text = insertion_text[:preview_len]
+                ellipsis = "..." if len(insertion_text) > preview_len else ""
                 _logger.info(f"Transcription completed: '{preview_text}{ellipsis}'")
-            else:
-                _logger.warning("Transcription returned empty result")
+                return BatchTranscriptionResult(
+                    raw_text=raw_text,
+                    insertion_text=insertion_text,
+                    post_process_mode=self.transcription_client.config.text_post_process_mode,
+                )
 
-            return transcribed_text
+            _logger.warning("Transcription returned empty result")
+            return None
 
         except ww.TranscriptionError as e:
             _logger.error(f"Transcription error: {e}")

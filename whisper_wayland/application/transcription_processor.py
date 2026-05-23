@@ -8,6 +8,7 @@ import typing
 
 import whisper_wayland as ww
 from whisper_wayland.application.audio_processor import AudioProcessor
+from whisper_wayland.application.capture_tap import CaptureTap
 from whisper_wayland.application.text_handler import TextHandler
 from whisper_wayland.transcription_client.realtime_streaming_client import (
     RealtimeStreamingTranscriptionClient,
@@ -36,6 +37,7 @@ class TranscriptionProcessor:
         self.text_handler = TextHandler.new(text_inserter)
         self.status_indicator = status_indicator
         self._transcription_client = transcription_client
+        self._capture_tap = CaptureTap(transcription_client.config)
         streaming_enabled = (
             getattr(transcription_client.config, "streaming_transcription_enabled", False) is True
         )
@@ -109,10 +111,17 @@ class TranscriptionProcessor:
             audio_data: Audio data to process
         """
         try:
-            transcribed_text = self.audio_processor.transcribe_audio(audio_data)
+            transcription_result = self.audio_processor.transcribe_audio_with_result(audio_data)
 
-            if transcribed_text:
-                self._handle_insert_result(self.text_handler.insert_text(transcribed_text))
+            if transcription_result:
+                self._capture_tap.write(
+                    audio_data=audio_data,
+                    raw_transcript_text=transcription_result.raw_text,
+                    insertion_text=transcription_result.insertion_text,
+                )
+                self._handle_insert_result(
+                    self.text_handler.insert_text(transcription_result.insertion_text)
+                )
             else:
                 _logger.info("No transcription result")
                 self._show_error("No transcript")

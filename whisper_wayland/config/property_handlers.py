@@ -333,6 +333,10 @@ class PropertyHandlers:
         """
         return os.getenv("TEXT_POST_PROCESS_MODEL", "gpt-4.1-mini").strip()
 
+    def get_continuum_capture_inlet_dir(self) -> str:
+        """Get optional Continuum local capture inlet directory."""
+        return os.getenv("CONTINUUM_CAPTURE_INLET_DIR", "").strip()
+
     @staticmethod
     def new() -> "PropertyHandlers":
         """Create property handlers instance.
