@@ -4,15 +4,22 @@ Core audio recording engine with threading and stream management.
 """
 
 import logging
+import math
 import threading
 import time
 import typing
+from collections import deque
 
 import pyaudio
 
 import whisper_wayland as ww
 
 _logger = logging.getLogger(__name__)
+
+STREAM_READY_TIMEOUT_SECS = 1.0
+THREAD_JOIN_TIMEOUT_SECS = 5.0
+READER_RETRY_SLEEP_SECS = 0.05
+MS_PER_SECOND = 1000
 
 
 class RecordingEngineError(Exception):
@@ -43,11 +50,33 @@ class RecordingEngine:
         self._effective_sample_rate = self._resolve_sample_rate(audio, input_device_index, config)
         self._stream: typing.Optional[pyaudio.Stream] = None
         self._recording = False
-        self._recording_thread: typing.Optional[threading.Thread] = None
-        self._recording_started_event = threading.Event()
-        self._recording_start_error: typing.Optional[str] = None
-        self._audio_data: typing.Optional[bytes] = None
+        self._recording_started_at = 0.0
+        self._max_duration_logged = False
+        self._reader_thread: typing.Optional[threading.Thread] = None
+        self._reader_stop_event = threading.Event()
+        self._reader_started_event = threading.Event()
+        self._preroll_frames: deque[bytes] = deque(maxlen=self._preroll_chunk_count())
+        self._recording_frames: typing.Optional[list[bytes]] = None
         self._lock = threading.Lock()
+
+    def prepare_stream(self) -> None:
+        """Open and start the input stream ahead of the first hotkey press."""
+        with self._lock:
+            if self._reader_thread and self._reader_thread.is_alive():
+                return
+
+            started_at = time.monotonic()
+            try:
+                self._prepare_stream_locked()
+                elapsed_ms = (time.monotonic() - started_at) * MS_PER_SECOND
+                _logger.info(
+                    "Audio input stream warmed in %.0fms with %.1fs pre-roll",
+                    elapsed_ms,
+                    self._config.audio_preroll_seconds,
+                )
+            except Exception as e:
+                self._close_stream_locked()
+                _logger.warning("Could not pre-open audio input stream: %s", e)
 
     def start_recording(self) -> None:
         """Start audio recording in a separate thread.
@@ -61,20 +90,22 @@ class RecordingEngine:
                 return
 
             try:
+                started_at = time.monotonic()
+                if not self._reader_thread or not self._reader_thread.is_alive():
+                    self._prepare_stream_locked()
+
                 self._recording = True
-                self._recording_started_event = threading.Event()
-                self._recording_start_error = None
-                self._audio_data = None
-                self._recording_thread = threading.Thread(target=self._record_audio, daemon=True)
-                self._recording_thread.start()
+                self._recording_started_at = time.monotonic()
+                self._max_duration_logged = False
+                self._recording_frames = list(self._preroll_frames)
+                preroll_count = len(self._recording_frames)
 
-                if not self._recording_started_event.wait(timeout=1.0):
-                    _logger.warning("Audio stream did not report ready within 1s")
-                if self._recording_start_error:
-                    self._recording = False
-                    raise RecordingEngineError(self._recording_start_error)
-
-                _logger.info("Audio recording started")
+                elapsed_ms = (time.monotonic() - started_at) * MS_PER_SECOND
+                _logger.info(
+                    "Audio recording started in %.0fms with %d pre-roll chunk(s)",
+                    elapsed_ms,
+                    preroll_count,
+                )
             except Exception as e:
                 self._recording = False
                 _logger.error(f"Failed to start recording: {e}")
@@ -89,103 +120,159 @@ class RecordingEngine:
         Raises:
             RecordingEngineError: If stopping recording fails
         """
-        with self._lock:
-            if not self._recording:
-                _logger.warning("No recording in progress")
-                return None
+        try:
+            with self._lock:
+                frames = self._recording_frames
+                if not self._recording and frames is None:
+                    _logger.warning("No recording in progress")
+                    return None
 
-            try:
                 self._recording = False
+                self._recording_frames = None
                 _logger.debug("Stopping audio recording...")
 
-                # Wait for recording thread to finish
-                if self._recording_thread and self._recording_thread.is_alive():
-                    self._recording_thread.join(timeout=5.0)
-                    if self._recording_thread.is_alive():
-                        _logger.error("Recording thread did not stop within timeout")
-                        raise RecordingEngineError("Recording thread timeout")
+            audio_data = self._frames_to_wav(frames or [])
 
-                self._cleanup_stream()
+            if audio_data:
+                _logger.info(f"Audio recording stopped, captured {len(audio_data)} bytes")
+            else:
+                _logger.warning("No audio data captured")
 
-                audio_data = self._audio_data
-                self._audio_data = None
-                self._recording_thread = None
-
-                if audio_data:
-                    _logger.info(f"Audio recording stopped, captured {len(audio_data)} bytes")
-                else:
-                    _logger.warning("No audio data captured")
-
-                return audio_data
-
-            except Exception as e:
-                _logger.error(f"Failed to stop recording: {e}")
-                raise RecordingEngineError(f"Failed to stop recording: {e}") from e
-
-    def _record_audio(self) -> None:
-        """Internal method to handle audio recording in separate thread."""
-        frames = []
-        start_time = time.time()
-        max_duration = self._config.max_recording_duration
-
-        try:
-            self._stream = self._audio.open(
-                format=pyaudio.paInt16,
-                channels=1,
-                rate=self._effective_sample_rate,
-                input=True,
-                frames_per_buffer=self._config.audio_chunk_size,
-                input_device_index=self._input_device_index,
-            )
-
-            _logger.debug(f"Audio stream opened, recording for up to {max_duration}s")
-            self._recording_started_event.set()
-
-            while self._recording:
-                if time.time() - start_time >= max_duration:
-                    _logger.info(f"Maximum recording duration ({max_duration}s) reached")
-                    break
-
-                try:
-                    data = self._stream.read(
-                        self._config.audio_chunk_size, exception_on_overflow=False
-                    )
-                    frames.append(data)
-                except Exception as e:
-                    _logger.error(f"Error reading audio data: {e}")
-                    break
+            return audio_data
 
         except Exception as e:
-            self._recording_start_error = f"Error setting up audio stream: {e}"
-            self._recording_started_event.set()
-            _logger.error(self._recording_start_error)
-            return
+            _logger.error(f"Failed to stop recording: {e}")
+            raise RecordingEngineError(f"Failed to stop recording: {e}") from e
 
-        finally:
-            self._cleanup_stream()
+    def _reader_loop(self) -> None:
+        """Continuously keep a tiny local pre-roll buffer warm."""
+        self._reader_started_event.set()
 
-        # Convert frames to WAV format
-        if frames:
+        while not self._reader_stop_event.is_set():
+            stream = self._stream
+            if not stream:
+                break
+
             try:
-                from whisper_wayland.audio_recorder.wav_converter import WavConverter
-
-                wav_converter = WavConverter.new(self._audio, self._config)
-                self._audio_data = wav_converter.frames_to_wav(frames, self._effective_sample_rate)
-                _logger.debug(f"Converted {len(frames)} frames to WAV format")
+                data = stream.read(self._config.audio_chunk_size, exception_on_overflow=False)
             except Exception as e:
-                _logger.error(f"Failed to convert audio frames to WAV: {e}")
+                if self._reader_stop_event.is_set():
+                    break
+                _logger.error(f"Error reading audio data: {e}")
+                time.sleep(READER_RETRY_SLEEP_SECS)
+                continue
 
-    def _cleanup_stream(self) -> None:
-        """Clean up audio stream resources."""
-        if self._stream:
+            if not isinstance(data, bytes):
+                time.sleep(READER_RETRY_SLEEP_SECS)
+                continue
+
+            self._store_frame(data)
+
+    def _store_frame(self, data: bytes) -> None:
+        with self._lock:
+            if self._recording and self._recording_frames is not None:
+                if self._within_max_duration_locked():
+                    self._recording_frames.append(data)
+                return
+
+            if self._preroll_frames.maxlen:
+                self._preroll_frames.append(data)
+
+    def _within_max_duration_locked(self) -> bool:
+        elapsed = time.monotonic() - self._recording_started_at
+        max_duration = self._config.max_recording_duration
+        if elapsed < max_duration:
+            return True
+
+        if not self._max_duration_logged:
+            _logger.info(f"Maximum recording duration ({max_duration}s) reached")
+            self._max_duration_logged = True
+        return False
+
+    def _frames_to_wav(self, frames: list[bytes]) -> typing.Optional[bytes]:
+        if not frames:
+            return None
+
+        try:
+            from whisper_wayland.audio_recorder.wav_converter import WavConverter
+
+            wav_converter = WavConverter.new(self._audio, self._config)
+            audio_data = wav_converter.frames_to_wav(frames, self._effective_sample_rate)
+            _logger.debug(f"Converted {len(frames)} frames to WAV format")
+            return audio_data
+        except Exception as e:
+            _logger.error(f"Failed to convert audio frames to WAV: {e}")
+            return None
+
+    def _prepare_stream_locked(self) -> None:
+        self._close_stream_locked()
+        self._stream = self._open_stream(start=True)
+        self._reader_stop_event = threading.Event()
+        self._reader_started_event = threading.Event()
+        self._preroll_frames = deque(maxlen=self._preroll_chunk_count())
+        self._reader_thread = threading.Thread(target=self._reader_loop, daemon=True)
+        self._reader_thread.start()
+
+        if not self._reader_started_event.wait(timeout=STREAM_READY_TIMEOUT_SECS):
+            raise RecordingEngineError("Audio reader did not report ready within 1s")
+
+    def _preroll_chunk_count(self) -> int:
+        preroll_seconds = self._config.audio_preroll_seconds
+        if preroll_seconds <= 0:
+            return 0
+        return max(
+            1,
+            math.ceil(
+                (preroll_seconds * self._effective_sample_rate) / self._config.audio_chunk_size
+            ),
+        )
+
+    def _open_stream(self, start: bool) -> pyaudio.Stream:
+        """Open a PyAudio stream without doing the slow setup on hotkey press."""
+        return self._audio.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=self._effective_sample_rate,
+            input=True,
+            frames_per_buffer=self._config.audio_chunk_size,
+            input_device_index=self._input_device_index,
+            start=start,
+        )
+
+    def _close_stream_locked(self) -> None:
+        """Close audio stream resources."""
+        reader_thread = self._reader_thread
+        stream = self._stream
+        self._reader_thread = None
+        self._stream = None
+        self._reader_stop_event.set()
+
+        if stream:
             try:
-                self._stream.stop_stream()
-                self._stream.close()
-                _logger.debug("Audio stream cleaned up")
-            except Exception as e:
-                _logger.error(f"Error cleaning up audio stream: {e}")
+                stream.stop_stream()
+            except Exception:
+                pass
+
+        if reader_thread and reader_thread.is_alive():
+            self._lock.release()
+            try:
+                reader_thread.join(timeout=THREAD_JOIN_TIMEOUT_SECS)
             finally:
-                self._stream = None
+                self._lock.acquire()
+
+        if stream:
+            try:
+                stream.close()
+                _logger.debug("Audio stream closed")
+            except Exception as e:
+                _logger.error(f"Error closing audio stream: {e}")
+
+    def close(self) -> None:
+        """Release stream resources."""
+        with self._lock:
+            self._recording = False
+            self._recording_frames = None
+            self._close_stream_locked()
 
     def is_recording(self) -> bool:
         """Check if recording is currently in progress.

@@ -10,6 +10,8 @@ import whisper_wayland as ww
 
 _logger = logging.getLogger(__name__)
 
+MAX_AUDIO_PREROLL_SECONDS = 3.0
+
 
 class PropertyHandlerError(Exception):
     """Raised when property handling fails."""
@@ -84,6 +86,15 @@ class PropertyHandlers:
         except ValueError as e:
             _logger.error(f"Invalid AUDIO_CHUNK_SIZE: {e}")
             raise PropertyHandlerError(f"Invalid AUDIO_CHUNK_SIZE: {e}") from e
+
+    def get_audio_preroll_seconds(self) -> float:
+        """Get seconds of local pre-roll audio to prepend after push-to-talk starts."""
+        value = self._get_float_env("AUDIO_PREROLL_SECONDS", "1.0", allow_zero=True)
+        if value > MAX_AUDIO_PREROLL_SECONDS:
+            raise PropertyHandlerError(
+                f"Invalid AUDIO_PREROLL_SECONDS: must be <= {MAX_AUDIO_PREROLL_SECONDS}"
+            )
+        return value
 
     def get_audio_input_device_index(self) -> int | None:
         """Get explicit audio input device index.

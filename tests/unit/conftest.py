@@ -5,6 +5,7 @@ unit tests of the Whisper Wayland service."""
 
 import os
 import tempfile
+import time
 import typing
 import unittest.mock
 
@@ -142,7 +143,9 @@ def create_mock_audio_instance() -> unittest.mock.Mock:
 def create_mock_stream() -> unittest.mock.Mock:
     """Create mock audio stream with required methods."""
     mock_stream = unittest.mock.Mock()
-    mock_stream.read.return_value = b"\x00\x01" * 512  # Mock audio data
+    mock_stream.read.side_effect = lambda *args, **kwargs: (
+        time.sleep(0.001) or b"\x00\x01" * 512
+    )
     return mock_stream
 
 

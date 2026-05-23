@@ -54,6 +54,7 @@ class AudioRecorder:
                 input_device_index,
             )
             self._recording_engine = RecordingEngine.new(self._audio, config, input_device_index)
+            self._recording_engine.prepare_stream()
 
             _logger.info("Audio recorder initialized successfully")
             _logger.info(
@@ -115,11 +116,15 @@ class AudioRecorder:
     def close(self) -> None:
         """Clean up audio resources."""
         try:
-            if self._recording_engine.is_recording():
-                self._recording_engine.stop_recording()
+            recording_engine = getattr(self, "_recording_engine", None)
+            if recording_engine:
+                if recording_engine.is_recording():
+                    recording_engine.stop_recording()
+                recording_engine.close()
 
-            if self._audio:
-                self._audio.terminate()
+            audio = getattr(self, "_audio", None)
+            if audio:
+                audio.terminate()
                 self._audio = None
                 _logger.debug("Audio recorder closed successfully")
 

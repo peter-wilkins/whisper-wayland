@@ -34,6 +34,7 @@ def clean_environment() -> typing.Generator[None, None, None]:
         "WHISPER_MODEL",
         "AUDIO_SAMPLE_RATE",
         "AUDIO_CHUNK_SIZE",
+        "AUDIO_PREROLL_SECONDS",
         "AUDIO_LEVEL_MONITOR_ENABLED",
         "AUDIO_LEVEL_AUTO_ADJUST_ENABLED",
         "AUDIO_LEVEL_MANAGE_MICS_ENABLED",

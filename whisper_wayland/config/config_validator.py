@@ -57,6 +57,7 @@ class ConfigValidator:
             "whisper_model": config_instance.whisper_model,
             "audio_sample_rate": config_instance.audio_sample_rate,
             "audio_chunk_size": config_instance.audio_chunk_size,
+            "audio_preroll_seconds": config_instance.audio_preroll_seconds,
             "audio_input_device_index": config_instance.audio_input_device_index,
             "audio_input_device_name": config_instance.audio_input_device_name,
             "max_recording_duration": config_instance.max_recording_duration,

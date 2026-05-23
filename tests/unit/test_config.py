@@ -20,6 +20,8 @@ STREAMING_CUSTOM_TIMEOUT_SECS = 3.5
 STREAMING_CUSTOM_DELTA_IDLE_TIMEOUT_SECS = 0.5
 STREAMING_CUSTOM_VAD_SILENCE_MS = 900
 CUSTOM_AUDIO_INPUT_DEVICE_INDEX = 3
+DEFAULT_AUDIO_PREROLL_SECONDS = 1.0
+CUSTOM_AUDIO_PREROLL_SECONDS = 2.5
 DEFAULT_AUDIO_LEVEL_CHECK_INTERVAL_SECS = 900
 CUSTOM_AUDIO_LEVEL_CHECK_INTERVAL_SECS = 30
 DEFAULT_NORMALIZATION_TARGET_RMS_DBFS = -22
@@ -45,6 +47,7 @@ class TestConfig:
                 assert test_config.whisper_model == "gpt-4o-transcribe"
                 assert test_config.audio_sample_rate == ww.Constants.DEFAULT_SAMPLE_RATE
                 assert test_config.audio_chunk_size == ww.Constants.DEFAULT_CHUNK_SIZE
+                assert test_config.audio_preroll_seconds == DEFAULT_AUDIO_PREROLL_SECONDS
                 assert test_config.audio_input_device_index is None
                 assert test_config.audio_input_device_name == ""
                 assert test_config.max_recording_duration == ww.Constants.DEFAULT_RECORDING_DURATION
@@ -114,6 +117,7 @@ class TestConfig:
             "WHISPER_MODEL": "large",
             "AUDIO_SAMPLE_RATE": "44100",
             "AUDIO_CHUNK_SIZE": "2048",
+            "AUDIO_PREROLL_SECONDS": str(CUSTOM_AUDIO_PREROLL_SECONDS),
             "AUDIO_INPUT_DEVICE_INDEX": str(CUSTOM_AUDIO_INPUT_DEVICE_INDEX),
             "AUDIO_INPUT_DEVICE_NAME": "rode",
             "AUDIO_LEVEL_MONITOR_ENABLED": "true",
@@ -153,6 +157,7 @@ class TestConfig:
             assert test_config.whisper_model == "large"
             assert test_config.audio_sample_rate == ww.Constants.HIGH_QUALITY_SAMPLE_RATE
             assert test_config.audio_chunk_size == ww.Constants.LARGE_CHUNK_SIZE
+            assert test_config.audio_preroll_seconds == CUSTOM_AUDIO_PREROLL_SECONDS
             assert test_config.audio_input_device_index == CUSTOM_AUDIO_INPUT_DEVICE_INDEX
             assert test_config.audio_input_device_name == "rode"
             assert test_config.max_recording_duration == ww.Constants.LONG_RECORDING_DURATION
@@ -219,6 +224,16 @@ class TestConfig:
             # Invalid chunk size
             with unittest.mock.patch.dict(os.environ, {"AUDIO_CHUNK_SIZE": "not_a_number"}):
                 with pytest.raises(ww.ConfigError, match="AUDIO_CHUNK_SIZE"):
+                    ww.Config()
+
+            # Invalid audio pre-roll
+            with unittest.mock.patch.dict(os.environ, {"AUDIO_PREROLL_SECONDS": "-1"}):
+                with pytest.raises(ww.ConfigError, match="AUDIO_PREROLL_SECONDS"):
+                    ww.Config()
+
+            # Excessive audio pre-roll
+            with unittest.mock.patch.dict(os.environ, {"AUDIO_PREROLL_SECONDS": "4"}):
+                with pytest.raises(ww.ConfigError, match="AUDIO_PREROLL_SECONDS"):
                     ww.Config()
 
             # Invalid input device index
@@ -419,6 +434,7 @@ class TestConfig:
 
             assert summary["openai_api_key"] == "***"
             assert summary["whisper_model"] == "gpt-4o-transcribe"
+            assert summary["audio_preroll_seconds"] == DEFAULT_AUDIO_PREROLL_SECONDS
             assert summary["continuum_capture_inlet_dir"] == ""
             assert summary["audio_level_monitor_enabled"] is False
             assert summary["audio_level_manage_mics_enabled"] is False

@@ -13,6 +13,10 @@ import pytest
 import tests.unit.conftest as conftest
 import whisper_wayland as ww
 import whisper_wayland.audio_recorder as audio_recorder
+from whisper_wayland.audio_recorder.recording_engine import RecordingEngine
+
+PRE_ROLL_FRAME = b"\x01\x00" * 512
+CURRENT_FRAME = b"\x02\x00" * 512
 
 
 class TestAudioRecorder:
@@ -85,6 +89,41 @@ class TestAudioRecorder:
 
         # Cleanup
         recorder.stop_recording()
+
+    def test_recording_engine_warms_stream_reader(self, test_config: "ww.Config") -> None:
+        """Recording stream starts before the hotkey path and closes on shutdown."""
+        mock_audio_instance = conftest.create_mock_audio_instance()
+        mock_stream = conftest.create_mock_stream()
+        mock_stream.read.side_effect = lambda *args, **kwargs: (
+            time.sleep(0.01) or PRE_ROLL_FRAME
+        )
+        mock_audio_instance.open.return_value = mock_stream
+        engine = RecordingEngine(mock_audio_instance, test_config)
+
+        engine.prepare_stream()
+
+        mock_audio_instance.open.assert_called_once()
+        assert mock_audio_instance.open.call_args.kwargs["start"] is True
+
+        engine.close()
+        mock_stream.stop_stream.assert_called()
+        mock_stream.close.assert_called_once()
+
+    def test_recording_engine_prepends_preroll_frames(self, test_config: "ww.Config") -> None:
+        """Frames captured before hotkey press are committed to the recording."""
+        mock_audio_instance = conftest.create_mock_audio_instance()
+        engine = RecordingEngine(mock_audio_instance, test_config)
+        fake_reader = unittest.mock.Mock()
+        fake_reader.is_alive.return_value = True
+        engine._reader_thread = fake_reader
+        engine._preroll_frames.append(PRE_ROLL_FRAME)
+
+        engine.start_recording()
+        engine._store_frame(CURRENT_FRAME)
+        audio_data = engine.stop_recording()
+
+        assert audio_data is not None
+        assert audio_data.find(PRE_ROLL_FRAME) < audio_data.find(CURRENT_FRAME)
 
     @unittest.mock.patch("whisper_wayland.audio_recorder.audio_system_validator.pyaudio.PyAudio")
     def test_start_recording_already_recording(

@@ -113,6 +113,11 @@ class Config:
         return self._property_handlers.get_audio_chunk_size()
 
     @property
+    def audio_preroll_seconds(self) -> float:
+        """Seconds of local pre-roll audio prepended when recording starts."""
+        return self._property_handlers.get_audio_preroll_seconds()
+
+    @property
     def audio_input_device_index(self) -> int | None:
         """Explicit audio input device index, or None for automatic selection."""
         return self._property_handlers.get_audio_input_device_index()
