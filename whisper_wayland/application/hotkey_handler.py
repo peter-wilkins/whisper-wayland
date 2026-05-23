@@ -137,7 +137,7 @@ class HotkeyHandler:
                 # Process transcription in background
                 threading.Thread(
                     target=self._run_transcription_task,
-                    args=(audio_data,),
+                    args=(self.transcription_processor.process_audio, audio_data),
                     daemon=True,
                 ).start()
             else:

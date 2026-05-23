@@ -168,3 +168,31 @@ class TestHotkeyHandler:
         audio_recorder.stop_recording.assert_called_once()
         transcription_processor.process_audio.assert_not_called()
         status_indicator.idle.assert_called_once()
+
+    def test_batch_recording_runs_processor_in_background_thread(self) -> None:
+        """Test batch audio is passed to the transcription processor task."""
+        audio_recorder = unittest.mock.Mock()
+        transcription_processor = unittest.mock.Mock()
+        transcription_processor.streaming_enabled = False
+        audio_recorder.stop_recording.return_value = b"audio"
+        handler = application.HotkeyHandler(
+            audio_recorder,
+            transcription_processor,
+            mode="push_to_talk",
+        )
+
+        with unittest.mock.patch(
+            "whisper_wayland.application.hotkey_handler.threading.Thread"
+        ) as mock_thread, unittest.mock.patch(
+            "whisper_wayland.application.hotkey_handler.time.monotonic",
+            side_effect=[1.0, 2.0],
+        ):
+            handler._on_hotkey_press()
+            handler._on_hotkey_release()
+
+        mock_thread.assert_called_once_with(
+            target=handler._run_transcription_task,
+            args=(transcription_processor.process_audio, b"audio"),
+            daemon=True,
+        )
+        mock_thread.return_value.start.assert_called_once()
