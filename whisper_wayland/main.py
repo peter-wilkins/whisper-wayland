@@ -8,11 +8,15 @@ import os
 import sys
 
 import whisper_wayland as ww
+from whisper_wayland.audio_recorder import microphone_calibrator
 
 
 def main() -> None:
     """Main entry point for the application."""
     try:
+        if len(sys.argv) > 1 and sys.argv[1] in {"mic-check", "calibrate-mic"}:
+            sys.exit(microphone_calibrator.main(sys.argv[2:]))
+
         # Check for config file argument
         config_file = None
         if len(sys.argv) > 1:

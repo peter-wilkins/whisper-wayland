@@ -10,6 +10,8 @@ import pytest
 import whisper_wayland as ww
 import whisper_wayland.main
 
+MIC_CHECK_EXIT_CODE = 2
+
 
 class TestApplication:
     """Test cases for Application class."""
@@ -153,6 +155,20 @@ class TestMainFunction:
         assert exc_info.value.code == 0
         mock_app_class.assert_called_once_with("/path/to/config.env")
         mock_app.run.assert_called_once()
+
+    @unittest.mock.patch("whisper_wayland.main.microphone_calibrator.main")
+    def test_main_mic_check_subcommand(
+        self, mock_mic_check_main: unittest.mock.MagicMock
+    ) -> None:
+        """Test mic-check subcommand dispatches to calibration CLI."""
+        mock_mic_check_main.return_value = MIC_CHECK_EXIT_CODE
+
+        with unittest.mock.patch("sys.argv", ["whisper-wayland", "mic-check", "--history", "."]):
+            with pytest.raises(SystemExit) as exc_info:
+                ww.main()
+
+        assert exc_info.value.code == MIC_CHECK_EXIT_CODE
+        mock_mic_check_main.assert_called_once_with(["--history", "."])
 
     @unittest.mock.patch("whisper_wayland.Application")
     @unittest.mock.patch("os.path.exists")

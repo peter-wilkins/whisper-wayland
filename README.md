@@ -137,6 +137,16 @@ recording on/off.
 - Check your user is in the `audio` group: `sudo usermod -a -G audio $USER`
 - Log out and back in after group changes
 - Test microphone: `arecord -d 5 test.wav && aplay test.wav`
+- Check speech levels: `uv run whisper-wayland mic-check --duration 5`
+- Auto-adjust default mic volume: `uv run whisper-wayland mic-check --duration 5 --auto-adjust`
+
+Good speech capture usually has RMS near `-30` to `-16` dBFS, peaks below about
+`-3` dBFS, and clipping below `0.1%`. The mic checker records locally only and
+does not upload audio. To inspect existing Continuum capture files, run:
+
+```bash
+uv run whisper-wayland mic-check --history /home/peter/continuum-core/data/landing-queue/audio-captures/artifacts
+```
 
 **Text not inserting:**
 - Verify `wtype` is installed: `which wtype`
