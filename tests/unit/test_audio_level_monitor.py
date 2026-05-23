@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import logging
 import struct
 import types
 import unittest.mock
@@ -99,7 +100,7 @@ def test_audio_level_monitor_can_warn_without_adjusting(monkeypatch) -> None:
     set_source.assert_not_called()
 
 
-def test_audio_level_monitor_needs_manage_mics_consent(monkeypatch) -> None:
+def test_audio_level_monitor_needs_manage_mics_consent(monkeypatch, caplog) -> None:
     """Auto-adjust flag alone does not grant permission to change mic settings."""
     set_source = unittest.mock.Mock()
     config = _config(auto_adjust=True)
@@ -115,6 +116,8 @@ def test_audio_level_monitor_needs_manage_mics_consent(monkeypatch) -> None:
     )
 
     monitor = AudioLevelMonitor(config)
-    monitor.check_audio(_clipped_wav())
+    with caplog.at_level(logging.INFO):
+        monitor.check_audio(_clipped_wav())
 
     set_source.assert_not_called()
+    assert "AUDIO_LEVEL_MANAGE_MICS_ENABLED=true" in caplog.text

@@ -12,6 +12,8 @@ import pytest
 import whisper_wayland as ww
 import whisper_wayland.transcription_client as transcription_client
 
+CAVEMAN_MAX_OUTPUT_TOKENS = 256
+
 
 class TestTranscriptionClient:
     """Test cases for TranscriptionClient class."""
@@ -366,7 +368,7 @@ class TestTranscriptionClient:
                 "UX slow. Need one blob paste."
             )
             call_args = mock_client.responses.create.call_args
-            assert call_args.kwargs["max_output_tokens"] == 256
+            assert call_args.kwargs["max_output_tokens"] == CAVEMAN_MAX_OUTPUT_TOKENS
             assert "caveman style" in call_args.kwargs["input"][0]["content"]
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")

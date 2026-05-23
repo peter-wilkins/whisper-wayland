@@ -12,10 +12,14 @@ from whisper_wayland.audio_recorder.level_meter import (
     analyze_wav,
     recommended_volume_percent,
 )
+from whisper_wayland.audio_recorder.normalizer import normalize_wav_for_transcription
 
 SAMPLE_RATE = 16000
 DURATION_SECONDS = 1
 QUIET_RMS_THRESHOLD = -30
+TARGET_RMS_DBFS = -22
+MAX_PEAK_AMPLITUDE = 0.95
+MAX_GAIN = 6
 QUIET_SAMPLE = 120
 GOOD_SAMPLE = 2400
 CLIPPED_SAMPLE = 32767
@@ -63,6 +67,40 @@ def test_analyze_wav_detects_clipping() -> None:
     assert stats.verdict == "too_hot"
     assert stats.clipping_percent == FULL_CLIPPING_PERCENT
     assert recommended_volume_percent(stats, CURRENT_VOLUME) < CURRENT_VOLUME
+
+
+def test_normalizer_amplifies_quiet_audio_for_transcription() -> None:
+    """Transcription-only normalization raises quiet WAV levels."""
+    audio_data = _wav_with_sample(QUIET_SAMPLE)
+    before = analyze_wav(audio_data)
+
+    result = normalize_wav_for_transcription(
+        audio_data,
+        target_rms_dbfs=TARGET_RMS_DBFS,
+        max_peak_amplitude=MAX_PEAK_AMPLITUDE,
+        max_gain=MAX_GAIN,
+    )
+    after = analyze_wav(result.audio_data)
+
+    assert result.applied
+    assert result.gain > 1
+    assert after.rms_dbfs > before.rms_dbfs
+    assert after.peak_amplitude <= MAX_PEAK_AMPLITUDE
+
+
+def test_normalizer_does_not_boost_clipped_audio() -> None:
+    """Normalization does not amplify audio already at peak."""
+    audio_data = _wav_with_sample(CLIPPED_SAMPLE)
+
+    result = normalize_wav_for_transcription(
+        audio_data,
+        target_rms_dbfs=TARGET_RMS_DBFS,
+        max_peak_amplitude=MAX_PEAK_AMPLITUDE,
+        max_gain=MAX_GAIN,
+    )
+
+    assert not result.applied
+    assert result.audio_data == audio_data
 
 
 def test_get_source_volume_percent_parses_pactl(monkeypatch) -> None:

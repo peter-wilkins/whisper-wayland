@@ -22,6 +22,12 @@ STREAMING_CUSTOM_VAD_SILENCE_MS = 900
 CUSTOM_AUDIO_INPUT_DEVICE_INDEX = 3
 DEFAULT_AUDIO_LEVEL_CHECK_INTERVAL_SECS = 900
 CUSTOM_AUDIO_LEVEL_CHECK_INTERVAL_SECS = 30
+DEFAULT_NORMALIZATION_TARGET_RMS_DBFS = -22
+DEFAULT_NORMALIZATION_MAX_PEAK_AMPLITUDE = 0.95
+DEFAULT_NORMALIZATION_MAX_GAIN = 6
+CUSTOM_NORMALIZATION_TARGET_RMS_DBFS = -24
+CUSTOM_NORMALIZATION_MAX_PEAK_AMPLITUDE = 0.9
+CUSTOM_NORMALIZATION_MAX_GAIN = 4
 
 
 class TestConfig:
@@ -50,6 +56,19 @@ class TestConfig:
                     == DEFAULT_AUDIO_LEVEL_CHECK_INTERVAL_SECS
                 )
                 assert test_config.audio_level_source == "@DEFAULT_SOURCE@"
+                assert not test_config.audio_transcription_normalization_enabled
+                assert (
+                    test_config.audio_transcription_normalization_target_rms_dbfs
+                    == DEFAULT_NORMALIZATION_TARGET_RMS_DBFS
+                )
+                assert (
+                    test_config.audio_transcription_normalization_max_peak_amplitude
+                    == DEFAULT_NORMALIZATION_MAX_PEAK_AMPLITUDE
+                )
+                assert (
+                    test_config.audio_transcription_normalization_max_gain
+                    == DEFAULT_NORMALIZATION_MAX_GAIN
+                )
                 assert test_config.log_level == "INFO"
                 assert test_config.hotkey == "ctrl+compose"
                 assert test_config.hotkey_mode == "push_to_talk"
@@ -102,6 +121,14 @@ class TestConfig:
             "AUDIO_LEVEL_MANAGE_MICS_ENABLED": "true",
             "AUDIO_LEVEL_CHECK_INTERVAL_SECS": str(CUSTOM_AUDIO_LEVEL_CHECK_INTERVAL_SECS),
             "AUDIO_LEVEL_SOURCE": "alsa_input.pci",
+            "AUDIO_TRANSCRIPTION_NORMALIZATION_ENABLED": "true",
+            "AUDIO_TRANSCRIPTION_NORMALIZATION_TARGET_RMS_DBFS": str(
+                CUSTOM_NORMALIZATION_TARGET_RMS_DBFS
+            ),
+            "AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_PEAK_AMPLITUDE": str(
+                CUSTOM_NORMALIZATION_MAX_PEAK_AMPLITUDE
+            ),
+            "AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_GAIN": str(CUSTOM_NORMALIZATION_MAX_GAIN),
             "MAX_RECORDING_DURATION": "60",
             "LOG_LEVEL": "DEBUG",
             "HOTKEY": "alt+space",
@@ -137,6 +164,19 @@ class TestConfig:
                 == CUSTOM_AUDIO_LEVEL_CHECK_INTERVAL_SECS
             )
             assert test_config.audio_level_source == "alsa_input.pci"
+            assert test_config.audio_transcription_normalization_enabled
+            assert (
+                test_config.audio_transcription_normalization_target_rms_dbfs
+                == CUSTOM_NORMALIZATION_TARGET_RMS_DBFS
+            )
+            assert (
+                test_config.audio_transcription_normalization_max_peak_amplitude
+                == CUSTOM_NORMALIZATION_MAX_PEAK_AMPLITUDE
+            )
+            assert (
+                test_config.audio_transcription_normalization_max_gain
+                == CUSTOM_NORMALIZATION_MAX_GAIN
+            )
             assert test_config.log_level == "DEBUG"
             assert test_config.hotkey == "alt+space"
             assert test_config.hotkey_mode == "toggle"
@@ -199,6 +239,28 @@ class TestConfig:
             # Invalid audio level check interval
             with unittest.mock.patch.dict(os.environ, {"AUDIO_LEVEL_CHECK_INTERVAL_SECS": "-1"}):
                 with pytest.raises(ww.ConfigError, match="AUDIO_LEVEL_CHECK_INTERVAL_SECS"):
+                    ww.Config()
+
+            # Non-negative transcription normalization target
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"AUDIO_TRANSCRIPTION_NORMALIZATION_TARGET_RMS_DBFS": "1"},
+            ):
+                with pytest.raises(
+                    ww.ConfigError,
+                    match="AUDIO_TRANSCRIPTION_NORMALIZATION_TARGET_RMS_DBFS",
+                ):
+                    ww.Config()
+
+            # Invalid transcription normalization peak limit
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_PEAK_AMPLITUDE": "2"},
+            ):
+                with pytest.raises(
+                    ww.ConfigError,
+                    match="AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_PEAK_AMPLITUDE",
+                ):
                     ww.Config()
 
             # Invalid streaming sample rate
@@ -360,6 +422,7 @@ class TestConfig:
             assert summary["continuum_capture_inlet_dir"] == ""
             assert summary["audio_level_monitor_enabled"] is False
             assert summary["audio_level_manage_mics_enabled"] is False
+            assert summary["audio_transcription_normalization_enabled"] is False
             assert "sk-sensitive123" not in str(summary)
 
     def test_config_get_static_method(self) -> None:

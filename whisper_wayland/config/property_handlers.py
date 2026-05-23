@@ -162,6 +162,42 @@ class PropertyHandlers:
         """Get Pulse/PipeWire source to adjust."""
         return os.getenv("AUDIO_LEVEL_SOURCE", "@DEFAULT_SOURCE@").strip() or "@DEFAULT_SOURCE@"
 
+    def get_audio_transcription_normalization_enabled(self) -> bool:
+        """Get whether provider audio should be normalized without changing stored captures."""
+        value = os.getenv("AUDIO_TRANSCRIPTION_NORMALIZATION_ENABLED", "false").strip().lower()
+        return value in {"1", "true", "yes", "on"}
+
+    def get_audio_transcription_normalization_target_rms_dbfs(self) -> float:
+        """Get target RMS dBFS for transcription-only normalization."""
+        return self._get_float_env(
+            "AUDIO_TRANSCRIPTION_NORMALIZATION_TARGET_RMS_DBFS",
+            "-22",
+            allow_zero=False,
+            must_be_negative=True,
+        )
+
+    def get_audio_transcription_normalization_max_peak_amplitude(self) -> float:
+        """Get max peak amplitude for transcription-only normalization."""
+        value = self._get_float_env(
+            "AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_PEAK_AMPLITUDE",
+            "0.95",
+            allow_zero=False,
+        )
+        if value > 1:
+            raise PropertyHandlerError(
+                "Invalid AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_PEAK_AMPLITUDE: "
+                "must be <= 1"
+            )
+        return value
+
+    def get_audio_transcription_normalization_max_gain(self) -> float:
+        """Get max gain multiplier for transcription-only normalization."""
+        return self._get_float_env(
+            "AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_GAIN",
+            "6",
+            allow_zero=False,
+        )
+
     # Logging Configuration
     def get_log_level(self) -> str:
         """Get logging level.
@@ -366,6 +402,27 @@ class PropertyHandlers:
     def get_continuum_capture_inlet_dir(self) -> str:
         """Get optional Continuum local capture inlet directory."""
         return os.getenv("CONTINUUM_CAPTURE_INLET_DIR", "").strip()
+
+    @staticmethod
+    def _get_float_env(
+        name: str,
+        default: str,
+        allow_zero: bool,
+        must_be_negative: bool = False,
+    ) -> float:
+        try:
+            value = float(os.getenv(name, default))
+            if must_be_negative and value >= 0:
+                raise ValueError("value must be negative")
+            if not must_be_negative:
+                if allow_zero and value < 0:
+                    raise ValueError("value must be non-negative")
+                if not allow_zero and value <= 0:
+                    raise ValueError("value must be positive")
+            return value
+        except ValueError as e:
+            _logger.error(f"Invalid {name}: {e}")
+            raise PropertyHandlerError(f"Invalid {name}: {e}") from e
 
     @staticmethod
     def new() -> "PropertyHandlers":

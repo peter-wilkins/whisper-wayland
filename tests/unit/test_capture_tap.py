@@ -22,6 +22,7 @@ from whisper_wayland.application.transcription_processor import TranscriptionPro
 TEST_SAMPLE_RATE = 16000
 TEST_FRAME_COUNT = 1600
 TEST_DURATION_SECONDS = 0.1
+QUIET_SAMPLE = 120
 CLIPPED_SAMPLE = 32767
 FULL_CLIPPING_RATIO = 1.0
 
@@ -217,8 +218,8 @@ class TestCaptureTap:
         assert health["checks"][1]["status"] == "fail"
 
     def test_processor_writes_capture_before_text_insertion(self, tmp_path: Path) -> None:
-        """Batch processor preserves raw transcript and writes tap before insertion."""
-        audio_data = _test_wav()
+        """Batch processor preserves raw capture bytes before insertion."""
+        audio_data = _constant_wav(QUIET_SAMPLE)
         insert_calls = []
 
         class RecordingTextInserter:
@@ -234,6 +235,7 @@ class TestCaptureTap:
                 "WHISPER_MODEL": "whisper-1",
                 "TEXT_POST_PROCESS_MODE": "caveman",
                 "TEXT_POST_PROCESS_MODEL": "local",
+                "AUDIO_TRANSCRIPTION_NORMALIZATION_ENABLED": "true",
             },
             clear=True,
         ):
@@ -249,8 +251,12 @@ class TestCaptureTap:
         assert insert_calls
         assert insert_calls[0][0] == "Raw transcript"
         assert insert_calls[0][1]
+        sent_audio = transcription_client.transcribe_audio.call_args.args[0]
+        assert sent_audio != audio_data
 
         envelope_path = insert_calls[0][1][0]
         envelope = json.loads(envelope_path.read_text(encoding="utf-8"))
+        artifact_path = tmp_path / envelope["audioArtifact"]["relativePath"]
+        assert artifact_path.read_bytes() == audio_data
         assert envelope["transcript"]["rawTranscriptText"] == "uh raw raw transcript"
         assert envelope["transcript"]["insertionText"] == "Raw transcript"

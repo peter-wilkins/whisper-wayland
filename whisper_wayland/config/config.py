@@ -152,6 +152,28 @@ class Config:
         """Pulse/PipeWire source used for level auto-adjustment."""
         return self._property_handlers.get_audio_level_source()
 
+    @property
+    def audio_transcription_normalization_enabled(self) -> bool:
+        """Whether audio sent to the transcription provider should be normalized."""
+        return self._property_handlers.get_audio_transcription_normalization_enabled()
+
+    @property
+    def audio_transcription_normalization_target_rms_dbfs(self) -> float:
+        """Target RMS dBFS for transcription-only normalization."""
+        return self._property_handlers.get_audio_transcription_normalization_target_rms_dbfs()
+
+    @property
+    def audio_transcription_normalization_max_peak_amplitude(self) -> float:
+        """Maximum peak amplitude after transcription-only normalization."""
+        return (
+            self._property_handlers.get_audio_transcription_normalization_max_peak_amplitude()
+        )
+
+    @property
+    def audio_transcription_normalization_max_gain(self) -> float:
+        """Maximum gain multiplier for transcription-only normalization."""
+        return self._property_handlers.get_audio_transcription_normalization_max_gain()
+
     # Logging Configuration
     @property
     def log_level(self) -> str:

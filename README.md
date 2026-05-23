@@ -100,6 +100,10 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `AUDIO_INPUT_DEVICE_INDEX` | Explicit PyAudio input device index, blank for auto-selection | - | No |
 | `AUDIO_INPUT_DEVICE_NAME` | Case-insensitive input device name substring, blank for auto-selection | - | No |
 | `MAX_RECORDING_DURATION` | Maximum recording duration in seconds | `30` | No |
+| `AUDIO_TRANSCRIPTION_NORMALIZATION_ENABLED` | Normalize audio sent to the transcription API only | `false` | No |
+| `AUDIO_TRANSCRIPTION_NORMALIZATION_TARGET_RMS_DBFS` | Target RMS level for transcription-only normalization | `-22` | No |
+| `AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_PEAK_AMPLITUDE` | Peak ceiling for transcription-only normalization | `0.95` | No |
+| `AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_GAIN` | Maximum gain multiplier for transcription-only normalization | `6` | No |
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
 | `HOTKEY` | Push-to-talk key or mouse-button combination | `ctrl+compose` | No |
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
@@ -149,10 +153,15 @@ does not upload audio. To inspect existing Continuum capture files, run:
 ```
 
 For automatic checks after recordings, set `AUDIO_LEVEL_MONITOR_ENABLED=true`.
-By default this logs suggestions only. To let the service manage mic levels
-without asking each time, set both `AUDIO_LEVEL_AUTO_ADJUST_ENABLED=true` and
-`AUDIO_LEVEL_MANAGE_MICS_ENABLED=true`. `AUDIO_LEVEL_CHECK_INTERVAL_SECS`
-controls the cooldown between checks.
+By default this logs suggestions only. `AUDIO_LEVEL_AUTO_ADJUST_ENABLED=true`
+means the service should try to fix bad levels, and
+`AUDIO_LEVEL_MANAGE_MICS_ENABLED=true` is explicit permission to change system
+mic settings. Actual OS volume changes require both flags.
+`AUDIO_LEVEL_CHECK_INTERVAL_SECS` controls the cooldown between checks.
+
+For quiet microphones, `AUDIO_TRANSCRIPTION_NORMALIZATION_ENABLED=true` can
+boost the WAV sent to the transcription API. This does not change local Continuum
+capture artifacts; those remain the raw recording bytes.
 
 **Text not inserting:**
 - Verify `wtype` is installed: `which wtype`

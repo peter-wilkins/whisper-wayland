@@ -71,6 +71,18 @@ class ConfigValidator:
                 config_instance.audio_level_check_interval_secs
             ),
             "audio_level_source": config_instance.audio_level_source,
+            "audio_transcription_normalization_enabled": (
+                config_instance.audio_transcription_normalization_enabled
+            ),
+            "audio_transcription_normalization_target_rms_dbfs": (
+                config_instance.audio_transcription_normalization_target_rms_dbfs
+            ),
+            "audio_transcription_normalization_max_peak_amplitude": (
+                config_instance.audio_transcription_normalization_max_peak_amplitude
+            ),
+            "audio_transcription_normalization_max_gain": (
+                config_instance.audio_transcription_normalization_max_gain
+            ),
             "log_level": config_instance.log_level,
             "hotkey": config_instance.hotkey,
             "hotkey_mode": config_instance.hotkey_mode,
