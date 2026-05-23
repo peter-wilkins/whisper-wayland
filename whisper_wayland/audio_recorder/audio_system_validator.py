@@ -94,7 +94,12 @@ class AudioSystemValidator:
     def find_preferred_input_device(
         self, audio: pyaudio.PyAudio, config: "ww.Config"
     ) -> typing.Optional[int]:
-        """Find the preferred input device, prioritizing USB then Bluetooth headsets.
+        """Find the preferred input device.
+
+        Explicitly configured devices are honored first. If an explicit device
+        is unavailable, use the system default instead of guessing another
+        external input; after suspend/resume stale USB inputs can stay listed
+        while capturing near silence.
 
         Args:
             audio: PyAudio instance
@@ -104,6 +109,10 @@ class AudioSystemValidator:
             Device index of preferred device, or None to use the system default
         """
         explicit_index = config.audio_input_device_index
+        explicit_device_requested = explicit_index is not None or bool(
+            config.audio_input_device_name
+        )
+
         if explicit_index is not None:
             if self._is_valid_input_device(audio, explicit_index):
                 name = self.get_input_device_name(audio, explicit_index)
@@ -111,52 +120,68 @@ class AudioSystemValidator:
                 return explicit_index
             _logger.warning(
                 f"Configured AUDIO_INPUT_DEVICE_INDEX={explicit_index} is not a valid "
-                "input device; falling back to automatic selection"
+                "input device; using system default input device"
             )
 
-        explicit_name = config.audio_input_device_name
-        if explicit_name:
-            matched_index = self._find_input_device_by_name(audio, explicit_name)
-            if matched_index is not None:
-                name = self.get_input_device_name(audio, matched_index)
-                _logger.info(f"Using configured input device: {name} (index {matched_index})")
-                return matched_index
-            _logger.warning(
-                f"No input device matched AUDIO_INPUT_DEVICE_NAME='{explicit_name}'; "
-                "falling back to automatic selection"
-            )
+        if explicit_index is None:
+            explicit_name = config.audio_input_device_name
+            if explicit_name:
+                matched_index = self._find_input_device_by_name(audio, explicit_name)
+                if matched_index is not None:
+                    name = self.get_input_device_name(audio, matched_index)
+                    _logger.info(f"Using configured input device: {name} (index {matched_index})")
+                    return matched_index
+                _logger.warning(
+                    f"No input device matched AUDIO_INPUT_DEVICE_NAME='{explicit_name}'; "
+                    "using system default input device"
+                )
 
+        if explicit_device_requested:
+            return self._use_system_default_input_device(audio)
+
+        preferred_external_index = self._find_preferred_external_input_device(audio)
+        if preferred_external_index is not None:
+            return preferred_external_index
+
+        _logger.debug("No USB/Bluetooth headset found, using system default input device")
+        return None
+
+    def _find_preferred_external_input_device(self, audio: pyaudio.PyAudio) -> int | None:
+        """Return an auto-selected USB/Bluetooth input when no explicit device is set."""
         usb_keywords = ["usb"]
         bt_keywords = ["bluetooth", "bluez", "headset", "headphone"]
-
-        usb_candidates: list[tuple[int, str]] = []
-        bt_candidates: list[tuple[int, str]] = []
+        candidates: dict[str, list[tuple[int, str]]] = {"usb": [], "bluetooth": []}
 
         try:
             for i in range(audio.get_device_count()):
                 info = audio.get_device_info_by_index(i)
                 if info["maxInputChannels"] <= 0:
                     continue
-                name = str(info["name"]).lower()
-                if any(k in name for k in usb_keywords):
-                    usb_candidates.append((i, str(info["name"])))
-                elif any(k in name for k in bt_keywords):
-                    bt_candidates.append((i, str(info["name"])))
+                device_name = str(info["name"])
+                normalized_name = device_name.lower()
+                if any(k in normalized_name for k in usb_keywords):
+                    candidates["usb"].append((i, device_name))
+                elif any(k in normalized_name for k in bt_keywords):
+                    candidates["bluetooth"].append((i, device_name))
         except Exception as e:
             _logger.warning(f"Error scanning audio devices: {e}")
             return None
 
-        if usb_candidates:
-            idx, name = usb_candidates[0]
+        if candidates["usb"]:
+            idx, name = candidates["usb"][0]
             _logger.info(f"Auto-selected USB input device: {name} (index {idx})")
             return idx
-        if bt_candidates:
-            idx, name = bt_candidates[0]
+        if candidates["bluetooth"]:
+            idx, name = candidates["bluetooth"][0]
             _logger.info(f"Auto-selected Bluetooth input device: {name} (index {idx})")
             return idx
 
-        _logger.debug("No USB/Bluetooth headset found, using system default input device")
         return None
+
+    def _use_system_default_input_device(self, audio: pyaudio.PyAudio) -> None:
+        """Log the current default input and return None for PyAudio default routing."""
+        name = self.get_input_device_name(audio, None)
+        _logger.info(f"Using system default input device: {name}")
 
     def get_input_device_name(
         self, audio: pyaudio.PyAudio, input_device_index: typing.Optional[int]
