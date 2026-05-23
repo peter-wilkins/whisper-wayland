@@ -36,6 +36,7 @@ def clean_environment() -> typing.Generator[None, None, None]:
         "AUDIO_CHUNK_SIZE",
         "AUDIO_LEVEL_MONITOR_ENABLED",
         "AUDIO_LEVEL_AUTO_ADJUST_ENABLED",
+        "AUDIO_LEVEL_MANAGE_MICS_ENABLED",
         "AUDIO_LEVEL_CHECK_INTERVAL_SECS",
         "AUDIO_LEVEL_SOURCE",
         "MAX_RECORDING_DURATION",

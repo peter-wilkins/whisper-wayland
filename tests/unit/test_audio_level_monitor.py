@@ -34,6 +34,7 @@ def _config(auto_adjust: bool = True) -> types.SimpleNamespace:
     return types.SimpleNamespace(
         audio_level_monitor_enabled=True,
         audio_level_auto_adjust_enabled=auto_adjust,
+        audio_level_manage_mics_enabled=auto_adjust,
         audio_level_check_interval_secs=CHECK_INTERVAL_SECS,
         audio_level_source="@DEFAULT_SOURCE@",
     )
@@ -93,6 +94,27 @@ def test_audio_level_monitor_can_warn_without_adjusting(monkeypatch) -> None:
     )
 
     monitor = AudioLevelMonitor(_config(auto_adjust=False))
+    monitor.check_audio(_clipped_wav())
+
+    set_source.assert_not_called()
+
+
+def test_audio_level_monitor_needs_manage_mics_consent(monkeypatch) -> None:
+    """Auto-adjust flag alone does not grant permission to change mic settings."""
+    set_source = unittest.mock.Mock()
+    config = _config(auto_adjust=True)
+    config.audio_level_manage_mics_enabled = False
+
+    monkeypatch.setattr(
+        "whisper_wayland.application.audio_level_monitor.get_source_volume_percent",
+        lambda source: CURRENT_VOLUME,
+    )
+    monkeypatch.setattr(
+        "whisper_wayland.application.audio_level_monitor.set_source_volume_percent",
+        set_source,
+    )
+
+    monitor = AudioLevelMonitor(config)
     monitor.check_audio(_clipped_wav())
 
     set_source.assert_not_called()

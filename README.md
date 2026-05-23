@@ -149,9 +149,10 @@ does not upload audio. To inspect existing Continuum capture files, run:
 ```
 
 For automatic checks after recordings, set `AUDIO_LEVEL_MONITOR_ENABLED=true`.
-Set `AUDIO_LEVEL_AUTO_ADJUST_ENABLED=true` to let the service adjust the
-Pulse/PipeWire source volume. `AUDIO_LEVEL_CHECK_INTERVAL_SECS` controls the
-cooldown between checks.
+By default this logs suggestions only. To let the service manage mic levels
+without asking each time, set both `AUDIO_LEVEL_AUTO_ADJUST_ENABLED=true` and
+`AUDIO_LEVEL_MANAGE_MICS_ENABLED=true`. `AUDIO_LEVEL_CHECK_INTERVAL_SECS`
+controls the cooldown between checks.
 
 **Text not inserting:**
 - Verify `wtype` is installed: `which wtype`

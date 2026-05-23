@@ -138,6 +138,11 @@ class Config:
         return self._property_handlers.get_audio_level_auto_adjust_enabled()
 
     @property
+    def audio_level_manage_mics_enabled(self) -> bool:
+        """Whether this user explicitly allows automatic mic setting changes."""
+        return self._property_handlers.get_audio_level_manage_mics_enabled()
+
+    @property
     def audio_level_check_interval_secs(self) -> float:
         """Minimum seconds between automatic level checks."""
         return self._property_handlers.get_audio_level_check_interval_secs()

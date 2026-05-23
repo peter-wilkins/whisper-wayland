@@ -64,6 +64,9 @@ class ConfigValidator:
             "audio_level_auto_adjust_enabled": (
                 config_instance.audio_level_auto_adjust_enabled
             ),
+            "audio_level_manage_mics_enabled": (
+                config_instance.audio_level_manage_mics_enabled
+            ),
             "audio_level_check_interval_secs": (
                 config_instance.audio_level_check_interval_secs
             ),

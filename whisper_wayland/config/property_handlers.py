@@ -142,6 +142,11 @@ class PropertyHandlers:
         value = os.getenv("AUDIO_LEVEL_AUTO_ADJUST_ENABLED", "false").strip().lower()
         return value in {"1", "true", "yes", "on"}
 
+    def get_audio_level_manage_mics_enabled(self) -> bool:
+        """Get explicit consent to change system microphone settings."""
+        value = os.getenv("AUDIO_LEVEL_MANAGE_MICS_ENABLED", "false").strip().lower()
+        return value in {"1", "true", "yes", "on"}
+
     def get_audio_level_check_interval_secs(self) -> float:
         """Get minimum seconds between automatic audio level checks."""
         try:

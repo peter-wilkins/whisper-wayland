@@ -44,6 +44,7 @@ class TestConfig:
                 assert test_config.max_recording_duration == ww.Constants.DEFAULT_RECORDING_DURATION
                 assert not test_config.audio_level_monitor_enabled
                 assert not test_config.audio_level_auto_adjust_enabled
+                assert not test_config.audio_level_manage_mics_enabled
                 assert (
                     test_config.audio_level_check_interval_secs
                     == DEFAULT_AUDIO_LEVEL_CHECK_INTERVAL_SECS
@@ -98,6 +99,7 @@ class TestConfig:
             "AUDIO_INPUT_DEVICE_NAME": "rode",
             "AUDIO_LEVEL_MONITOR_ENABLED": "true",
             "AUDIO_LEVEL_AUTO_ADJUST_ENABLED": "true",
+            "AUDIO_LEVEL_MANAGE_MICS_ENABLED": "true",
             "AUDIO_LEVEL_CHECK_INTERVAL_SECS": str(CUSTOM_AUDIO_LEVEL_CHECK_INTERVAL_SECS),
             "AUDIO_LEVEL_SOURCE": "alsa_input.pci",
             "MAX_RECORDING_DURATION": "60",
@@ -129,6 +131,7 @@ class TestConfig:
             assert test_config.max_recording_duration == ww.Constants.LONG_RECORDING_DURATION
             assert test_config.audio_level_monitor_enabled
             assert test_config.audio_level_auto_adjust_enabled
+            assert test_config.audio_level_manage_mics_enabled
             assert (
                 test_config.audio_level_check_interval_secs
                 == CUSTOM_AUDIO_LEVEL_CHECK_INTERVAL_SECS
@@ -356,6 +359,7 @@ class TestConfig:
             assert summary["whisper_model"] == "gpt-4o-transcribe"
             assert summary["continuum_capture_inlet_dir"] == ""
             assert summary["audio_level_monitor_enabled"] is False
+            assert summary["audio_level_manage_mics_enabled"] is False
             assert "sk-sensitive123" not in str(summary)
 
     def test_config_get_static_method(self) -> None:

@@ -26,6 +26,7 @@ class AudioLevelMonitor:
         """Initialize monitor from config."""
         self._enabled = config.audio_level_monitor_enabled
         self._auto_adjust = config.audio_level_auto_adjust_enabled
+        self._manage_mics = config.audio_level_manage_mics_enabled
         self._interval_secs = config.audio_level_check_interval_secs
         self._source = config.audio_level_source
         self._monotonic = monotonic or time.monotonic
@@ -56,7 +57,7 @@ class AudioLevelMonitor:
             if recommended == current_volume:
                 return
 
-            if self._auto_adjust:
+            if self._auto_adjust and self._manage_mics:
                 if set_source_volume_percent(self._source, recommended):
                     _logger.info(
                         "Audio level auto-adjust set %s from %d%% to %d%%",
@@ -70,6 +71,14 @@ class AudioLevelMonitor:
                         self._source,
                         recommended,
                     )
+            elif self._auto_adjust:
+                _logger.info(
+                    "Audio level auto-adjust skipped for %s; set "
+                    "AUDIO_LEVEL_MANAGE_MICS_ENABLED=true to allow changing from %d%% to %d%%",
+                    self._source,
+                    current_volume,
+                    recommended,
+                )
             else:
                 _logger.info(
                     "Audio level monitor suggests setting %s from %d%% to %d%%",
