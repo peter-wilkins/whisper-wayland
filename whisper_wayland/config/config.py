@@ -127,6 +127,26 @@ class Config:
         """Maximum recording duration in seconds."""
         return self._property_handlers.get_max_recording_duration()
 
+    @property
+    def audio_level_monitor_enabled(self) -> bool:
+        """Whether captured audio should be level-checked periodically."""
+        return self._property_handlers.get_audio_level_monitor_enabled()
+
+    @property
+    def audio_level_auto_adjust_enabled(self) -> bool:
+        """Whether periodic level checks may adjust source volume."""
+        return self._property_handlers.get_audio_level_auto_adjust_enabled()
+
+    @property
+    def audio_level_check_interval_secs(self) -> float:
+        """Minimum seconds between automatic level checks."""
+        return self._property_handlers.get_audio_level_check_interval_secs()
+
+    @property
+    def audio_level_source(self) -> str:
+        """Pulse/PipeWire source used for level auto-adjustment."""
+        return self._property_handlers.get_audio_level_source()
+
     # Logging Configuration
     @property
     def log_level(self) -> str:

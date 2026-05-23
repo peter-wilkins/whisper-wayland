@@ -13,6 +13,9 @@ MIN_GOOD_RMS_DBFS = -30.0
 MAX_GOOD_RMS_DBFS = -16.0
 MAX_GOOD_PEAK_DBFS = -3.0
 CLIP_WARNING_PERCENT = 0.1
+LIKELY_SILENT_RMS_AMPLITUDE = 0.003
+LIKELY_SILENT_PEAK_AMPLITUDE = 0.01
+LIKELY_CLIPPED_RATIO = 0.001
 INT16_MAX = 32768
 INT16_CLIP_THRESHOLD = 32760
 PCM16_SAMPLE_WIDTH_BYTES = 2
@@ -26,6 +29,11 @@ class AudioLevelStats:
     duration_seconds: float
     sample_rate_hz: int
     channel_count: int
+    rms_amplitude: float
+    peak_amplitude: float
+    clipping_ratio: float
+    likely_silent: bool
+    likely_clipped: bool
     rms_dbfs: float
     peak_dbfs: float
     clipping_percent: float
@@ -55,6 +63,11 @@ def analyze_wav(audio_data: bytes) -> AudioLevelStats:
             duration_seconds=duration,
             sample_rate_hz=sample_rate,
             channel_count=channel_count,
+            rms_amplitude=0.0,
+            peak_amplitude=0.0,
+            clipping_ratio=0.0,
+            likely_silent=True,
+            likely_clipped=False,
             rms_dbfs=-999.0,
             peak_dbfs=-999.0,
             clipping_percent=0.0,
@@ -65,7 +78,14 @@ def analyze_wav(audio_data: bytes) -> AudioLevelStats:
     peak = max(abs(sample) for sample in samples)
     rms = math.sqrt(sum(sample * sample for sample in samples) / len(samples))
     clipping_count = sum(1 for sample in samples if abs(sample) >= INT16_CLIP_THRESHOLD)
-    clipping_percent = clipping_count / len(samples) * 100
+    rms_amplitude = rms / INT16_MAX
+    peak_amplitude = peak / INT16_MAX
+    clipping_ratio = clipping_count / len(samples)
+    clipping_percent = clipping_ratio * 100
+    likely_silent = (
+        rms_amplitude < LIKELY_SILENT_RMS_AMPLITUDE or peak_amplitude < LIKELY_SILENT_PEAK_AMPLITUDE
+    )
+    likely_clipped = clipping_ratio > LIKELY_CLIPPED_RATIO
     rms_dbfs = _dbfs(rms)
     peak_dbfs = _dbfs(peak)
     verdict, recommendation = _classify_levels(rms_dbfs, peak_dbfs, clipping_percent)
@@ -74,6 +94,11 @@ def analyze_wav(audio_data: bytes) -> AudioLevelStats:
         duration_seconds=round(duration, 3),
         sample_rate_hz=sample_rate,
         channel_count=channel_count,
+        rms_amplitude=round(rms_amplitude, 6),
+        peak_amplitude=round(peak_amplitude, 6),
+        clipping_ratio=round(clipping_ratio, 6),
+        likely_silent=likely_silent,
+        likely_clipped=likely_clipped,
         rms_dbfs=round(rms_dbfs, 1),
         peak_dbfs=round(peak_dbfs, 1),
         clipping_percent=round(clipping_percent, 3),

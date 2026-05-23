@@ -20,6 +20,8 @@ STREAMING_CUSTOM_TIMEOUT_SECS = 3.5
 STREAMING_CUSTOM_DELTA_IDLE_TIMEOUT_SECS = 0.5
 STREAMING_CUSTOM_VAD_SILENCE_MS = 900
 CUSTOM_AUDIO_INPUT_DEVICE_INDEX = 3
+DEFAULT_AUDIO_LEVEL_CHECK_INTERVAL_SECS = 900
+CUSTOM_AUDIO_LEVEL_CHECK_INTERVAL_SECS = 30
 
 
 class TestConfig:
@@ -40,6 +42,13 @@ class TestConfig:
                 assert test_config.audio_input_device_index is None
                 assert test_config.audio_input_device_name == ""
                 assert test_config.max_recording_duration == ww.Constants.DEFAULT_RECORDING_DURATION
+                assert not test_config.audio_level_monitor_enabled
+                assert not test_config.audio_level_auto_adjust_enabled
+                assert (
+                    test_config.audio_level_check_interval_secs
+                    == DEFAULT_AUDIO_LEVEL_CHECK_INTERVAL_SECS
+                )
+                assert test_config.audio_level_source == "@DEFAULT_SOURCE@"
                 assert test_config.log_level == "INFO"
                 assert test_config.hotkey == "ctrl+compose"
                 assert test_config.hotkey_mode == "push_to_talk"
@@ -49,8 +58,7 @@ class TestConfig:
                 assert test_config.streaming_transcription_model == "gpt-realtime-whisper"
                 assert test_config.streaming_sample_rate == STREAMING_DEFAULT_SAMPLE_RATE
                 assert (
-                    test_config.streaming_completion_timeout_secs
-                    == STREAMING_DEFAULT_TIMEOUT_SECS
+                    test_config.streaming_completion_timeout_secs == STREAMING_DEFAULT_TIMEOUT_SECS
                 )
                 assert (
                     test_config.streaming_delta_idle_timeout_secs
@@ -88,6 +96,10 @@ class TestConfig:
             "AUDIO_CHUNK_SIZE": "2048",
             "AUDIO_INPUT_DEVICE_INDEX": str(CUSTOM_AUDIO_INPUT_DEVICE_INDEX),
             "AUDIO_INPUT_DEVICE_NAME": "rode",
+            "AUDIO_LEVEL_MONITOR_ENABLED": "true",
+            "AUDIO_LEVEL_AUTO_ADJUST_ENABLED": "true",
+            "AUDIO_LEVEL_CHECK_INTERVAL_SECS": str(CUSTOM_AUDIO_LEVEL_CHECK_INTERVAL_SECS),
+            "AUDIO_LEVEL_SOURCE": "alsa_input.pci",
             "MAX_RECORDING_DURATION": "60",
             "LOG_LEVEL": "DEBUG",
             "HOTKEY": "alt+space",
@@ -115,6 +127,13 @@ class TestConfig:
             assert test_config.audio_input_device_index == CUSTOM_AUDIO_INPUT_DEVICE_INDEX
             assert test_config.audio_input_device_name == "rode"
             assert test_config.max_recording_duration == ww.Constants.LONG_RECORDING_DURATION
+            assert test_config.audio_level_monitor_enabled
+            assert test_config.audio_level_auto_adjust_enabled
+            assert (
+                test_config.audio_level_check_interval_secs
+                == CUSTOM_AUDIO_LEVEL_CHECK_INTERVAL_SECS
+            )
+            assert test_config.audio_level_source == "alsa_input.pci"
             assert test_config.log_level == "DEBUG"
             assert test_config.hotkey == "alt+space"
             assert test_config.hotkey_mode == "toggle"
@@ -131,10 +150,7 @@ class TestConfig:
                 == STREAMING_CUSTOM_DELTA_IDLE_TIMEOUT_SECS
             )
             assert test_config.streaming_turn_detection_enabled
-            assert (
-                test_config.streaming_vad_silence_duration_ms
-                == STREAMING_CUSTOM_VAD_SILENCE_MS
-            )
+            assert test_config.streaming_vad_silence_duration_ms == STREAMING_CUSTOM_VAD_SILENCE_MS
 
     def test_config_invalid_hotkey_mode(self) -> None:
         """Test config handles invalid hotkey modes gracefully."""
@@ -177,22 +193,23 @@ class TestConfig:
                 with pytest.raises(ww.ConfigError, match="MAX_RECORDING_DURATION"):
                     ww.Config()
 
+            # Invalid audio level check interval
+            with unittest.mock.patch.dict(os.environ, {"AUDIO_LEVEL_CHECK_INTERVAL_SECS": "-1"}):
+                with pytest.raises(ww.ConfigError, match="AUDIO_LEVEL_CHECK_INTERVAL_SECS"):
+                    ww.Config()
+
             # Invalid streaming sample rate
             with unittest.mock.patch.dict(os.environ, {"STREAMING_SAMPLE_RATE": "invalid"}):
                 with pytest.raises(ww.ConfigError, match="STREAMING_SAMPLE_RATE"):
                     ww.Config()
 
             # Invalid streaming timeout
-            with unittest.mock.patch.dict(
-                os.environ, {"STREAMING_COMPLETION_TIMEOUT_SECS": "-1"}
-            ):
+            with unittest.mock.patch.dict(os.environ, {"STREAMING_COMPLETION_TIMEOUT_SECS": "-1"}):
                 with pytest.raises(ww.ConfigError, match="STREAMING_COMPLETION_TIMEOUT_SECS"):
                     ww.Config()
 
             # Invalid streaming VAD silence duration
-            with unittest.mock.patch.dict(
-                os.environ, {"STREAMING_VAD_SILENCE_DURATION_MS": "0"}
-            ):
+            with unittest.mock.patch.dict(os.environ, {"STREAMING_VAD_SILENCE_DURATION_MS": "0"}):
                 with pytest.raises(ww.ConfigError, match="STREAMING_VAD_SILENCE_DURATION_MS"):
                     ww.Config()
 
@@ -231,9 +248,7 @@ class TestConfig:
         # Temporarily remove TEXT_INSERTION_METHOD to test default
         old_method = os.environ.pop("TEXT_INSERTION_METHOD", None)
         try:
-            with unittest.mock.patch.dict(
-                os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True
-            ):
+            with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
                 test_config = ww.Config("/nonexistent/test.env")
                 assert test_config.text_insertion_method == "auto"
 
@@ -340,6 +355,7 @@ class TestConfig:
             assert summary["openai_api_key"] == "***"
             assert summary["whisper_model"] == "gpt-4o-transcribe"
             assert summary["continuum_capture_inlet_dir"] == ""
+            assert summary["audio_level_monitor_enabled"] is False
             assert "sk-sensitive123" not in str(summary)
 
     def test_config_get_static_method(self) -> None:

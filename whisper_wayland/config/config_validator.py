@@ -60,6 +60,14 @@ class ConfigValidator:
             "audio_input_device_index": config_instance.audio_input_device_index,
             "audio_input_device_name": config_instance.audio_input_device_name,
             "max_recording_duration": config_instance.max_recording_duration,
+            "audio_level_monitor_enabled": config_instance.audio_level_monitor_enabled,
+            "audio_level_auto_adjust_enabled": (
+                config_instance.audio_level_auto_adjust_enabled
+            ),
+            "audio_level_check_interval_secs": (
+                config_instance.audio_level_check_interval_secs
+            ),
+            "audio_level_source": config_instance.audio_level_source,
             "log_level": config_instance.log_level,
             "hotkey": config_instance.hotkey,
             "hotkey_mode": config_instance.hotkey_mode,

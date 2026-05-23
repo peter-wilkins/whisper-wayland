@@ -132,6 +132,31 @@ class PropertyHandlers:
             _logger.error(f"Invalid MAX_RECORDING_DURATION: {e}")
             raise PropertyHandlerError(f"Invalid MAX_RECORDING_DURATION: {e}") from e
 
+    def get_audio_level_monitor_enabled(self) -> bool:
+        """Get whether recorded audio level should be checked periodically."""
+        value = os.getenv("AUDIO_LEVEL_MONITOR_ENABLED", "false").strip().lower()
+        return value in {"1", "true", "yes", "on"}
+
+    def get_audio_level_auto_adjust_enabled(self) -> bool:
+        """Get whether microphone source volume may be adjusted automatically."""
+        value = os.getenv("AUDIO_LEVEL_AUTO_ADJUST_ENABLED", "false").strip().lower()
+        return value in {"1", "true", "yes", "on"}
+
+    def get_audio_level_check_interval_secs(self) -> float:
+        """Get minimum seconds between automatic audio level checks."""
+        try:
+            interval = float(os.getenv("AUDIO_LEVEL_CHECK_INTERVAL_SECS", "900"))
+            if interval < 0:
+                raise ValueError("Audio level check interval must be non-negative")
+            return interval
+        except ValueError as e:
+            _logger.error(f"Invalid AUDIO_LEVEL_CHECK_INTERVAL_SECS: {e}")
+            raise PropertyHandlerError(f"Invalid AUDIO_LEVEL_CHECK_INTERVAL_SECS: {e}") from e
+
+    def get_audio_level_source(self) -> str:
+        """Get Pulse/PipeWire source to adjust."""
+        return os.getenv("AUDIO_LEVEL_SOURCE", "@DEFAULT_SOURCE@").strip() or "@DEFAULT_SOURCE@"
+
     # Logging Configuration
     def get_log_level(self) -> str:
         """Get logging level.

@@ -7,6 +7,7 @@ import logging
 import typing
 
 import whisper_wayland as ww
+from whisper_wayland.application.audio_level_monitor import AudioLevelMonitor
 from whisper_wayland.application.audio_processor import AudioProcessor
 from whisper_wayland.application.capture_tap import CaptureTap
 from whisper_wayland.application.text_handler import TextHandler
@@ -38,6 +39,7 @@ class TranscriptionProcessor:
         self.status_indicator = status_indicator
         self._transcription_client = transcription_client
         self._capture_tap = CaptureTap(transcription_client.config)
+        self._audio_level_monitor = AudioLevelMonitor.new(transcription_client.config)
         streaming_enabled = (
             getattr(transcription_client.config, "streaming_transcription_enabled", False) is True
         )
@@ -122,6 +124,7 @@ class TranscriptionProcessor:
                 self._handle_insert_result(
                     self.text_handler.insert_text(transcription_result.insertion_text)
                 )
+                self._audio_level_monitor.check_audio(audio_data)
             else:
                 _logger.info("No transcription result")
                 self._show_error("No transcript")

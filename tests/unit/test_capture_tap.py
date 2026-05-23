@@ -7,6 +7,7 @@ import io
 import json
 import os
 import re
+import struct
 import unittest.mock
 import wave
 from datetime import datetime, timezone
@@ -21,6 +22,8 @@ from whisper_wayland.application.transcription_processor import TranscriptionPro
 TEST_SAMPLE_RATE = 16000
 TEST_FRAME_COUNT = 1600
 TEST_DURATION_SECONDS = 0.1
+CLIPPED_SAMPLE = 32767
+FULL_CLIPPING_RATIO = 1.0
 
 
 def _test_wav(sample_rate: int = TEST_SAMPLE_RATE, frame_count: int = TEST_FRAME_COUNT) -> bytes:
@@ -31,6 +34,17 @@ def _test_wav(sample_rate: int = TEST_SAMPLE_RATE, frame_count: int = TEST_FRAME
         wav_file.setsampwidth(2)
         wav_file.setframerate(sample_rate)
         wav_file.writeframes(b"\x00\x00" * frame_count)
+    return buffer.getvalue()
+
+
+def _constant_wav(sample: int) -> bytes:
+    buffer = io.BytesIO()
+    payload = struct.pack(f"<{TEST_FRAME_COUNT}h", *([sample] * TEST_FRAME_COUNT))
+    with wave.open(buffer, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(TEST_SAMPLE_RATE)
+        wav_file.writeframes(payload)
     return buffer.getvalue()
 
 
@@ -109,6 +123,19 @@ class TestCaptureTap:
         assert artifact["byteLength"] == len(audio_data)
         assert artifact["sha256"] == hashlib.sha256(audio_data).hexdigest()
 
+        health = envelope["captureHealth"]
+        assert health["durationSeconds"] == TEST_DURATION_SECONDS
+        assert health["byteLength"] == len(audio_data)
+        assert health["rmsAmplitude"] == 0
+        assert health["peakAmplitude"] == 0
+        assert health["clippingRatio"] == 0
+        assert health["likelySilent"] is True
+        assert health["likelyClipped"] is False
+        assert health["checks"][0]["kind"] == "rms_level"
+        assert health["checks"][0]["status"] == "fail"
+        assert health["checks"][1]["kind"] == "clipping"
+        assert health["checks"][1]["status"] == "pass"
+
         assert envelope["transcript"] == {
             "rawTranscriptText": "raw transcript",
             "insertionText": "Insert transcript.",
@@ -162,6 +189,32 @@ class TestCaptureTap:
         assert replace_calls == [(True, False)]
         assert result.envelope_path.exists()
         assert not list((tmp_path / "envelopes").glob("*.tmp"))
+
+    def test_clipped_capture_is_still_written_with_health_flags(self, tmp_path: Path) -> None:
+        """Clipped captures are marked, not dropped."""
+        audio_data = _constant_wav(CLIPPED_SAMPLE)
+
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "CONTINUUM_CAPTURE_INLET_DIR": str(tmp_path),
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            tap = CaptureTap(test_config, clock=_fixed_clock)
+
+            result = tap.write(audio_data, "raw", "insert")
+
+        assert result is not None
+        envelope = json.loads(result.envelope_path.read_text(encoding="utf-8"))
+        health = envelope["captureHealth"]
+        assert result.artifact_path.exists()
+        assert health["likelySilent"] is False
+        assert health["likelyClipped"] is True
+        assert health["clippingRatio"] == FULL_CLIPPING_RATIO
+        assert health["checks"][1]["status"] == "fail"
 
     def test_processor_writes_capture_before_text_insertion(self, tmp_path: Path) -> None:
         """Batch processor preserves raw transcript and writes tap before insertion."""

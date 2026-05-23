@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from importlib import metadata
 from pathlib import Path
 
+from whisper_wayland.audio_recorder.level_meter import analyze_wav
 from whisper_wayland.transcription_client.model_mapper import ModelMapper
 
 _logger = logging.getLogger(__name__)
@@ -168,6 +169,7 @@ class CaptureTap:
                 "byteLength": len(audio_data),
                 "sha256": artifact_hash,
             },
+            "captureHealth": self._build_capture_health(audio_data, wav_metadata),
             "transcript": {
                 "rawTranscriptText": envelope_input.raw_transcript_text,
                 "insertionText": envelope_input.insertion_text,
@@ -196,6 +198,70 @@ class CaptureTap:
                 "knowledgeTime": envelope_input.created_at_text,
             },
         }
+
+    def _build_capture_health(
+        self,
+        audio_data: bytes,
+        wav_metadata: WavMetadata,
+    ) -> dict[str, typing.Any]:
+        """Build cheap capture-health evidence from local WAV bytes."""
+        try:
+            stats = analyze_wav(audio_data)
+            likely_silent = stats.likely_silent
+            likely_clipped = stats.likely_clipped
+            rms_amplitude = stats.rms_amplitude
+            peak_amplitude = stats.peak_amplitude
+            clipping_ratio = stats.clipping_ratio
+        except Exception as e:
+            _logger.warning("Could not compute capture health: %s", e)
+            likely_silent = False
+            likely_clipped = False
+            rms_amplitude = 0.0
+            peak_amplitude = 0.0
+            clipping_ratio = 0.0
+
+        return {
+            "durationSeconds": wav_metadata.duration_seconds,
+            "byteLength": len(audio_data),
+            "rmsAmplitude": rms_amplitude,
+            "peakAmplitude": peak_amplitude,
+            "clippingRatio": clipping_ratio,
+            "likelySilent": likely_silent,
+            "likelyClipped": likely_clipped,
+            "checks": self._build_capture_health_checks(
+                likely_silent=likely_silent,
+                likely_clipped=likely_clipped,
+            ),
+        }
+
+    @staticmethod
+    def _build_capture_health_checks(
+        likely_silent: bool,
+        likely_clipped: bool,
+    ) -> list[dict[str, typing.Any]]:
+        """Build human-readable capture health checks for Continuum."""
+        return [
+            {
+                "kind": "rms_level",
+                "status": "fail" if likely_silent else "pass",
+                "text": (
+                    "RMS or peak amplitude is below the likely-silent threshold."
+                    if likely_silent
+                    else "RMS and peak amplitude are above the likely-silent thresholds."
+                ),
+                "confidence": 1,
+            },
+            {
+                "kind": "clipping",
+                "status": "fail" if likely_clipped else "pass",
+                "text": (
+                    "Clipping ratio is above the likely-clipped threshold."
+                    if likely_clipped
+                    else "Clipping ratio is below the likely-clipped threshold."
+                ),
+                "confidence": 1,
+            },
+        ]
 
     @staticmethod
     def _write_envelope_atomically(envelope_path: Path, envelope: dict[str, typing.Any]) -> None:

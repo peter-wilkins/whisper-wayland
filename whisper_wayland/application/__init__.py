@@ -4,6 +4,9 @@ Modular application components for better code organization.
 """
 
 from whisper_wayland.application.application import Application as Application
+from whisper_wayland.application.audio_level_monitor import (
+    AudioLevelMonitor as AudioLevelMonitor,
+)
 from whisper_wayland.application.audio_processor import AudioProcessor as AudioProcessor
 from whisper_wayland.application.capture_tap import CaptureTap as CaptureTap
 from whisper_wayland.application.capture_tap import (
