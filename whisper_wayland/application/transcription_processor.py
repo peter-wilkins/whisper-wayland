@@ -21,6 +21,9 @@ _logger = logging.getLogger(__name__)
 
 SHORT_HALLUCINATION_DURATION_SECONDS = 4.0
 MAX_SILENT_TRANSCRIPT_WORDS = 3
+SUPPRESSION_REASON_LIKELY_EMPTY_RECORDING_HALLUCINATION = (
+    "likely-empty-recording-hallucination"
+)
 KNOWN_SHORT_HALLUCINATIONS = {
     "thank you for watching",
     "thanks for watching",
@@ -127,12 +130,18 @@ class TranscriptionProcessor:
             transcription_result = self.audio_processor.transcribe_audio_with_result(audio_data)
 
             if transcription_result:
+                suppression_reason = self._transcript_suppression_reason(
+                    audio_data,
+                    transcription_result.raw_text,
+                )
                 self._capture_tap.write(
                     audio_data=audio_data,
                     raw_transcript_text=transcription_result.raw_text,
                     insertion_text=transcription_result.insertion_text,
+                    transcript_suppressed=suppression_reason is not None,
+                    transcript_suppression_reason=suppression_reason,
                 )
-                if self._should_suppress_insertion(audio_data, transcription_result.raw_text):
+                if suppression_reason is not None:
                     _logger.info(
                         "Suppressing likely empty recording transcript: '%s'",
                         transcription_result.raw_text,
@@ -175,11 +184,25 @@ class TranscriptionProcessor:
     @staticmethod
     def _should_suppress_insertion(audio_data: bytes, raw_transcript_text: str) -> bool:
         """Return whether a transcript should be captured but not pasted."""
+        return (
+            TranscriptionProcessor._transcript_suppression_reason(
+                audio_data,
+                raw_transcript_text,
+            )
+            is not None
+        )
+
+    @staticmethod
+    def _transcript_suppression_reason(
+        audio_data: bytes,
+        raw_transcript_text: str,
+    ) -> str | None:
+        """Return why a transcript should be suppressed, or None."""
         try:
             stats = analyze_wav(audio_data)
         except Exception as e:
             _logger.debug("Could not analyze audio before insertion: %s", e)
-            return False
+            return None
 
         normalized_text = TranscriptionProcessor._normalize_transcript_for_guard(
             raw_transcript_text
@@ -189,15 +212,15 @@ class TranscriptionProcessor:
             TranscriptionProcessor._word_count(normalized_text) <= MAX_SILENT_TRANSCRIPT_WORDS
             or normalized_text in KNOWN_SHORT_HALLUCINATIONS
         ):
-            return True
+            return SUPPRESSION_REASON_LIKELY_EMPTY_RECORDING_HALLUCINATION
 
         if (
             stats.duration_seconds <= SHORT_HALLUCINATION_DURATION_SECONDS
             and normalized_text in KNOWN_SHORT_HALLUCINATIONS
         ):
-            return True
+            return SUPPRESSION_REASON_LIKELY_EMPTY_RECORDING_HALLUCINATION
 
-        return False
+        return None
 
     @staticmethod
     def _normalize_transcript_for_guard(text: str) -> str:

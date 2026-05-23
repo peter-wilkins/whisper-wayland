@@ -53,6 +53,8 @@ class CaptureEnvelopeInput:
     audio_data: bytes
     raw_transcript_text: str
     insertion_text: str
+    transcript_suppressed: bool
+    transcript_suppression_reason: str | None
     capture_id: str
     created_at_text: str
     artifact_rel: Path
@@ -89,6 +91,9 @@ class CaptureTap:
         audio_data: bytes,
         raw_transcript_text: str,
         insertion_text: str,
+        *,
+        transcript_suppressed: bool = False,
+        transcript_suppression_reason: str | None = None,
     ) -> CaptureTapWriteResult | None:
         """Write local WAV artifact and JSON envelope if capture tap is enabled."""
         if not self._inlet_dir:
@@ -123,6 +128,8 @@ class CaptureTap:
                     audio_data=audio_data,
                     raw_transcript_text=raw_transcript_text,
                     insertion_text=insertion_text,
+                    transcript_suppressed=transcript_suppressed,
+                    transcript_suppression_reason=transcript_suppression_reason,
                     capture_id=capture_id,
                     created_at_text=created_at_text,
                     artifact_rel=artifact_rel,
@@ -170,16 +177,14 @@ class CaptureTap:
                 "sha256": artifact_hash,
             },
             "captureHealth": self._build_capture_health(audio_data, wav_metadata),
-            "transcript": {
-                "rawTranscriptText": envelope_input.raw_transcript_text,
-                "insertionText": envelope_input.insertion_text,
-                "postProcessMode": self._config.text_post_process_mode,
-            },
+            "transcript": self._build_transcript(envelope_input),
             "captureContext": {
                 "hostApp": self.SOURCE_TOOL_NAME,
                 "captureInlet": "local-file-drop",
                 "deviceLabel": self._device_label(),
-                "membraneDecision": "accepted",
+                "membraneDecision": (
+                    "needs_review" if envelope_input.transcript_suppressed else "accepted"
+                ),
                 "contextClues": [
                     {
                         "kind": "activation",
@@ -197,6 +202,30 @@ class CaptureTap:
                 "configurationFingerprint": self._configuration_fingerprint(processor_id),
                 "knowledgeTime": envelope_input.created_at_text,
             },
+        }
+
+    def _build_transcript(
+        self,
+        envelope_input: CaptureEnvelopeInput,
+    ) -> dict[str, typing.Any]:
+        """Build transcript section, making suppressed hallucinations explicit."""
+        transcript = {
+            "rawTranscriptText": envelope_input.raw_transcript_text,
+            "insertionText": envelope_input.insertion_text,
+            "postProcessMode": self._config.text_post_process_mode,
+        }
+
+        if not envelope_input.transcript_suppressed:
+            return transcript
+
+        return {
+            "rawTranscriptText": "",
+            "insertionText": "",
+            "postProcessMode": self._config.text_post_process_mode,
+            "suppressed": True,
+            "suppressionReason": envelope_input.transcript_suppression_reason,
+            "rejectedRawTranscriptText": envelope_input.raw_transcript_text,
+            "rejectedInsertionText": envelope_input.insertion_text,
         }
 
     def _build_capture_health(

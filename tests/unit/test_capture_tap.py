@@ -297,9 +297,16 @@ class TestCaptureTap:
         envelopes = list((tmp_path / "envelopes").glob("*.json"))
         assert envelopes
         envelope = json.loads(envelopes[0].read_text(encoding="utf-8"))
-        assert envelope["transcript"]["rawTranscriptText"] == "you"
-        assert envelope["transcript"]["insertionText"] == "you"
+        assert envelope["transcript"]["rawTranscriptText"] == ""
+        assert envelope["transcript"]["insertionText"] == ""
+        assert envelope["transcript"]["suppressed"] is True
+        assert envelope["transcript"]["suppressionReason"] == (
+            "likely-empty-recording-hallucination"
+        )
+        assert envelope["transcript"]["rejectedRawTranscriptText"] == "you"
+        assert envelope["transcript"]["rejectedInsertionText"] == "you"
         assert envelope["captureHealth"]["likelySilent"] is True
+        assert envelope["captureContext"]["membraneDecision"] == "needs_review"
 
     def test_processor_suppresses_short_stock_caption_hallucination(
         self,
@@ -330,3 +337,17 @@ class TestCaptureTap:
         text_inserter.insert_text.assert_not_called()
         envelopes = list((tmp_path / "envelopes").glob("*.json"))
         assert envelopes
+        envelope = json.loads(envelopes[0].read_text(encoding="utf-8"))
+        assert envelope["transcript"]["rawTranscriptText"] == ""
+        assert envelope["transcript"]["insertionText"] == ""
+        assert envelope["transcript"]["suppressed"] is True
+        assert envelope["transcript"]["suppressionReason"] == (
+            "likely-empty-recording-hallucination"
+        )
+        assert envelope["transcript"]["rejectedRawTranscriptText"] == (
+            "Thank you for watching."
+        )
+        assert envelope["transcript"]["rejectedInsertionText"] == (
+            "Thank you for watching."
+        )
+        assert envelope["captureContext"]["membraneDecision"] == "needs_review"
