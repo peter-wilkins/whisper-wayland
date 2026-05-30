@@ -20,7 +20,7 @@ tmux set-environment -g WHISPER_WAYLAND_TMUX_ACTIVE_PANE_FILE "$active_pane_file
 write_current='run-shell -b '\''mkdir -p "$(dirname "$WHISPER_WAYLAND_TMUX_ACTIVE_PANE_FILE")"; printf "%s\n" "#{pane_id}" > "$WHISPER_WAYLAND_TMUX_ACTIVE_PANE_FILE"'\'''
 
 tmux set-option -gq focus-events on
-tmux set-hook -g client-focus-in "$write_current"
+tmux set-hook -g pane-focus-in "$write_current"
 tmux set-hook -g after-select-pane "$write_current"
 tmux set-hook -g after-select-window "$write_current"
 tmux set-hook -g client-session-changed "$write_current"
