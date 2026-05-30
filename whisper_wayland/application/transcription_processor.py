@@ -85,7 +85,7 @@ class TranscriptionProcessor:
             _logger.error(f"Failed to start realtime streaming transcription: {e}")
             return False
 
-    def stop_streaming(self, insertion_target: str | None = None) -> None:
+    def stop_streaming(self) -> None:
         """Stop realtime streaming and insert the final transcript."""
         if not self._streaming_client:
             _logger.warning("Realtime streaming stop requested while streaming is disabled")
@@ -95,11 +95,9 @@ class TranscriptionProcessor:
             result = self._streaming_client.stop()
             if result.text:
                 processed_text = self._transcription_client.post_process_text(result.text)
-                self._handle_insert_result(
-                    self.text_handler.insert_text(processed_text, insertion_target)
-                )
+                self._handle_insert_result(self.text_handler.insert_text(processed_text))
             elif result.fallback_audio:
-                self.process_audio(result.fallback_audio, insertion_target=insertion_target)
+                self.process_audio(result.fallback_audio)
             elif result.chunks_delivered:
                 self._show_idle()
             elif result.error:
@@ -124,18 +122,12 @@ class TranscriptionProcessor:
             _logger.debug(f"Error cancelling realtime streaming transcription: {e}")
             self._show_idle()
 
-    def process_audio(
-        self,
-        audio_data: bytes,
-        audio_source: str | None = None,
-        insertion_target: str | None = None,
-    ) -> None:
+    def process_audio(self, audio_data: bytes, audio_source: str | None = None) -> None:
         """Process audio data through transcription and text insertion.
 
         Args:
             audio_data: Audio data to process
             audio_source: Optional Pulse/PipeWire source captured by the recorder
-            insertion_target: Optional text insertion destination captured at recording start
         """
         try:
             transcription_result = self.audio_processor.transcribe_audio_with_result(audio_data)
@@ -160,10 +152,7 @@ class TranscriptionProcessor:
                     self._show_idle()
                 else:
                     self._handle_insert_result(
-                        self.text_handler.insert_text(
-                            transcription_result.insertion_text,
-                            insertion_target,
-                        )
+                        self.text_handler.insert_text(transcription_result.insertion_text)
                     )
                 self._audio_level_monitor.check_audio(audio_data, audio_source)
             else:
@@ -177,10 +166,6 @@ class TranscriptionProcessor:
         """Clean up processor resources."""
         if self._streaming_client:
             self._streaming_client.close()
-
-    def capture_insertion_target(self) -> str | None:
-        """Capture the current text insertion destination, if supported."""
-        return self.text_handler.capture_insertion_target()
 
     def _handle_insert_result(self, success: bool) -> None:
         """Update status indicator after text insertion."""

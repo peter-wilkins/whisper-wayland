@@ -374,19 +374,6 @@ class PropertyHandlers:
         """Get explicit tmux target pane for tmux insertion."""
         return os.getenv("TEXT_TMUX_TARGET_PANE", "").strip()
 
-    def get_text_tmux_capture_active_pane_enabled(self) -> bool:
-        """Get whether hotkey press should capture the active tmux pane."""
-        value = os.getenv("TEXT_TMUX_CAPTURE_ACTIVE_PANE_ENABLED", "false").strip().lower()
-        return value in {"1", "true", "yes", "on"}
-
-    def get_text_tmux_active_pane_file(self) -> str:
-        """Get the state file where tmux hooks write the active pane id."""
-        configured = os.getenv("TEXT_TMUX_ACTIVE_PANE_FILE", "").strip()
-        if configured:
-            return configured
-        runtime_dir = os.getenv("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-        return os.path.join(runtime_dir, "whisper-wayland", "active-tmux-pane")
-
     def get_text_paste_hotkey(self) -> str:
         """Get hotkey used to paste clipboard text.
 

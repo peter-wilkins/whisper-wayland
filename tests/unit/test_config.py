@@ -36,7 +36,6 @@ DEFAULT_TEXT_POST_PROCESS_LOCAL_API_URL = "http://127.0.0.1:8765/v1/transcript/r
 CUSTOM_TEXT_POST_PROCESS_LOCAL_API_URL = "http://127.0.0.1:9999/v1/transcript/rewrite"
 DEFAULT_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS = 1.5
 CUSTOM_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS = 0.75
-CUSTOM_TEXT_TMUX_ACTIVE_PANE_FILE = "/tmp/whisper-wayland-active-pane"
 
 
 class TestConfig:
@@ -83,10 +82,6 @@ class TestConfig:
                 assert test_config.hotkey == "ctrl+compose"
                 assert test_config.hotkey_mode == "push_to_talk"
                 assert test_config.text_tmux_target_pane == ""
-                assert not test_config.text_tmux_capture_active_pane_enabled
-                assert test_config.text_tmux_active_pane_file.endswith(
-                    "/whisper-wayland/active-tmux-pane"
-                )
                 assert test_config.text_paste_hotkey == "ctrl+v"
                 assert (
                     test_config.text_post_process_providers
@@ -162,8 +157,6 @@ class TestConfig:
             "HOTKEY": "alt+space",
             "HOTKEY_MODE": "toggle",
             "TEXT_TMUX_TARGET_PANE": "whisper-wayland:0.0",
-            "TEXT_TMUX_CAPTURE_ACTIVE_PANE_ENABLED": "true",
-            "TEXT_TMUX_ACTIVE_PANE_FILE": CUSTOM_TEXT_TMUX_ACTIVE_PANE_FILE,
             "TEXT_PASTE_HOTKEY": "ctrl+shift+v",
             "TEXT_POST_PROCESS_MODE": "snappy",
             "TEXT_POST_PROCESS_MODEL": "gpt-test-model",
@@ -218,8 +211,6 @@ class TestConfig:
             assert test_config.hotkey == "alt+space"
             assert test_config.hotkey_mode == "toggle"
             assert test_config.text_tmux_target_pane == "whisper-wayland:0.0"
-            assert test_config.text_tmux_capture_active_pane_enabled
-            assert test_config.text_tmux_active_pane_file == CUSTOM_TEXT_TMUX_ACTIVE_PANE_FILE
             assert test_config.text_paste_hotkey == "ctrl+shift+v"
             assert test_config.text_post_process_mode == "snappy"
             assert test_config.text_post_process_model == "gpt-test-model"

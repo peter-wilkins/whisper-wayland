@@ -213,16 +213,6 @@ class Config:
         return self._property_handlers.get_text_tmux_target_pane()
 
     @property
-    def text_tmux_capture_active_pane_enabled(self) -> bool:
-        """Whether to capture active tmux pane at recording start."""
-        return self._property_handlers.get_text_tmux_capture_active_pane_enabled()
-
-    @property
-    def text_tmux_active_pane_file(self) -> str:
-        """State file where tmux hooks write the active pane id."""
-        return self._property_handlers.get_text_tmux_active_pane_file()
-
-    @property
     def text_paste_hotkey(self) -> str:
         """Hotkey used to paste clipboard text."""
         return self._property_handlers.get_text_paste_hotkey()

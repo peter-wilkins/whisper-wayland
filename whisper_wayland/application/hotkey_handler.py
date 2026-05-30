@@ -41,7 +41,6 @@ class HotkeyHandler:
         self._streaming_active = False
         self._transcribing_active = False
         self._recording_started_at = 0.0
-        self._recording_insertion_target: str | None = None
         self._state_lock = threading.Lock()
 
     def setup_callbacks(self, key_monitor: "ww.KeyMonitor") -> None:
@@ -78,7 +77,6 @@ class HotkeyHandler:
             if not should_release:
                 self._recording_active = True
                 self._recording_started_at = time.monotonic()
-                self._recording_insertion_target = self._capture_insertion_target()
 
         if should_release:
             self._on_hotkey_release()
@@ -110,8 +108,6 @@ class HotkeyHandler:
             self._recording_active = False
             self._transcribing_active = True
             recording_duration = time.monotonic() - self._recording_started_at
-            insertion_target = self._recording_insertion_target
-            self._recording_insertion_target = None
 
         _logger.info("Hotkey released - stopping recording")
 
@@ -131,7 +127,7 @@ class HotkeyHandler:
                 self._streaming_active = False
                 threading.Thread(
                     target=self._run_transcription_task,
-                    args=(self.transcription_processor.stop_streaming, insertion_target),
+                    args=(self.transcription_processor.stop_streaming,),
                     daemon=True,
                 ).start()
                 return
@@ -147,7 +143,6 @@ class HotkeyHandler:
                         self.transcription_processor.process_audio,
                         audio_data,
                         audio_source,
-                        insertion_target,
                     ),
                     daemon=True,
                 ).start()
@@ -178,7 +173,6 @@ class HotkeyHandler:
         finally:
             with self._state_lock:
                 self._transcribing_active = False
-                self._recording_insertion_target = None
             self._show_idle()
 
     def _run_transcription_task(
@@ -204,20 +198,6 @@ class HotkeyHandler:
 
         _logger.warning("Realtime streaming unavailable; falling back to batch recording")
         return False
-
-    def _capture_insertion_target(self) -> str | None:
-        """Capture the text insertion destination at recording start, if supported."""
-        capture = getattr(self.transcription_processor, "capture_insertion_target", None)
-        if not callable(capture):
-            return None
-
-        try:
-            target = capture()
-        except Exception as e:
-            _logger.debug("Could not capture insertion target: %s", e)
-            return None
-
-        return target if isinstance(target, str) and target else None
 
     def _show_recording(self) -> None:
         """Update indicator to recording state."""

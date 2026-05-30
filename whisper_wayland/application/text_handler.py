@@ -21,12 +21,11 @@ class TextHandler:
         """
         self.text_inserter = text_inserter
 
-    def insert_text(self, text: str, insertion_target: str | None = None) -> bool:
+    def insert_text(self, text: str) -> bool:
         """Insert transcribed text at cursor position.
 
         Args:
             text: Transcribed text to insert
-            insertion_target: Optional insertion destination captured at recording start
 
         Returns:
             True when insertion succeeded, False otherwise.
@@ -36,10 +35,7 @@ class TextHandler:
             preview_text = text[:preview_len]
             ellipsis = "..." if len(text) > preview_len else ""
             _logger.info(f"Inserting transcribed text: '{preview_text}{ellipsis}'")
-            if insertion_target is None:
-                success = self.text_inserter.insert_text(text)
-            else:
-                success = self.text_inserter.insert_text(text, insertion_target)
+            success = self.text_inserter.insert_text(text)
 
             if success:
                 _logger.info("Text insertion successful")
@@ -61,13 +57,6 @@ class TextHandler:
             print(f"Unexpected error during text insertion: {e}")
             print(f"Transcribed text: {text}")
             return False
-
-    def capture_insertion_target(self) -> str | None:
-        """Capture the current insertion target, if the inserter supports it."""
-        capture = getattr(self.text_inserter, "capture_insertion_target", None)
-        if not callable(capture):
-            return None
-        return capture()
 
     @staticmethod
     def new(text_inserter: "ww.TextInserter") -> "TextHandler":

@@ -51,8 +51,6 @@ def clean_environment() -> typing.Generator[None, None, None]:
         "TEXT_INSERTION_DELAY",
         "TEXT_INSERTION_METHOD",
         "TEXT_TMUX_TARGET_PANE",
-        "TEXT_TMUX_CAPTURE_ACTIVE_PANE_ENABLED",
-        "TEXT_TMUX_ACTIVE_PANE_FILE",
         "TEXT_PASTE_HOTKEY",
         "TEXT_POST_PROCESS_MODE",
         "TEXT_POST_PROCESS_MODEL",

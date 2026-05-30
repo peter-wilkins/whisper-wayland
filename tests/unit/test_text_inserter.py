@@ -11,7 +11,6 @@ import unittest.mock
 import whisper_wayland as ww
 import whisper_wayland.text_inserter as text_inserter
 import whisper_wayland.text_inserter as text_inserter_module
-from whisper_wayland.text_inserter.tmux_target import TmuxTargetCapture
 
 CLIPBOARD_RESTORE_CALL_COUNT = 4
 WAYLAND_CLIPBOARD_RESTORE_CALL_COUNT = 5
@@ -145,47 +144,6 @@ class TestTextInserter:
             mock_insert.assert_called_once_with(
                 text_inserter_module.TextInsertionMethod.YDOTOOL, "Hello, World!"
             )
-
-    def test_insert_text_uses_captured_tmux_target_first(
-        self, text_inserter: text_inserter_module.TextInserter
-    ) -> None:
-        """Test captured tmux pane is tried before the configured insertion method."""
-        text_inserter._available_methods[text_inserter_module.TextInsertionMethod.TMUX] = True
-
-        with unittest.mock.patch.object(
-            text_inserter._method_executors, "insert_with_method", return_value=True
-        ) as mock_insert:
-            result = text_inserter.insert_text("Hello", insertion_target="%12")
-
-        assert result is True
-        mock_insert.assert_called_once_with(
-            text_inserter_module.TextInsertionMethod.TMUX,
-            "Hello",
-            tmux_target_pane="%12",
-        )
-
-    def test_insert_text_falls_back_when_captured_tmux_target_fails(
-        self, text_inserter: text_inserter_module.TextInserter
-    ) -> None:
-        """Test configured method is used if captured tmux insertion fails."""
-        text_inserter._available_methods[text_inserter_module.TextInsertionMethod.TMUX] = True
-
-        with unittest.mock.patch.object(
-            text_inserter._method_executors,
-            "insert_with_method",
-            side_effect=[False, True],
-        ) as mock_insert:
-            result = text_inserter.insert_text("Hello", insertion_target="%12")
-
-        assert result is True
-        assert mock_insert.call_args_list == [
-            unittest.mock.call(
-                text_inserter_module.TextInsertionMethod.TMUX,
-                "Hello",
-                tmux_target_pane="%12",
-            ),
-            unittest.mock.call(text_inserter_module.TextInsertionMethod.YDOTOOL, "Hello"),
-        ]
 
     def test_insert_text_empty(self, text_inserter: text_inserter_module.TextInserter) -> None:
         """Test text insertion with empty string."""
@@ -404,36 +362,6 @@ class TestTextInserter:
                 timeout=5,
             )
 
-    def test_insert_with_tmux_target_override(
-        self, text_inserter: text_inserter_module.TextInserter
-    ) -> None:
-        """Test tmux insertion can use a per-recording target override."""
-        text_inserter._method_executors._tmux_target_pane = TMUX_TARGET_PANE
-        mock_result = unittest.mock.Mock()
-        mock_result.returncode = 0
-
-        with unittest.mock.patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = text_inserter._method_executors._insert_with_tmux(
-                "test text",
-                target_pane="%12",
-            )
-
-        assert result is True
-        mock_run.assert_any_call(
-            [
-                "tmux",
-                "paste-buffer",
-                "-d",
-                "-b",
-                "whisper-wayland-transcript",
-                "-t",
-                "%12",
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
     def test_insert_with_tmux_requires_target(
         self, text_inserter: text_inserter_module.TextInserter
     ) -> None:
@@ -847,37 +775,6 @@ class TestTextInserter:
         """Test text inserter cleanup."""
         # Should not raise any errors
         text_inserter.close()
-
-
-class TestTmuxTargetCapture:
-    """Test cases for recording-start tmux target capture."""
-
-    def test_disabled_capture_returns_none(self, tmp_path: typing.Any) -> None:
-        """Disabled target capture does not read the active-pane file."""
-        active_pane_file = tmp_path / "active-pane"
-        active_pane_file.write_text("%12", encoding="utf-8")
-
-        capture = TmuxTargetCapture(False, str(active_pane_file))
-
-        assert capture.capture() is None
-
-    def test_capture_reads_valid_pane_id(self, tmp_path: typing.Any) -> None:
-        """Active tmux pane id is read from the state file."""
-        active_pane_file = tmp_path / "active-pane"
-        active_pane_file.write_text("%12\n", encoding="utf-8")
-
-        capture = TmuxTargetCapture(True, str(active_pane_file))
-
-        assert capture.capture() == "%12"
-
-    def test_capture_rejects_invalid_pane_id(self, tmp_path: typing.Any) -> None:
-        """Only tmux pane ids are accepted from the state file."""
-        active_pane_file = tmp_path / "active-pane"
-        active_pane_file.write_text("not-a-pane", encoding="utf-8")
-
-        capture = TmuxTargetCapture(True, str(active_pane_file))
-
-        assert capture.capture() is None
 
 
 class TestCreateTextInserter:
