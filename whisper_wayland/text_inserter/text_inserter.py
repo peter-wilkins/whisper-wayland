@@ -10,9 +10,13 @@ import typing
 import whisper_wayland as ww
 from whisper_wayland.text_inserter.capability_tester import CapabilityTester
 from whisper_wayland.text_inserter.fallback_handler import FallbackHandler
-from whisper_wayland.text_inserter.insertion_methods import MethodDetector
+from whisper_wayland.text_inserter.insertion_methods import (
+    MethodDetector,
+    TextInsertionMethod,
+)
 from whisper_wayland.text_inserter.method_executors import MethodExecutors
 from whisper_wayland.text_inserter.text_processor import TextProcessor
+from whisper_wayland.text_inserter.tmux_target import TmuxTargetCapture
 
 _logger = logging.getLogger(__name__)
 
@@ -46,6 +50,10 @@ class TextInserter:
         self._method_detector = MethodDetector.new()
         self._text_processor = TextProcessor.new()
         self._capability_tester = CapabilityTester.new()
+        self._tmux_target_capture = TmuxTargetCapture.new(
+            config.text_tmux_capture_active_pane_enabled,
+            config.text_tmux_active_pane_file,
+        )
 
         # Detect available methods
         self._available_methods = self._method_detector.detect_available_methods()
@@ -70,11 +78,12 @@ class TextInserter:
         ]
         _logger.debug(f"Available methods: {available_methods}")
 
-    def insert_text(self, text: str) -> bool:
+    def insert_text(self, text: str, insertion_target: str | None = None) -> bool:
         """Insert text at current cursor position.
 
         Args:
             text: Text to insert
+            insertion_target: Optional insertion destination captured at recording start
 
         Returns:
             True if text was successfully inserted, False otherwise
@@ -98,6 +107,17 @@ class TextInserter:
             time.sleep(self.config.text_insertion_delay)
 
         try:
+            if insertion_target and self._available_methods.get(TextInsertionMethod.TMUX, False):
+                _logger.info("Trying captured tmux insertion target: %s", insertion_target)
+                if self._method_executors.insert_with_method(
+                    TextInsertionMethod.TMUX,
+                    cleaned_text,
+                    tmux_target_pane=insertion_target,
+                ):
+                    _logger.info("Text insertion successful")
+                    return True
+                _logger.warning("Captured tmux insertion target failed; falling back")
+
             success = self._method_executors.insert_with_method(
                 self._preferred_method, cleaned_text
             )
@@ -115,6 +135,10 @@ class TextInserter:
             return self._fallback_handler.try_fallback_methods(
                 cleaned_text, self._preferred_method, self._available_methods
             )
+
+    def capture_insertion_target(self) -> str | None:
+        """Capture the current insertion target, if configured."""
+        return self._tmux_target_capture.capture()
 
     def test_insertion(self) -> bool:
         """Test text insertion capability.

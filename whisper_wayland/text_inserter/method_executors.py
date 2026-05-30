@@ -55,19 +55,27 @@ class MethodExecutors:
         self._paste_hotkey = paste_hotkey
         self._tmux_target_pane = tmux_target_pane
 
-    def insert_with_method(self, method: TextInsertionMethod, text: str) -> bool:
+    def insert_with_method(
+        self,
+        method: TextInsertionMethod,
+        text: str,
+        tmux_target_pane: str | None = None,
+    ) -> bool:
         """Insert text using specific method.
 
         Args:
             method: Text insertion method to use
             text: Text to insert
+            tmux_target_pane: Optional tmux pane target override
 
         Returns:
             True if successful, False otherwise
         """
         try:
+            if method == TextInsertionMethod.TMUX:
+                return self._insert_with_tmux(text, tmux_target_pane)
+
             handlers = {
-                TextInsertionMethod.TMUX: self._insert_with_tmux,
                 TextInsertionMethod.WTYPE: self._insert_with_wtype,
                 TextInsertionMethod.YDOTOOL: self._insert_with_ydotool,
                 TextInsertionMethod.XDOTOOL: self._insert_with_xdotool,
@@ -83,9 +91,9 @@ class MethodExecutors:
             _logger.error(f"Unexpected error with {method.value}: {e}")
             return False
 
-    def _insert_with_tmux(self, text: str) -> bool:
+    def _insert_with_tmux(self, text: str, target_pane: str | None = None) -> bool:
         """Insert text by loading a tmux paste buffer into an explicit target pane."""
-        target_pane = self._tmux_target_pane.strip()
+        target_pane = (target_pane or self._tmux_target_pane).strip()
         if not target_pane:
             _logger.warning("tmux insertion skipped: TEXT_TMUX_TARGET_PANE is not set")
             return False

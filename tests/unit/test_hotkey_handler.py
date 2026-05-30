@@ -38,6 +38,7 @@ class TestHotkeyHandler:
         transcription_processor = unittest.mock.Mock()
         status_indicator = unittest.mock.Mock()
         transcription_processor.streaming_enabled = False
+        transcription_processor.capture_insertion_target.return_value = None
         audio_recorder.stop_recording.return_value = b"audio"
         handler = application.HotkeyHandler(
             audio_recorder,
@@ -69,6 +70,7 @@ class TestHotkeyHandler:
         transcription_processor = unittest.mock.Mock()
         transcription_processor.streaming_enabled = True
         transcription_processor.start_streaming.return_value = True
+        transcription_processor.capture_insertion_target.return_value = "%12"
         handler = application.HotkeyHandler(
             audio_recorder, transcription_processor, mode="toggle"
         )
@@ -77,6 +79,7 @@ class TestHotkeyHandler:
             handler._on_hotkey_press()
             assert handler.is_recording_active
             transcription_processor.start_streaming.assert_called_once()
+            transcription_processor.capture_insertion_target.assert_called_once()
             audio_recorder.start_recording.assert_not_called()
 
             handler._on_hotkey_press()
@@ -90,6 +93,7 @@ class TestHotkeyHandler:
         status_indicator = unittest.mock.Mock()
         transcription_processor.streaming_enabled = True
         transcription_processor.start_streaming.return_value = False
+        transcription_processor.capture_insertion_target.return_value = None
         handler = application.HotkeyHandler(
             audio_recorder,
             transcription_processor,
@@ -109,6 +113,7 @@ class TestHotkeyHandler:
         audio_recorder = unittest.mock.Mock()
         transcription_processor = unittest.mock.Mock()
         transcription_processor.streaming_enabled = True
+        transcription_processor.capture_insertion_target.return_value = None
         handler = application.HotkeyHandler(
             audio_recorder,
             transcription_processor,
@@ -128,6 +133,7 @@ class TestHotkeyHandler:
         status_indicator = unittest.mock.Mock()
         transcription_processor.streaming_enabled = True
         transcription_processor.start_streaming.return_value = True
+        transcription_processor.capture_insertion_target.return_value = None
         handler = application.HotkeyHandler(
             audio_recorder,
             transcription_processor,
@@ -152,6 +158,7 @@ class TestHotkeyHandler:
         transcription_processor = unittest.mock.Mock()
         status_indicator = unittest.mock.Mock()
         transcription_processor.streaming_enabled = False
+        transcription_processor.capture_insertion_target.return_value = None
         handler = application.HotkeyHandler(
             audio_recorder,
             transcription_processor,
@@ -175,6 +182,7 @@ class TestHotkeyHandler:
         audio_recorder = unittest.mock.Mock()
         transcription_processor = unittest.mock.Mock()
         transcription_processor.streaming_enabled = False
+        transcription_processor.capture_insertion_target.return_value = None
         audio_recorder.get_active_input_source.return_value = "bluez_input.test"
         audio_recorder.stop_recording.return_value = b"audio"
         handler = application.HotkeyHandler(
@@ -194,7 +202,37 @@ class TestHotkeyHandler:
 
         mock_thread.assert_called_once_with(
             target=handler._run_transcription_task,
-            args=(transcription_processor.process_audio, b"audio", "bluez_input.test"),
+            args=(transcription_processor.process_audio, b"audio", "bluez_input.test", None),
             daemon=True,
         )
         mock_thread.return_value.start.assert_called_once()
+
+    def test_batch_recording_captures_insertion_target_on_press(self) -> None:
+        """Test insertion target is captured at start and reused after transcription."""
+        audio_recorder = unittest.mock.Mock()
+        transcription_processor = unittest.mock.Mock()
+        transcription_processor.streaming_enabled = False
+        transcription_processor.capture_insertion_target.return_value = "%12"
+        audio_recorder.get_active_input_source.return_value = "alsa_input.test"
+        audio_recorder.stop_recording.return_value = b"audio"
+        handler = application.HotkeyHandler(
+            audio_recorder,
+            transcription_processor,
+            mode="push_to_talk",
+        )
+
+        with unittest.mock.patch(
+            "whisper_wayland.application.hotkey_handler.threading.Thread"
+        ) as mock_thread, unittest.mock.patch(
+            "whisper_wayland.application.hotkey_handler.time.monotonic",
+            side_effect=[1.0, 2.0],
+        ):
+            handler._on_hotkey_press()
+            handler._on_hotkey_release()
+
+        transcription_processor.capture_insertion_target.assert_called_once()
+        mock_thread.assert_called_once_with(
+            target=handler._run_transcription_task,
+            args=(transcription_processor.process_audio, b"audio", "alsa_input.test", "%12"),
+            daemon=True,
+        )

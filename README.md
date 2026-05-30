@@ -110,6 +110,8 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
 | `TEXT_INSERTION_METHOD` | Text insertion backend (`auto`, `tmux`, `ydotool`, `wtype`, `xdotool`, or `clipboard`) | `auto` | No |
 | `TEXT_TMUX_TARGET_PANE` | Explicit tmux pane target for `TEXT_INSERTION_METHOD=tmux`, e.g. `%1` or `session:0.0` | - | No |
+| `TEXT_TMUX_CAPTURE_ACTIVE_PANE_ENABLED` | Capture the active tmux pane when recording starts and paste there after transcription | `false` | No |
+| `TEXT_TMUX_ACTIVE_PANE_FILE` | State file written by the tmux active-pane hook | `$XDG_RUNTIME_DIR/whisper-wayland/active-tmux-pane` | No |
 | `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard fallback insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
 | `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, `snappy`, or `caveman`) | `raw` | No |
 | `TEXT_POST_PROCESS_MODEL` | OpenAI text model for transcript rewriting, or `local` for local caveman cleanup | `gpt-4.1-mini` | No |
@@ -130,6 +132,18 @@ Mouse-button hotkeys are supported via evdev. Useful values include `mouse_left`
 `mouse_forward`. Mouse events are observed, not consumed, so the click still
 reaches the focused application. With `HOTKEY_MODE=toggle`, each click alternates
 recording on/off.
+
+For focus-stable tmux insertion, enable `TEXT_TMUX_CAPTURE_ACTIVE_PANE_ENABLED=true`
+and run:
+
+```bash
+./scripts/install-tmux-active-pane-hook.sh
+systemctl --user restart whisper-wayland
+```
+
+With that enabled, Whisper Wayland captures the active tmux pane when recording
+starts, tries to paste the final transcript there, then falls back to the normal
+text insertion backend if tmux insertion fails.
 
 ### Model Selection Guide
 
