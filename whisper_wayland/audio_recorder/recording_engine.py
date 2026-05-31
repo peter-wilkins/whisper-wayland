@@ -19,6 +19,7 @@ _logger = logging.getLogger(__name__)
 STREAM_READY_TIMEOUT_SECS = 1.0
 THREAD_JOIN_TIMEOUT_SECS = 5.0
 READER_RETRY_SLEEP_SECS = 0.05
+READER_MAX_CONSECUTIVE_ERRORS = 3
 MS_PER_SECOND = 1000
 
 
@@ -55,6 +56,7 @@ class RecordingEngine:
         self._reader_thread: typing.Optional[threading.Thread] = None
         self._reader_stop_event = threading.Event()
         self._reader_started_event = threading.Event()
+        self._reader_error_count = 0
         self._preroll_frames: deque[bytes] = deque(maxlen=self._preroll_chunk_count())
         self._recording_frames: typing.Optional[list[bytes]] = None
         self._lock = threading.Lock()
@@ -158,7 +160,16 @@ class RecordingEngine:
             except Exception as e:
                 if self._reader_stop_event.is_set():
                     break
-                _logger.error(f"Error reading audio data: {e}")
+                self._reader_error_count += 1
+                _logger.warning(
+                    "Error reading audio data (%d/%d): %s",
+                    self._reader_error_count,
+                    READER_MAX_CONSECUTIVE_ERRORS,
+                    e,
+                )
+                if self._reader_error_count >= READER_MAX_CONSECUTIVE_ERRORS:
+                    _logger.warning("Audio reader stream failed; will reopen on next recording")
+                    break
                 time.sleep(READER_RETRY_SLEEP_SECS)
                 continue
 
@@ -166,6 +177,7 @@ class RecordingEngine:
                 time.sleep(READER_RETRY_SLEEP_SECS)
                 continue
 
+            self._reader_error_count = 0
             self._store_frame(data)
 
     def _store_frame(self, data: bytes) -> None:
@@ -209,6 +221,7 @@ class RecordingEngine:
         self._stream = self._open_stream(start=True)
         self._reader_stop_event = threading.Event()
         self._reader_started_event = threading.Event()
+        self._reader_error_count = 0
         self._preroll_frames = deque(maxlen=self._preroll_chunk_count())
         self._reader_thread = threading.Thread(target=self._reader_loop, daemon=True)
         self._reader_thread.start()

@@ -18,6 +18,7 @@ from whisper_wayland.audio_recorder.recording_engine import RecordingEngine
 PRE_ROLL_FRAME = b"\x01\x00" * 512
 CURRENT_FRAME = b"\x02\x00" * 512
 EXPECTED_PYAUDIO_REINIT_CALL_COUNT = 2
+EXPECTED_STREAM_REOPEN_CALL_COUNT = 2
 
 
 class TestAudioRecorder:
@@ -109,6 +110,33 @@ class TestAudioRecorder:
         engine.close()
         mock_stream.stop_stream.assert_called()
         mock_stream.close.assert_called_once()
+
+    def test_recording_engine_reopens_after_closed_reader_stream(
+        self, test_config: "ww.Config"
+    ) -> None:
+        """A dead warmed stream should be reopened on the next recording."""
+        mock_audio_instance = conftest.create_mock_audio_instance()
+        failed_stream = conftest.create_mock_stream()
+        healthy_stream = conftest.create_mock_stream()
+        failed_stream.read.side_effect = OSError("Stream closed")
+        healthy_stream.read.side_effect = lambda *args, **kwargs: (
+            time.sleep(0.01) or PRE_ROLL_FRAME
+        )
+        mock_audio_instance.open.side_effect = [failed_stream, healthy_stream]
+        engine = RecordingEngine(mock_audio_instance, test_config)
+
+        engine.prepare_stream()
+        deadline = time.monotonic() + 1
+        while engine._reader_thread and engine._reader_thread.is_alive():
+            if time.monotonic() > deadline:
+                raise AssertionError("reader thread did not exit after closed stream")
+            time.sleep(0.01)
+
+        engine.start_recording()
+
+        assert mock_audio_instance.open.call_count == EXPECTED_STREAM_REOPEN_CALL_COUNT
+        assert engine.is_recording()
+        engine.close()
 
     def test_recording_engine_prepends_preroll_frames(self, test_config: "ww.Config") -> None:
         """Frames captured before hotkey press are committed to the recording."""
