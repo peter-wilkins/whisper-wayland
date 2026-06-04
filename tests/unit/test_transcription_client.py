@@ -333,6 +333,48 @@ class TestTranscriptionClient:
         assert backend_transcription.create.call_args.kwargs["model"] == "base.en"
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_transcribe_audio_can_race_whispercpp_target(
+        self, mock_openai_class: unittest.mock.MagicMock
+    ) -> None:
+        """Test whisper.cpp /inference targets can participate in transcription races."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "WHISPER_MODEL": "whisper-1",
+                "TRANSCRIPTION_RACE_MODELS": "whispercpp:http://127.0.0.1:2022/inference",
+                "TRANSCRIPTION_MAX_RETRIES": "0",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_transcription = unittest.mock.Mock()
+            mock_transcription.create.side_effect = lambda **_: (
+                time.sleep(0.05) or "slow transcript"
+            )
+            mock_client.audio.transcriptions = mock_transcription
+            mock_openai_class.return_value = mock_client
+
+            @contextmanager
+            def fake_urlopen(request: object, timeout: float) -> object:
+                assert timeout == test_config.transcription_request_timeout_secs
+                assert request.full_url == "http://127.0.0.1:2022/inference"
+                assert request.headers["Content-type"].startswith("multipart/form-data")
+                assert b'name="file"; filename="audio.wav"' in request.data
+                assert b"name=\"response_format\"" in request.data
+                yield BytesIO(json.dumps({"text": "fast local transcript"}).encode("utf-8"))
+
+            with unittest.mock.patch(
+                "whisper_wayland.transcription_client.transcription_engine.urllib.request.urlopen",
+                side_effect=fake_urlopen,
+            ):
+                client = transcription_client.TranscriptionClient(test_config)
+                result = client.transcribe_audio(b"fake_audio_data")
+
+        assert result == "fast local transcript"
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_transcribe_audio_max_retries_exceeded(
         self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:

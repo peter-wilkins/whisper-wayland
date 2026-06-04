@@ -20,6 +20,7 @@ from whisper_wayland.transcription_client.model_mapper import ModelMapper
 _logger = logging.getLogger(__name__)
 DEEPGRAM_TARGET_PREFIX = "deepgram:"
 OPENAI_COMPATIBLE_TARGET_PREFIX = "openai-compatible:"
+WHISPERCPP_TARGET_PREFIX = "whispercpp:"
 OPENAI_COMPATIBLE_DEFAULT_API_KEY = "not-needed"
 HTTP_BAD_REQUEST = 400
 
@@ -181,6 +182,8 @@ class TranscriptionEngine:
                     language,
                     model,
                 )
+            if model.startswith(WHISPERCPP_TARGET_PREFIX):
+                return self._attempt_whispercpp_transcription(audio_data, language, model)
 
             # Make transcription request
             response = self._client.audio.transcriptions.create(
@@ -331,6 +334,78 @@ class TranscriptionEngine:
             "..." if len(text) > ww.Constants.TEXT_PREVIEW_LENGTH else "",
         )
         return text
+
+    def _attempt_whispercpp_transcription(
+        self,
+        audio_data: bytes,
+        language: str,
+        target: str,
+    ) -> str:
+        """Attempt transcription against a whisper.cpp server /inference endpoint."""
+        url = target.removeprefix(WHISPERCPP_TARGET_PREFIX).strip()
+        if not url:
+            raise TranscriptionEngineError("whisper.cpp target URL is empty")
+
+        body, content_type = self._build_whispercpp_multipart_body(audio_data, language)
+        request = urllib.request.Request(
+            url,
+            data=body,
+            headers={"Content-Type": content_type},
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(  # noqa: S310 - user-configured local/remote endpoint
+                request,
+                timeout=self._config.transcription_request_timeout_secs,
+            ) as response:
+                if getattr(response, "status", 200) >= HTTP_BAD_REQUEST:
+                    raise TranscriptionEngineError(
+                        f"whisper.cpp server returned HTTP {response.status}"
+                    )
+                payload = json.load(response)
+        except (TimeoutError, urllib.error.URLError, OSError, json.JSONDecodeError) as e:
+            raise TranscriptionEngineError(f"whisper.cpp server error: {e}") from e
+
+        text = str(payload.get("text", "")).strip()
+        if not text:
+            raise TranscriptionEngineError("whisper.cpp returned an empty transcript")
+
+        _logger.info(
+            "whisper.cpp transcription successful: '%s%s'",
+            text[: ww.Constants.TEXT_PREVIEW_LENGTH],
+            "..." if len(text) > ww.Constants.TEXT_PREVIEW_LENGTH else "",
+        )
+        return text
+
+    @staticmethod
+    def _build_whispercpp_multipart_body(
+        audio_data: bytes,
+        language: str,
+    ) -> tuple[bytes, str]:
+        """Build the multipart body expected by whisper.cpp's server endpoint."""
+        boundary = "whisper-wayland-boundary"
+        parts = [
+            (
+                f"--{boundary}\r\n"
+                'Content-Disposition: form-data; name="file"; filename="audio.wav"\r\n'
+                "Content-Type: audio/wav\r\n\r\n"
+            ).encode(),
+            audio_data,
+            (
+                f"\r\n--{boundary}\r\n"
+                'Content-Disposition: form-data; name="temperature"\r\n\r\n'
+                "0\r\n"
+                f"--{boundary}\r\n"
+                'Content-Disposition: form-data; name="response_format"\r\n\r\n'
+                "json\r\n"
+                f"--{boundary}\r\n"
+                'Content-Disposition: form-data; name="language"\r\n\r\n'
+                f"{language}\r\n"
+                f"--{boundary}--\r\n"
+            ).encode(),
+        ]
+        return b"".join(parts), f"multipart/form-data; boundary={boundary}"
 
     @staticmethod
     def new(client: openai.OpenAI, config: "ww.Config") -> "TranscriptionEngine":
