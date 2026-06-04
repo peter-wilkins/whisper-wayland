@@ -40,6 +40,8 @@ DEFAULT_TRANSCRIPTION_REQUEST_TIMEOUT_SECS = 20
 CUSTOM_TRANSCRIPTION_REQUEST_TIMEOUT_SECS = 8.5
 DEFAULT_TRANSCRIPTION_MAX_RETRIES = 1
 CUSTOM_TRANSCRIPTION_MAX_RETRIES = 0
+DEFAULT_TRANSCRIPTION_RACE_MODELS: list[str] = []
+CUSTOM_TRANSCRIPTION_RACE_MODELS = ["gpt-4o-mini-transcribe", "whisper-1"]
 
 
 class TestConfig:
@@ -60,6 +62,7 @@ class TestConfig:
                     == DEFAULT_TRANSCRIPTION_REQUEST_TIMEOUT_SECS
                 )
                 assert test_config.transcription_max_retries == DEFAULT_TRANSCRIPTION_MAX_RETRIES
+                assert test_config.transcription_race_models == DEFAULT_TRANSCRIPTION_RACE_MODELS
                 assert test_config.audio_sample_rate == ww.Constants.DEFAULT_SAMPLE_RATE
                 assert test_config.audio_chunk_size == ww.Constants.DEFAULT_CHUNK_SIZE
                 assert test_config.audio_preroll_seconds == DEFAULT_AUDIO_PREROLL_SECONDS
@@ -147,6 +150,7 @@ class TestConfig:
                 CUSTOM_TRANSCRIPTION_REQUEST_TIMEOUT_SECS
             ),
             "TRANSCRIPTION_MAX_RETRIES": str(CUSTOM_TRANSCRIPTION_MAX_RETRIES),
+            "TRANSCRIPTION_RACE_MODELS": "gpt-4o-mini-transcribe, whisper-1",
             "AUDIO_SAMPLE_RATE": "44100",
             "AUDIO_CHUNK_SIZE": "2048",
             "AUDIO_PREROLL_SECONDS": str(CUSTOM_AUDIO_PREROLL_SECONDS),
@@ -198,6 +202,7 @@ class TestConfig:
                 == CUSTOM_TRANSCRIPTION_REQUEST_TIMEOUT_SECS
             )
             assert test_config.transcription_max_retries == CUSTOM_TRANSCRIPTION_MAX_RETRIES
+            assert test_config.transcription_race_models == CUSTOM_TRANSCRIPTION_RACE_MODELS
             assert test_config.audio_sample_rate == ww.Constants.HIGH_QUALITY_SAMPLE_RATE
             assert test_config.audio_chunk_size == ww.Constants.LARGE_CHUNK_SIZE
             assert test_config.audio_preroll_seconds == CUSTOM_AUDIO_PREROLL_SECONDS

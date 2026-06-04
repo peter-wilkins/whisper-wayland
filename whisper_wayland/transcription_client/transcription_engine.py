@@ -7,6 +7,7 @@ import io
 import logging
 import time
 import typing
+from concurrent import futures
 
 import openai
 
@@ -69,6 +70,8 @@ class TranscriptionEngine:
 
         for attempt in range(max_retries + 1):
             try:
+                if self._config.transcription_race_models:
+                    return self._race_transcriptions(audio_data, language)
                 return self._attempt_transcription(audio_data, language)
             except Exception as e:
                 if attempt < max_retries:
@@ -84,7 +87,67 @@ class TranscriptionEngine:
 
         return None
 
-    def _attempt_transcription(self, audio_data: bytes, language: str) -> str:
+    def _race_transcriptions(self, audio_data: bytes, language: str) -> str:
+        """Race configured transcription models and return the first successful result."""
+        race_models = self._race_models()
+        if len(race_models) == 1:
+            return self._attempt_transcription(audio_data, language, race_models[0])
+
+        _logger.info("Racing transcription models: %s", ", ".join(race_models))
+        errors: list[Exception] = []
+
+        executor = futures.ThreadPoolExecutor(max_workers=len(race_models))
+        try:
+            future_to_model = {
+                executor.submit(
+                    self._attempt_transcription,
+                    audio_data,
+                    language,
+                    model,
+                ): model
+                for model in race_models
+            }
+
+            for completed in futures.as_completed(future_to_model):
+                model = future_to_model[completed]
+                try:
+                    text = completed.result()
+                except Exception as e:
+                    errors.append(e)
+                    _logger.warning("Transcription race model %s failed: %s", model, e)
+                    continue
+
+                _logger.info("Transcription race winner: %s", model)
+                for pending in future_to_model:
+                    if pending is not completed:
+                        pending.cancel()
+                executor.shutdown(wait=False, cancel_futures=True)
+                return text
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
+
+        raise TranscriptionEngineError(
+            "All transcription race models failed: "
+            + "; ".join(str(error) for error in errors)
+        )
+
+    def _race_models(self) -> list[str]:
+        """Return unique transcription race models with the primary model first."""
+        models = [self._config.whisper_model, *self._config.transcription_race_models]
+        unique_models = []
+        seen = set()
+        for model in models:
+            if model not in seen:
+                unique_models.append(model)
+                seen.add(model)
+        return unique_models
+
+    def _attempt_transcription(
+        self,
+        audio_data: bytes,
+        language: str,
+        model_name: str | None = None,
+    ) -> str:
         """Attempt single transcription request.
 
         Args:
@@ -102,9 +165,10 @@ class TranscriptionEngine:
         audio_file.name = "audio.wav"  # Required for OpenAI API
 
         try:
+            model = model_name or self._config.whisper_model
             # Make transcription request
             response = self._client.audio.transcriptions.create(
-                model=self._model_mapper.map_model_name(self._config.whisper_model),
+                model=self._model_mapper.map_model_name(model),
                 file=audio_file,
                 language=language,
                 response_format="text",

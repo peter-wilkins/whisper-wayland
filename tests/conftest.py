@@ -34,6 +34,7 @@ def clean_environment() -> typing.Generator[None, None, None]:
         "WHISPER_MODEL",
         "TRANSCRIPTION_REQUEST_TIMEOUT_SECS",
         "TRANSCRIPTION_MAX_RETRIES",
+        "TRANSCRIPTION_RACE_MODELS",
         "AUDIO_SAMPLE_RATE",
         "AUDIO_CHUNK_SIZE",
         "AUDIO_PREROLL_SECONDS",

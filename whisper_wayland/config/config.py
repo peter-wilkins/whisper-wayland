@@ -77,6 +77,11 @@ class Config:
         return self._property_handlers.get_transcription_max_retries()
 
     @property
+    def transcription_race_models(self) -> list[str]:
+        """Additional transcription models to race in parallel."""
+        return self._property_handlers.get_transcription_race_models()
+
+    @property
     def streaming_transcription_enabled(self) -> bool:
         """Whether realtime streaming transcription should be attempted."""
         return self._property_handlers.get_streaming_transcription_enabled()

@@ -59,6 +59,7 @@ class ConfigValidator:
                 config_instance.transcription_request_timeout_secs
             ),
             "transcription_max_retries": config_instance.transcription_max_retries,
+            "transcription_race_models": config_instance.transcription_race_models,
             "audio_sample_rate": config_instance.audio_sample_rate,
             "audio_chunk_size": config_instance.audio_chunk_size,
             "audio_preroll_seconds": config_instance.audio_preroll_seconds,

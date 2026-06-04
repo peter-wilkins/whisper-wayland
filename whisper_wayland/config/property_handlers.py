@@ -69,6 +69,22 @@ class PropertyHandlers:
             _logger.error(f"Invalid TRANSCRIPTION_MAX_RETRIES: {e}")
             raise PropertyHandlerError(f"Invalid TRANSCRIPTION_MAX_RETRIES: {e}") from e
 
+    def get_transcription_race_models(self) -> list[str]:
+        """Get additional transcription models to race in parallel."""
+        raw_models = os.getenv("TRANSCRIPTION_RACE_MODELS", "").strip()
+        if not raw_models:
+            return []
+
+        models = []
+        seen = set()
+        for model in raw_models.split(","):
+            normalized = model.strip()
+            if normalized and normalized not in seen:
+                models.append(normalized)
+                seen.add(normalized)
+
+        return models
+
     # Audio Configuration
     def get_audio_sample_rate(self) -> int:
         """Get audio recording sample rate in Hz.

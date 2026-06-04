@@ -5,6 +5,8 @@ OpenAI API integration and error handling."""
 
 import json
 import os
+import threading
+import time
 import unittest.mock
 
 import openai
@@ -15,6 +17,7 @@ import whisper_wayland.transcription_client as transcription_client
 
 CAVEMAN_MAX_OUTPUT_TOKENS = 256
 LOCAL_API_CUSTOM_TIMEOUT_SECS = 0.75
+EXPECTED_TRANSCRIPTION_RACE_CALLS = 2
 
 
 class TestTranscriptionClient:
@@ -189,6 +192,49 @@ class TestTranscriptionClient:
                 client.transcribe_audio(b"fake_audio_data")
 
         mock_transcription.create.assert_called_once()
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_transcribe_audio_races_models_and_returns_first_success(
+        self, mock_openai_class: unittest.mock.MagicMock
+    ) -> None:
+        """Test configured model racing returns the fastest successful transcript."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "WHISPER_MODEL": "gpt-4o-mini-transcribe",
+                "TRANSCRIPTION_RACE_MODELS": "whisper-1",
+                "TRANSCRIPTION_MAX_RETRIES": "0",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_transcription = unittest.mock.Mock()
+            started_models = []
+            both_started = threading.Event()
+
+            def create_transcription(**kwargs: object) -> str:
+                model = str(kwargs["model"])
+                started_models.append(model)
+                if len(started_models) == EXPECTED_TRANSCRIPTION_RACE_CALLS:
+                    both_started.set()
+                if model == "whisper-1":
+                    time.sleep(0.05)
+                    return "slow transcript"
+                both_started.wait(timeout=1)
+                return "fast transcript"
+
+            mock_transcription.create.side_effect = create_transcription
+            mock_client.audio.transcriptions = mock_transcription
+            mock_openai_class.return_value = mock_client
+
+            client = transcription_client.TranscriptionClient(test_config)
+            result = client.transcribe_audio(b"fake_audio_data")
+
+        assert result == "fast transcript"
+        called_models = {call.kwargs["model"] for call in mock_transcription.create.call_args_list}
+        assert called_models == {"gpt-4o-mini-transcribe", "whisper-1"}
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_transcribe_audio_max_retries_exceeded(
