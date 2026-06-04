@@ -19,6 +19,8 @@ from whisper_wayland.transcription_client.model_mapper import ModelMapper
 
 _logger = logging.getLogger(__name__)
 DEEPGRAM_TARGET_PREFIX = "deepgram:"
+OPENAI_COMPATIBLE_TARGET_PREFIX = "openai-compatible:"
+OPENAI_COMPATIBLE_DEFAULT_API_KEY = "not-needed"
 HTTP_BAD_REQUEST = 400
 
 
@@ -173,6 +175,12 @@ class TranscriptionEngine:
             model = model_name or self._config.whisper_model
             if model.startswith(DEEPGRAM_TARGET_PREFIX):
                 return self._attempt_deepgram_transcription(audio_data, model)
+            if model.startswith(OPENAI_COMPATIBLE_TARGET_PREFIX):
+                return self._attempt_openai_compatible_transcription(
+                    audio_data,
+                    language,
+                    model,
+                )
 
             # Make transcription request
             response = self._client.audio.transcriptions.create(
@@ -218,6 +226,64 @@ class TranscriptionEngine:
         except Exception as e:
             _logger.error(f"Unexpected transcription error: {e}")
             raise TranscriptionEngineError(f"Unexpected error: {e}") from e
+
+    def _attempt_openai_compatible_transcription(
+        self,
+        audio_data: bytes,
+        language: str,
+        target: str,
+    ) -> str:
+        """Attempt transcription against an OpenAI-compatible local/remote server."""
+        base_url, model = self._parse_openai_compatible_target(target)
+        client = openai.OpenAI(
+            api_key=OPENAI_COMPATIBLE_DEFAULT_API_KEY,
+            base_url=base_url,
+            timeout=self._config.transcription_request_timeout_secs,
+            max_retries=0,
+        )
+        audio_file = io.BytesIO(audio_data)
+        audio_file.name = "audio.wav"
+
+        response = client.audio.transcriptions.create(
+            model=model,
+            file=audio_file,
+            language=language,
+            response_format="text",
+        )
+        text = response.strip()
+        if not text:
+            raise TranscriptionEngineError(
+                f"OpenAI-compatible server {base_url} returned an empty transcript"
+            )
+
+        _logger.info(
+            "OpenAI-compatible transcription successful from %s model=%s: '%s%s'",
+            base_url,
+            model,
+            text[: ww.Constants.TEXT_PREVIEW_LENGTH],
+            "..." if len(text) > ww.Constants.TEXT_PREVIEW_LENGTH else "",
+        )
+        return text
+
+    @staticmethod
+    def _parse_openai_compatible_target(target: str) -> tuple[str, str]:
+        """Parse openai-compatible:<base-url>#<model> race target."""
+        raw_target = target.removeprefix(OPENAI_COMPATIBLE_TARGET_PREFIX).strip()
+        if not raw_target:
+            raise TranscriptionEngineError("OpenAI-compatible target is empty")
+
+        if "#" in raw_target:
+            base_url, model = raw_target.rsplit("#", 1)
+            model = model.strip() or "whisper-1"
+        else:
+            base_url = raw_target
+            model = "whisper-1"
+
+        base_url = base_url.rstrip("/")
+        if not base_url:
+            raise TranscriptionEngineError("OpenAI-compatible base URL is empty")
+
+        return base_url, model
 
     def _attempt_deepgram_transcription(self, audio_data: bytes, target: str) -> str:
         """Attempt a Deepgram transcription request."""

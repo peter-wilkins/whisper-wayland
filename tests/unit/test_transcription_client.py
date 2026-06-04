@@ -16,6 +16,9 @@ import pytest
 
 import whisper_wayland as ww
 import whisper_wayland.transcription_client as transcription_client
+from whisper_wayland.transcription_client.transcription_engine import (
+    OPENAI_COMPATIBLE_DEFAULT_API_KEY,
+)
 
 CAVEMAN_MAX_OUTPUT_TOKENS = 256
 LOCAL_API_CUSTOM_TIMEOUT_SECS = 0.75
@@ -284,6 +287,50 @@ class TestTranscriptionClient:
                 result = client.transcribe_audio(b"fake_audio_data")
 
         assert result == "fast deepgram transcript"
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.transcription_engine.openai.OpenAI")
+    def test_transcribe_audio_can_race_openai_compatible_target(
+        self,
+        mock_openai_class: unittest.mock.MagicMock,
+    ) -> None:
+        """Test local/remote OpenAI-compatible STT targets can join races."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "WHISPER_MODEL": "whisper-1",
+                "TRANSCRIPTION_RACE_MODELS": (
+                    "openai-compatible:http://gpu-box.local:2022/v1#base.en"
+                ),
+                "TRANSCRIPTION_MAX_RETRIES": "0",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            primary_client = unittest.mock.Mock()
+            primary_transcription = unittest.mock.Mock()
+            primary_transcription.create.side_effect = lambda **_: (
+                time.sleep(0.05) or "slow transcript"
+            )
+            primary_client.audio.transcriptions = primary_transcription
+            backend_client = unittest.mock.Mock()
+            backend_transcription = unittest.mock.Mock()
+            backend_transcription.create.return_value = "fast local transcript"
+            backend_client.audio.transcriptions = backend_transcription
+            mock_openai_class.side_effect = [primary_client, backend_client]
+
+            client = transcription_client.TranscriptionClient(test_config)
+            result = client.transcribe_audio(b"fake_audio_data")
+
+        assert result == "fast local transcript"
+        mock_openai_class.assert_any_call(
+            api_key=OPENAI_COMPATIBLE_DEFAULT_API_KEY,
+            base_url="http://gpu-box.local:2022/v1",
+            timeout=test_config.transcription_request_timeout_secs,
+            max_retries=0,
+        )
+        backend_transcription.create.assert_called_once()
+        assert backend_transcription.create.call_args.kwargs["model"] == "base.en"
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_transcribe_audio_max_retries_exceeded(
