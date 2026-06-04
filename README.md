@@ -110,6 +110,9 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_PEAK_AMPLITUDE` | Peak ceiling for transcription-only normalization | `0.95` | No |
 | `AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_GAIN` | Maximum gain multiplier for transcription-only normalization | `6` | No |
 | `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
+
+`whispercpp:<inference-url>` targets are fallback-only. Remote targets race first; the
+local CPU-heavy whisper.cpp server is called only if every primary target fails.
 | `HOTKEY` | Push-to-talk key or mouse-button combination | `ctrl+compose` | No |
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
 | `TEXT_INSERTION_METHOD` | Text insertion backend (`auto`, `tmux`, `ydotool`, `wtype`, `xdotool`, or `clipboard`) | `auto` | No |

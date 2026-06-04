@@ -98,13 +98,35 @@ class TranscriptionEngine:
     def _race_transcriptions(self, audio_data: bytes, language: str) -> str:
         """Race configured transcription models and return the first successful result."""
         race_models = self._race_models()
-        if len(race_models) == 1:
-            return self._attempt_transcription(audio_data, language, race_models[0])
+        primary_models, fallback_models = self._split_race_and_fallback_models(race_models)
 
-        _logger.info("Racing transcription models: %s", ", ".join(race_models))
+        try:
+            return self._race_model_group(audio_data, language, primary_models)
+        except TranscriptionEngineError as primary_error:
+            if not fallback_models:
+                raise
+
+            _logger.warning(
+                "Primary transcription race failed; trying fallback models %s: %s",
+                ", ".join(fallback_models),
+                primary_error,
+            )
+            try:
+                return self._race_model_group(audio_data, language, fallback_models)
+            except TranscriptionEngineError as fallback_error:
+                raise TranscriptionEngineError(
+                    f"{primary_error}; fallback failed: {fallback_error}"
+                ) from fallback_error
+
+    def _race_model_group(self, audio_data: bytes, language: str, models: list[str]) -> str:
+        """Race one group of models and return the first successful result."""
+        if len(models) == 1:
+            return self._attempt_transcription(audio_data, language, models[0])
+
+        _logger.info("Racing transcription models: %s", ", ".join(models))
         errors: list[Exception] = []
 
-        executor = futures.ThreadPoolExecutor(max_workers=len(race_models))
+        executor = futures.ThreadPoolExecutor(max_workers=len(models))
         try:
             future_to_model = {
                 executor.submit(
@@ -113,7 +135,7 @@ class TranscriptionEngine:
                     language,
                     model,
                 ): model
-                for model in race_models
+                for model in models
             }
 
             for completed in futures.as_completed(future_to_model):
@@ -138,6 +160,19 @@ class TranscriptionEngine:
             "All transcription race models failed: "
             + "; ".join(str(error) for error in errors)
         )
+
+    @staticmethod
+    def _split_race_and_fallback_models(models: list[str]) -> tuple[list[str], list[str]]:
+        """Keep CPU-heavy local whisper.cpp targets as fallback-only."""
+        primary_models = [
+            model for model in models if not model.startswith(WHISPERCPP_TARGET_PREFIX)
+        ]
+        fallback_models = [
+            model for model in models if model.startswith(WHISPERCPP_TARGET_PREFIX)
+        ]
+        if primary_models:
+            return primary_models, fallback_models
+        return fallback_models, []
 
     def _race_models(self) -> list[str]:
         """Return unique transcription race models with the primary model first."""

@@ -333,10 +333,10 @@ class TestTranscriptionClient:
         assert backend_transcription.create.call_args.kwargs["model"] == "base.en"
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
-    def test_transcribe_audio_can_race_whispercpp_target(
+    def test_transcribe_audio_keeps_whispercpp_as_fallback_when_remote_wins(
         self, mock_openai_class: unittest.mock.MagicMock
     ) -> None:
-        """Test whisper.cpp /inference targets can participate in transcription races."""
+        """Test whisper.cpp fallback is not started when a remote model succeeds."""
         with unittest.mock.patch.dict(
             os.environ,
             {
@@ -350,9 +350,38 @@ class TestTranscriptionClient:
             test_config = ww.Config("/nonexistent/test.env")
             mock_client = unittest.mock.Mock()
             mock_transcription = unittest.mock.Mock()
-            mock_transcription.create.side_effect = lambda **_: (
-                time.sleep(0.05) or "slow transcript"
-            )
+            mock_transcription.create.return_value = "remote transcript"
+            mock_client.audio.transcriptions = mock_transcription
+            mock_openai_class.return_value = mock_client
+
+            with unittest.mock.patch(
+                "whisper_wayland.transcription_client.transcription_engine.urllib.request.urlopen",
+            ) as mock_urlopen:
+                client = transcription_client.TranscriptionClient(test_config)
+                result = client.transcribe_audio(b"fake_audio_data")
+
+        assert result == "remote transcript"
+        mock_urlopen.assert_not_called()
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_transcribe_audio_uses_whispercpp_fallback_when_remote_fails(
+        self, mock_openai_class: unittest.mock.MagicMock
+    ) -> None:
+        """Test whisper.cpp fallback runs after primary transcription failures."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "WHISPER_MODEL": "whisper-1",
+                "TRANSCRIPTION_RACE_MODELS": "whispercpp:http://127.0.0.1:2022/inference",
+                "TRANSCRIPTION_MAX_RETRIES": "0",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_transcription = unittest.mock.Mock()
+            mock_transcription.create.side_effect = RuntimeError("remote unavailable")
             mock_client.audio.transcriptions = mock_transcription
             mock_openai_class.return_value = mock_client
 
@@ -363,7 +392,7 @@ class TestTranscriptionClient:
                 assert request.headers["Content-type"].startswith("multipart/form-data")
                 assert b'name="file"; filename="audio.wav"' in request.data
                 assert b"name=\"response_format\"" in request.data
-                yield BytesIO(json.dumps({"text": "fast local transcript"}).encode("utf-8"))
+                yield BytesIO(json.dumps({"text": "fast local transcript"}).encode())
 
             with unittest.mock.patch(
                 "whisper_wayland.transcription_client.transcription_engine.urllib.request.urlopen",
