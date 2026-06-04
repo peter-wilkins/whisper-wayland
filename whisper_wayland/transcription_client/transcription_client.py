@@ -75,14 +75,17 @@ class TranscriptionClient:
             raise TranscriptionError(f"Client initialization failed: {e}") from e
 
     def transcribe_audio(
-        self, audio_data: bytes, language: str = "en", max_retries: int = 3
+        self,
+        audio_data: bytes,
+        language: str = "en",
+        max_retries: int | None = None,
     ) -> typing.Optional[str]:
         """Transcribe audio data to text using OpenAI Whisper API.
 
         Args:
             audio_data: Audio data in supported format (WAV, MP3, etc.)
             language: Language code for transcription (default: en)
-            max_retries: Maximum number of retry attempts
+            max_retries: Maximum number of retry attempts, or configured default
 
         Returns:
             Transcribed text or None if transcription fails

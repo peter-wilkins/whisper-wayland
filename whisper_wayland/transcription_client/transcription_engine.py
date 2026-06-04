@@ -37,14 +37,17 @@ class TranscriptionEngine:
         self._model_mapper = ModelMapper.new()
 
     def transcribe_audio(
-        self, audio_data: bytes, language: str = "en", max_retries: int = 3
+        self,
+        audio_data: bytes,
+        language: str = "en",
+        max_retries: int | None = None,
     ) -> typing.Optional[str]:
         """Transcribe audio data to text using OpenAI Whisper API.
 
         Args:
             audio_data: Audio data in supported format (WAV, MP3, etc.)
             language: Language code for transcription (default: en)
-            max_retries: Maximum number of retry attempts
+            max_retries: Maximum number of retry attempts, or configured default
 
         Returns:
             Transcribed text or None if transcription fails
@@ -57,6 +60,8 @@ class TranscriptionEngine:
             return None
 
         _logger.info(f"Starting transcription of {len(audio_data)} bytes audio data")
+        if max_retries is None:
+            max_retries = self._config.transcription_max_retries
         _logger.debug(
             f"Transcription params: model={self._config.whisper_model}, "
             f"language={language}, max_retries={max_retries}"

@@ -32,7 +32,11 @@ class TestTranscriptionClient:
 
         assert client.config == test_config
         assert client._client == mock_client
-        mock_openai_class.assert_called_once_with(api_key=test_config.openai_api_key)
+        mock_openai_class.assert_called_once_with(
+            api_key=test_config.openai_api_key,
+            timeout=test_config.transcription_request_timeout_secs,
+            max_retries=0,
+        )
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_transcription_client_initialization_failure(
@@ -158,6 +162,33 @@ class TestTranscriptionClient:
 
         assert result == "Transcription successful"
         assert mock_transcription.create.call_count == ww.Constants.EXPECTED_DEVICE_COUNT
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_transcribe_audio_uses_configured_retry_count(
+        self, mock_openai_class: unittest.mock.MagicMock
+    ) -> None:
+        """Test default transcription retries come from configuration."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "TRANSCRIPTION_MAX_RETRIES": "0",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_transcription = unittest.mock.Mock()
+            mock_transcription.create.side_effect = Exception("Persistent error")
+            mock_client.audio.transcriptions = mock_transcription
+            mock_openai_class.return_value = mock_client
+
+            client = transcription_client.TranscriptionClient(test_config)
+
+            with pytest.raises(transcription_client.TranscriptionError):
+                client.transcribe_audio(b"fake_audio_data")
+
+        mock_transcription.create.assert_called_once()
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_transcribe_audio_max_retries_exceeded(

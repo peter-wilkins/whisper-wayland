@@ -55,6 +55,10 @@ class ConfigValidator:
         return {
             "openai_api_key": "***" if config_instance.openai_api_key else None,
             "whisper_model": config_instance.whisper_model,
+            "transcription_request_timeout_secs": (
+                config_instance.transcription_request_timeout_secs
+            ),
+            "transcription_max_retries": config_instance.transcription_max_retries,
             "audio_sample_rate": config_instance.audio_sample_rate,
             "audio_chunk_size": config_instance.audio_chunk_size,
             "audio_preroll_seconds": config_instance.audio_preroll_seconds,

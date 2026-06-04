@@ -50,6 +50,25 @@ class PropertyHandlers:
         """
         return os.getenv("WHISPER_MODEL", "gpt-4o-transcribe").strip()
 
+    def get_transcription_request_timeout_secs(self) -> float:
+        """Get per-request timeout for transcription API calls."""
+        return self._get_float_env(
+            "TRANSCRIPTION_REQUEST_TIMEOUT_SECS",
+            "20",
+            allow_zero=False,
+        )
+
+    def get_transcription_max_retries(self) -> int:
+        """Get application-level transcription retry count."""
+        try:
+            retries = int(os.getenv("TRANSCRIPTION_MAX_RETRIES", "1"))
+            if retries < 0:
+                raise ValueError("Transcription max retries must be non-negative")
+            return retries
+        except ValueError as e:
+            _logger.error(f"Invalid TRANSCRIPTION_MAX_RETRIES: {e}")
+            raise PropertyHandlerError(f"Invalid TRANSCRIPTION_MAX_RETRIES: {e}") from e
+
     # Audio Configuration
     def get_audio_sample_rate(self) -> int:
         """Get audio recording sample rate in Hz.

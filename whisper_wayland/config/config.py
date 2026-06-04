@@ -67,6 +67,16 @@ class Config:
         return self._property_handlers.get_whisper_model()
 
     @property
+    def transcription_request_timeout_secs(self) -> float:
+        """Per-request timeout for transcription API calls."""
+        return self._property_handlers.get_transcription_request_timeout_secs()
+
+    @property
+    def transcription_max_retries(self) -> int:
+        """Application-level transcription retry count."""
+        return self._property_handlers.get_transcription_max_retries()
+
+    @property
     def streaming_transcription_enabled(self) -> bool:
         """Whether realtime streaming transcription should be attempted."""
         return self._property_handlers.get_streaming_transcription_enabled()

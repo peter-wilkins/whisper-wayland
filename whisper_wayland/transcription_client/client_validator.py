@@ -38,7 +38,11 @@ class ClientValidator:
             ClientValidationError: If client initialization fails
         """
         try:
-            client = openai.OpenAI(api_key=config.openai_api_key)
+            client = openai.OpenAI(
+                api_key=config.openai_api_key,
+                timeout=config.transcription_request_timeout_secs,
+                max_retries=0,
+            )
             self._validate_client_config(config)
             _logger.debug("OpenAI client initialized successfully")
             return client

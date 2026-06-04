@@ -32,6 +32,8 @@ def clean_environment() -> typing.Generator[None, None, None]:
     test_env_vars = [
         "OPENAI_API_KEY",
         "WHISPER_MODEL",
+        "TRANSCRIPTION_REQUEST_TIMEOUT_SECS",
+        "TRANSCRIPTION_MAX_RETRIES",
         "AUDIO_SAMPLE_RATE",
         "AUDIO_CHUNK_SIZE",
         "AUDIO_PREROLL_SECONDS",

@@ -36,6 +36,10 @@ DEFAULT_TEXT_POST_PROCESS_LOCAL_API_URL = "http://127.0.0.1:8765/v1/transcript/r
 CUSTOM_TEXT_POST_PROCESS_LOCAL_API_URL = "http://127.0.0.1:9999/v1/transcript/rewrite"
 DEFAULT_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS = 1.5
 CUSTOM_TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS = 0.75
+DEFAULT_TRANSCRIPTION_REQUEST_TIMEOUT_SECS = 20
+CUSTOM_TRANSCRIPTION_REQUEST_TIMEOUT_SECS = 8.5
+DEFAULT_TRANSCRIPTION_MAX_RETRIES = 1
+CUSTOM_TRANSCRIPTION_MAX_RETRIES = 0
 
 
 class TestConfig:
@@ -51,6 +55,11 @@ class TestConfig:
 
                 assert test_config.openai_api_key == "sk-test123"
                 assert test_config.whisper_model == "gpt-4o-transcribe"
+                assert (
+                    test_config.transcription_request_timeout_secs
+                    == DEFAULT_TRANSCRIPTION_REQUEST_TIMEOUT_SECS
+                )
+                assert test_config.transcription_max_retries == DEFAULT_TRANSCRIPTION_MAX_RETRIES
                 assert test_config.audio_sample_rate == ww.Constants.DEFAULT_SAMPLE_RATE
                 assert test_config.audio_chunk_size == ww.Constants.DEFAULT_CHUNK_SIZE
                 assert test_config.audio_preroll_seconds == DEFAULT_AUDIO_PREROLL_SECONDS
@@ -134,6 +143,10 @@ class TestConfig:
         env_vars = {
             "OPENAI_API_KEY": "sk-custom123",
             "WHISPER_MODEL": "large",
+            "TRANSCRIPTION_REQUEST_TIMEOUT_SECS": str(
+                CUSTOM_TRANSCRIPTION_REQUEST_TIMEOUT_SECS
+            ),
+            "TRANSCRIPTION_MAX_RETRIES": str(CUSTOM_TRANSCRIPTION_MAX_RETRIES),
             "AUDIO_SAMPLE_RATE": "44100",
             "AUDIO_CHUNK_SIZE": "2048",
             "AUDIO_PREROLL_SECONDS": str(CUSTOM_AUDIO_PREROLL_SECONDS),
@@ -180,6 +193,11 @@ class TestConfig:
 
             assert test_config.openai_api_key == "sk-custom123"
             assert test_config.whisper_model == "large"
+            assert (
+                test_config.transcription_request_timeout_secs
+                == CUSTOM_TRANSCRIPTION_REQUEST_TIMEOUT_SECS
+            )
+            assert test_config.transcription_max_retries == CUSTOM_TRANSCRIPTION_MAX_RETRIES
             assert test_config.audio_sample_rate == ww.Constants.HIGH_QUALITY_SAMPLE_RATE
             assert test_config.audio_chunk_size == ww.Constants.LARGE_CHUNK_SIZE
             assert test_config.audio_preroll_seconds == CUSTOM_AUDIO_PREROLL_SECONDS
@@ -337,6 +355,26 @@ class TestConfig:
                     ww.ConfigError,
                     match="TEXT_POST_PROCESS_LOCAL_API_TIMEOUT_SECS",
                 ):
+                    ww.Config()
+
+    def test_config_invalid_transcription_timeout_values(self) -> None:
+        """Test config validation of transcription timeout values."""
+        with unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}, clear=True):
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"TRANSCRIPTION_REQUEST_TIMEOUT_SECS": "0"},
+            ):
+                with pytest.raises(
+                    ww.ConfigError,
+                    match="TRANSCRIPTION_REQUEST_TIMEOUT_SECS",
+                ):
+                    ww.Config()
+
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"TRANSCRIPTION_MAX_RETRIES": "-1"},
+            ):
+                with pytest.raises(ww.ConfigError, match="TRANSCRIPTION_MAX_RETRIES"):
                     ww.Config()
 
     def test_config_invalid_log_level(self) -> None:

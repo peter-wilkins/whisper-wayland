@@ -96,6 +96,8 @@ All configuration is handled through environment variables and/or a/the `.env` f
 |----------|-------------|---------|----------|
 | `OPENAI_API_KEY` | OpenAI API key for Whisper service | - | Yes |
 | `WHISPER_MODEL` | OpenAI transcription model, or a legacy Whisper size alias | `gpt-4o-transcribe` | No |
+| `TRANSCRIPTION_REQUEST_TIMEOUT_SECS` | Per-request timeout for transcription API calls | `20` | No |
+| `TRANSCRIPTION_MAX_RETRIES` | App-level transcription retry count after timeout/API failure | `1` | No |
 | `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
 | `AUDIO_PREROLL_SECONDS` | Local pre-roll audio prepended when push-to-talk starts (`0` to `3`) | `1.0` | No |
 | `AUDIO_INPUT_DEVICE_INDEX` | Explicit PyAudio input device index, blank for auto-selection | - | No |
