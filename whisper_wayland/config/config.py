@@ -62,6 +62,11 @@ class Config:
         return self._property_handlers.get_openai_api_key()
 
     @property
+    def deepgram_api_key(self) -> str:
+        """Optional Deepgram API key for transcription racing."""
+        return self._property_handlers.get_deepgram_api_key()
+
+    @property
     def whisper_model(self) -> str:
         """Whisper model to use for transcription."""
         return self._property_handlers.get_whisper_model()

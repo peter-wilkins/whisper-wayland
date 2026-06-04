@@ -42,6 +42,10 @@ class PropertyHandlers:
             raise PropertyHandlerError("OPENAI_API_KEY environment variable is required")
         return key
 
+    def get_deepgram_api_key(self) -> str:
+        """Get optional Deepgram API key for transcription racing."""
+        return os.getenv("DEEPGRAM_API_KEY", "").strip()
+
     def get_whisper_model(self) -> str:
         """Get Whisper model to use for transcription.
 

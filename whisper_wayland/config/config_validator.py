@@ -54,6 +54,7 @@ class ConfigValidator:
         """
         return {
             "openai_api_key": "***" if config_instance.openai_api_key else None,
+            "deepgram_api_key": "***" if config_instance.deepgram_api_key else None,
             "whisper_model": config_instance.whisper_model,
             "transcription_request_timeout_secs": (
                 config_instance.transcription_request_timeout_secs

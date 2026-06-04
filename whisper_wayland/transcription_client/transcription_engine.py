@@ -4,9 +4,12 @@ Core transcription logic with retry mechanism and error handling.
 """
 
 import io
+import json
 import logging
 import time
 import typing
+import urllib.error
+import urllib.request
 from concurrent import futures
 
 import openai
@@ -15,6 +18,8 @@ import whisper_wayland as ww
 from whisper_wayland.transcription_client.model_mapper import ModelMapper
 
 _logger = logging.getLogger(__name__)
+DEEPGRAM_TARGET_PREFIX = "deepgram:"
+HTTP_BAD_REQUEST = 400
 
 
 class TranscriptionEngineError(Exception):
@@ -166,6 +171,9 @@ class TranscriptionEngine:
 
         try:
             model = model_name or self._config.whisper_model
+            if model.startswith(DEEPGRAM_TARGET_PREFIX):
+                return self._attempt_deepgram_transcription(audio_data, model)
+
             # Make transcription request
             response = self._client.audio.transcriptions.create(
                 model=self._model_mapper.map_model_name(model),
@@ -210,6 +218,53 @@ class TranscriptionEngine:
         except Exception as e:
             _logger.error(f"Unexpected transcription error: {e}")
             raise TranscriptionEngineError(f"Unexpected error: {e}") from e
+
+    def _attempt_deepgram_transcription(self, audio_data: bytes, target: str) -> str:
+        """Attempt a Deepgram transcription request."""
+        if not self._config.deepgram_api_key:
+            raise TranscriptionEngineError("Deepgram API key is not configured")
+
+        model = target.removeprefix(DEEPGRAM_TARGET_PREFIX) or "nova-3"
+        url = f"https://api.deepgram.com/v1/listen?model={model}&language=en&smart_format=true"
+        request = urllib.request.Request(
+            url,
+            data=audio_data,
+            headers={
+                "Authorization": f"Token {self._config.deepgram_api_key}",
+                "Content-Type": "audio/wav",
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(  # noqa: S310 - fixed Deepgram API endpoint
+                request,
+                timeout=self._config.transcription_request_timeout_secs,
+            ) as response:
+                if getattr(response, "status", 200) >= HTTP_BAD_REQUEST:
+                    raise TranscriptionEngineError(
+                        f"Deepgram API returned HTTP {response.status}"
+                    )
+                payload = json.load(response)
+        except (TimeoutError, urllib.error.URLError, OSError, json.JSONDecodeError) as e:
+            raise TranscriptionEngineError(f"Deepgram API error: {e}") from e
+
+        text = (
+            payload.get("results", {})
+            .get("channels", [{}])[0]
+            .get("alternatives", [{}])[0]
+            .get("transcript", "")
+            .strip()
+        )
+        if not text:
+            raise TranscriptionEngineError("Deepgram returned an empty transcript")
+
+        _logger.info(
+            "Deepgram transcription successful: '%s%s'",
+            text[: ww.Constants.TEXT_PREVIEW_LENGTH],
+            "..." if len(text) > ww.Constants.TEXT_PREVIEW_LENGTH else "",
+        )
+        return text
 
     @staticmethod
     def new(client: openai.OpenAI, config: "ww.Config") -> "TranscriptionEngine":

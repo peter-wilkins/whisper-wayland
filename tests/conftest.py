@@ -31,6 +31,7 @@ def clean_environment() -> typing.Generator[None, None, None]:
     # Ensure clean test environment
     test_env_vars = [
         "OPENAI_API_KEY",
+        "DEEPGRAM_API_KEY",
         "WHISPER_MODEL",
         "TRANSCRIPTION_REQUEST_TIMEOUT_SECS",
         "TRANSCRIPTION_MAX_RETRIES",

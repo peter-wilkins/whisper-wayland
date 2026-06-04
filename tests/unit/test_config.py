@@ -56,6 +56,7 @@ class TestConfig:
                 test_config = ww.Config("/nonexistent/test.env")
 
                 assert test_config.openai_api_key == "sk-test123"
+                assert test_config.deepgram_api_key == ""
                 assert test_config.whisper_model == "gpt-4o-transcribe"
                 assert (
                     test_config.transcription_request_timeout_secs
@@ -145,6 +146,7 @@ class TestConfig:
         """Test config with custom environment values."""
         env_vars = {
             "OPENAI_API_KEY": "sk-custom123",
+            "DEEPGRAM_API_KEY": "dg-custom123",
             "WHISPER_MODEL": "large",
             "TRANSCRIPTION_REQUEST_TIMEOUT_SECS": str(
                 CUSTOM_TRANSCRIPTION_REQUEST_TIMEOUT_SECS
@@ -196,6 +198,7 @@ class TestConfig:
             test_config = ww.Config("/nonexistent/test.env")
 
             assert test_config.openai_api_key == "sk-custom123"
+            assert test_config.deepgram_api_key == "dg-custom123"
             assert test_config.whisper_model == "large"
             assert (
                 test_config.transcription_request_timeout_secs
