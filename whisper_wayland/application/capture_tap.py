@@ -56,6 +56,8 @@ class CaptureEnvelopeInput:
     insertion_text: str
     transcript_suppressed: bool
     transcript_suppression_reason: str | None
+    transcription_provider: str | None
+    transcription_processor_id: str | None
     capture_id: str
     created_at_text: str
     artifact_rel: Path
@@ -95,7 +97,7 @@ class CaptureTap:
         """Return whether local capture file-drop is enabled."""
         return self._inlet_dir is not None
 
-    def write(
+    def write(  # noqa: PLR0913
         self,
         audio_data: bytes,
         raw_transcript_text: str,
@@ -103,6 +105,8 @@ class CaptureTap:
         *,
         transcript_suppressed: bool = False,
         transcript_suppression_reason: str | None = None,
+        transcription_provider: str | None = None,
+        transcription_processor_id: str | None = None,
     ) -> CaptureTapWriteResult | None:
         """Write local WAV artifact and JSON envelope if capture tap is enabled."""
         if not self._inlet_dir:
@@ -147,6 +151,8 @@ class CaptureTap:
                     insertion_text=insertion_text,
                     transcript_suppressed=transcript_suppressed,
                     transcript_suppression_reason=transcript_suppression_reason,
+                    transcription_provider=transcription_provider,
+                    transcription_processor_id=transcription_processor_id,
                     capture_id=capture_id,
                     created_at_text=created_at_text,
                     artifact_rel=artifact_rel,
@@ -174,7 +180,11 @@ class CaptureTap:
         audio_data = envelope_input.audio_data
         wav_metadata = self._read_wav_metadata(audio_data)
         artifact_hash = hashlib.sha256(audio_data).hexdigest()
-        processor_id = self._model_mapper.map_model_name(self._config.whisper_model)
+        provider = envelope_input.transcription_provider or "openai"
+        processor_id = (
+            envelope_input.transcription_processor_id
+            or self._model_mapper.map_model_name(self._config.whisper_model)
+        )
         capture_health = self._build_capture_health(audio_data, wav_metadata)
         transcript = self._build_transcript(envelope_input)
         event_names = self._event_names_for_capture(envelope_input.transcript_suppressed)
@@ -247,7 +257,7 @@ class CaptureTap:
                 for event_name, event_rel in zip(event_names[1:], envelope_input.event_rels)
             ],
             "processor": {
-                "provider": "openai",
+                "provider": provider,
                 "processorId": processor_id,
                 "processorVersion": "unknown",
                 "processorKind": "transcription",

@@ -20,5 +20,8 @@ from whisper_wayland.key_monitor import KeyMonitorError as KeyMonitorError
 from whisper_wayland.main import main as main
 from whisper_wayland.text_inserter import TextInserter as TextInserter
 from whisper_wayland.text_inserter import TextInsertionError as TextInsertionError
+from whisper_wayland.transcription_client import (
+    TranscriptionBackendMetadata as TranscriptionBackendMetadata,
+)
 from whisper_wayland.transcription_client import TranscriptionClient as TranscriptionClient
 from whisper_wayland.transcription_client import TranscriptionError as TranscriptionError

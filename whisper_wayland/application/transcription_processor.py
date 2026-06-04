@@ -143,6 +143,10 @@ class TranscriptionProcessor:
                     insertion_text=transcription_result.insertion_text,
                     transcript_suppressed=suppression_reason is not None,
                     transcript_suppression_reason=suppression_reason,
+                    transcription_provider=transcription_result.transcription_provider,
+                    transcription_processor_id=(
+                        transcription_result.transcription_processor_id
+                    ),
                 )
                 if suppression_reason is not None:
                     _logger.info(

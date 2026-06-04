@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 import whisper_wayland as ww
 from whisper_wayland.audio_recorder.normalizer import normalize_wav_for_transcription
+from whisper_wayland.transcription_client import TranscriptionBackendMetadata
 
 _logger = logging.getLogger(__name__)
 
@@ -20,6 +21,8 @@ class BatchTranscriptionResult:
     raw_text: str
     insertion_text: str
     post_process_mode: str
+    transcription_provider: str | None = None
+    transcription_processor_id: str | None = None
 
 
 class AudioProcessor:
@@ -64,6 +67,8 @@ class AudioProcessor:
                     raw_text=raw_text,
                     insertion_text=insertion_text,
                     post_process_mode=self.transcription_client.config.text_post_process_mode,
+                    transcription_provider=self._last_transcription_provider(),
+                    transcription_processor_id=self._last_transcription_processor_id(),
                 )
 
             _logger.warning("Transcription returned empty result")
@@ -104,6 +109,20 @@ class AudioProcessor:
                 result.after_peak_dbfs,
             )
         return result.audio_data
+
+    def _last_transcription_backend(self) -> TranscriptionBackendMetadata | None:
+        backend = getattr(self.transcription_client, "last_transcription_backend", None)
+        if isinstance(backend, TranscriptionBackendMetadata):
+            return backend
+        return None
+
+    def _last_transcription_provider(self) -> str | None:
+        backend = self._last_transcription_backend()
+        return backend.provider if backend else None
+
+    def _last_transcription_processor_id(self) -> str | None:
+        backend = self._last_transcription_backend()
+        return backend.processor_id if backend else None
 
     @staticmethod
     def new(transcription_client: "ww.TranscriptionClient") -> "AudioProcessor":

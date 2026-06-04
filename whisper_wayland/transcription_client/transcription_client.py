@@ -10,6 +10,7 @@ import re
 import typing
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
 
 import openai
 
@@ -20,6 +21,7 @@ from whisper_wayland.transcription_client.client_validator import (
 )
 from whisper_wayland.transcription_client.connection_tester import ConnectionTester
 from whisper_wayland.transcription_client.transcription_engine import (
+    TranscriptionBackend,
     TranscriptionEngine,
     TranscriptionEngineError,
 )
@@ -40,6 +42,14 @@ class TranscriptionError(Exception):
     pass
 
 
+@dataclass(frozen=True)
+class TranscriptionBackendMetadata:
+    """Backend metadata for the most recent transcription."""
+
+    provider: str
+    processor_id: str
+
+
 class TranscriptionClient:
     """OpenAI Whisper API client for audio transcription.
 
@@ -58,6 +68,7 @@ class TranscriptionClient:
         """
         self.config = config
         self._client: typing.Optional[openai.OpenAI] = None
+        self.last_transcription_backend: TranscriptionBackendMetadata | None = None
 
         try:
             # Initialize components
@@ -94,9 +105,26 @@ class TranscriptionClient:
             TranscriptionError: If transcription fails after all retries
         """
         try:
-            return self._transcription_engine.transcribe_audio(audio_data, language, max_retries)
+            result = self._transcription_engine.transcribe_audio_with_backend(
+                audio_data,
+                language,
+                max_retries,
+            )
+            if not result:
+                self.last_transcription_backend = None
+                return None
+
+            self.last_transcription_backend = self._to_client_backend(result.backend)
+            return result.text
         except TranscriptionEngineError as e:
             raise TranscriptionError(str(e)) from e
+
+    @staticmethod
+    def _to_client_backend(backend: TranscriptionBackend) -> TranscriptionBackendMetadata:
+        return TranscriptionBackendMetadata(
+            provider=backend.provider,
+            processor_id=backend.processor_id,
+        )
 
     def post_process_text(self, text: str) -> str:
         """Post-process transcribed text using a text model.

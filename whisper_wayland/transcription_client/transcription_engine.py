@@ -11,6 +11,7 @@ import typing
 import urllib.error
 import urllib.request
 from concurrent import futures
+from dataclasses import dataclass
 
 import openai
 
@@ -23,6 +24,22 @@ OPENAI_COMPATIBLE_TARGET_PREFIX = "openai-compatible:"
 WHISPERCPP_TARGET_PREFIX = "whispercpp:"
 OPENAI_COMPATIBLE_DEFAULT_API_KEY = "not-needed"
 HTTP_BAD_REQUEST = 400
+
+
+@dataclass(frozen=True)
+class TranscriptionBackend:
+    """Backend that produced a transcription result."""
+
+    provider: str
+    processor_id: str
+
+
+@dataclass(frozen=True)
+class EngineTranscriptionResult:
+    """Text plus the backend that produced it."""
+
+    text: str
+    backend: TranscriptionBackend
 
 
 class TranscriptionEngineError(Exception):
@@ -64,6 +81,16 @@ class TranscriptionEngine:
         Raises:
             TranscriptionEngineError: If transcription fails after all retries
         """
+        result = self.transcribe_audio_with_backend(audio_data, language, max_retries)
+        return result.text if result else None
+
+    def transcribe_audio_with_backend(
+        self,
+        audio_data: bytes,
+        language: str = "en",
+        max_retries: int | None = None,
+    ) -> typing.Optional[EngineTranscriptionResult]:
+        """Transcribe audio data and report the backend that won."""
         if not audio_data:
             _logger.warning("No audio data provided for transcription")
             return None
@@ -95,7 +122,7 @@ class TranscriptionEngine:
 
         return None
 
-    def _race_transcriptions(self, audio_data: bytes, language: str) -> str:
+    def _race_transcriptions(self, audio_data: bytes, language: str) -> EngineTranscriptionResult:
         """Race configured transcription models and return the first successful result."""
         race_models = self._race_models()
         primary_models, fallback_models = self._split_race_and_fallback_models(race_models)
@@ -118,7 +145,12 @@ class TranscriptionEngine:
                     f"{primary_error}; fallback failed: {fallback_error}"
                 ) from fallback_error
 
-    def _race_model_group(self, audio_data: bytes, language: str, models: list[str]) -> str:
+    def _race_model_group(
+        self,
+        audio_data: bytes,
+        language: str,
+        models: list[str],
+    ) -> EngineTranscriptionResult:
         """Race one group of models and return the first successful result."""
         if len(models) == 1:
             return self._attempt_transcription(audio_data, language, models[0])
@@ -141,7 +173,7 @@ class TranscriptionEngine:
             for completed in futures.as_completed(future_to_model):
                 model = future_to_model[completed]
                 try:
-                    text = completed.result()
+                    result = completed.result()
                 except Exception as e:
                     errors.append(e)
                     _logger.warning("Transcription race model %s failed: %s", model, e)
@@ -152,7 +184,7 @@ class TranscriptionEngine:
                     if pending is not completed:
                         pending.cancel()
                 executor.shutdown(wait=False, cancel_futures=True)
-                return text
+                return result
         finally:
             executor.shutdown(wait=False, cancel_futures=True)
 
@@ -190,7 +222,7 @@ class TranscriptionEngine:
         audio_data: bytes,
         language: str,
         model_name: str | None = None,
-    ) -> str:
+    ) -> EngineTranscriptionResult:
         """Attempt single transcription request.
 
         Args:
@@ -233,7 +265,13 @@ class TranscriptionEngine:
 
             if not transcribed_text:
                 _logger.warning("Empty transcription result received")
-                return ""
+                return EngineTranscriptionResult(
+                    text="",
+                    backend=TranscriptionBackend(
+                        provider="openai",
+                        processor_id=self._model_mapper.map_model_name(model),
+                    ),
+                )
 
             _logger.info(
                 f"Transcription successful: '{transcribed_text[: ww.Constants.TEXT_PREVIEW_LENGTH]}"
@@ -241,7 +279,13 @@ class TranscriptionEngine:
             )
             _logger.debug(f"Full transcription: '{transcribed_text}'")
 
-            return transcribed_text
+            return EngineTranscriptionResult(
+                text=transcribed_text,
+                backend=TranscriptionBackend(
+                    provider="openai",
+                    processor_id=self._model_mapper.map_model_name(model),
+                ),
+            )
 
         except openai.RateLimitError as e:
             _logger.error(f"OpenAI API rate limit exceeded: {e}")
@@ -270,7 +314,7 @@ class TranscriptionEngine:
         audio_data: bytes,
         language: str,
         target: str,
-    ) -> str:
+    ) -> EngineTranscriptionResult:
         """Attempt transcription against an OpenAI-compatible local/remote server."""
         base_url, model = self._parse_openai_compatible_target(target)
         client = openai.OpenAI(
@@ -301,7 +345,13 @@ class TranscriptionEngine:
             text[: ww.Constants.TEXT_PREVIEW_LENGTH],
             "..." if len(text) > ww.Constants.TEXT_PREVIEW_LENGTH else "",
         )
-        return text
+        return EngineTranscriptionResult(
+            text=text,
+            backend=TranscriptionBackend(
+                provider="openai-compatible",
+                processor_id=model,
+            ),
+        )
 
     @staticmethod
     def _parse_openai_compatible_target(target: str) -> tuple[str, str]:
@@ -323,7 +373,11 @@ class TranscriptionEngine:
 
         return base_url, model
 
-    def _attempt_deepgram_transcription(self, audio_data: bytes, target: str) -> str:
+    def _attempt_deepgram_transcription(
+        self,
+        audio_data: bytes,
+        target: str,
+    ) -> EngineTranscriptionResult:
         """Attempt a Deepgram transcription request."""
         if not self._config.deepgram_api_key:
             raise TranscriptionEngineError("Deepgram API key is not configured")
@@ -368,14 +422,17 @@ class TranscriptionEngine:
             text[: ww.Constants.TEXT_PREVIEW_LENGTH],
             "..." if len(text) > ww.Constants.TEXT_PREVIEW_LENGTH else "",
         )
-        return text
+        return EngineTranscriptionResult(
+            text=text,
+            backend=TranscriptionBackend(provider="deepgram", processor_id=model),
+        )
 
     def _attempt_whispercpp_transcription(
         self,
         audio_data: bytes,
         language: str,
         target: str,
-    ) -> str:
+    ) -> EngineTranscriptionResult:
         """Attempt transcription against a whisper.cpp server /inference endpoint."""
         url = target.removeprefix(WHISPERCPP_TARGET_PREFIX).strip()
         if not url:
@@ -411,7 +468,13 @@ class TranscriptionEngine:
             text[: ww.Constants.TEXT_PREVIEW_LENGTH],
             "..." if len(text) > ww.Constants.TEXT_PREVIEW_LENGTH else "",
         )
-        return text
+        return EngineTranscriptionResult(
+            text=text,
+            backend=TranscriptionBackend(
+                provider="whisper.cpp",
+                processor_id="whisper.cpp",
+            ),
+        )
 
     @staticmethod
     def _build_whispercpp_multipart_body(

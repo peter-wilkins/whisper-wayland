@@ -140,7 +140,13 @@ class TestCaptureTap:
             test_config = ww.Config("/nonexistent/test.env")
             tap = CaptureTap(test_config, clock=_fixed_clock)
 
-            result = tap.write(audio_data, "raw transcript", "Insert transcript.")
+            result = tap.write(
+                audio_data,
+                "raw transcript",
+                "Insert transcript.",
+                transcription_provider="deepgram",
+                transcription_processor_id="nova-3",
+            )
 
         assert result is not None
         assert result.artifact_path.read_bytes() == audio_data
@@ -200,8 +206,8 @@ class TestCaptureTap:
             "push-to-talk hotkey released"
         )
         _assert_accepted_continuum_audio_metadata(envelope, result, tmp_path)
-        assert envelope["processor"]["provider"] == "openai"
-        assert envelope["processor"]["processorId"] == "whisper-1"
+        assert envelope["processor"]["provider"] == "deepgram"
+        assert envelope["processor"]["processorId"] == "nova-3"
         assert envelope["processor"]["processorKind"] == "transcription"
         assert re.match(
             r"^[0-9a-f]{16}$",
@@ -297,6 +303,10 @@ class TestCaptureTap:
             test_config = ww.Config("/nonexistent/test.env")
             transcription_client = unittest.mock.Mock()
             transcription_client.config = test_config
+            transcription_client.last_transcription_backend = ww.TranscriptionBackendMetadata(
+                provider="deepgram",
+                processor_id="nova-3",
+            )
             transcription_client.transcribe_audio.return_value = "uh raw raw transcript"
             transcription_client.post_process_text.return_value = "Raw transcript"
             processor = TranscriptionProcessor(transcription_client, RecordingTextInserter())
@@ -315,6 +325,8 @@ class TestCaptureTap:
         assert artifact_path.read_bytes() == audio_data
         assert envelope["transcript"]["rawTranscriptText"] == "uh raw raw transcript"
         assert envelope["transcript"]["insertionText"] == "Raw transcript"
+        assert envelope["processor"]["provider"] == "deepgram"
+        assert envelope["processor"]["processorId"] == "nova-3"
 
     def test_processor_suppresses_silent_hallucination_insert(
         self,

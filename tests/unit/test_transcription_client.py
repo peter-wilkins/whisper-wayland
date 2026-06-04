@@ -287,6 +287,10 @@ class TestTranscriptionClient:
                 result = client.transcribe_audio(b"fake_audio_data")
 
         assert result == "fast deepgram transcript"
+        assert client._transcription_engine is not None
+        assert client.last_transcription_backend is not None
+        assert client.last_transcription_backend.provider == "deepgram"
+        assert client.last_transcription_backend.processor_id == "nova-3"
 
     @unittest.mock.patch("whisper_wayland.transcription_client.transcription_engine.openai.OpenAI")
     def test_transcribe_audio_can_race_openai_compatible_target(
@@ -323,6 +327,9 @@ class TestTranscriptionClient:
             result = client.transcribe_audio(b"fake_audio_data")
 
         assert result == "fast local transcript"
+        assert client.last_transcription_backend is not None
+        assert client.last_transcription_backend.provider == "openai-compatible"
+        assert client.last_transcription_backend.processor_id == "base.en"
         mock_openai_class.assert_any_call(
             api_key=OPENAI_COMPATIBLE_DEFAULT_API_KEY,
             base_url="http://gpu-box.local:2022/v1",
@@ -402,6 +409,9 @@ class TestTranscriptionClient:
                 result = client.transcribe_audio(b"fake_audio_data")
 
         assert result == "fast local transcript"
+        assert client.last_transcription_backend is not None
+        assert client.last_transcription_backend.provider == "whisper.cpp"
+        assert client.last_transcription_backend.processor_id == "whisper.cpp"
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_transcribe_audio_max_retries_exceeded(

@@ -8,6 +8,7 @@ from whisper_wayland.transcription_client.realtime_streaming_client import (
     StreamingTranscriptionResult,
 )
 from whisper_wayland.transcription_client.transcription_client import (
+    TranscriptionBackendMetadata,
     TranscriptionClient,
     TranscriptionError,
 )
@@ -15,6 +16,7 @@ from whisper_wayland.transcription_client.transcription_client import (
 __all__ = [
     "RealtimeStreamingTranscriptionClient",
     "StreamingTranscriptionResult",
+    "TranscriptionBackendMetadata",
     "TranscriptionClient",
     "TranscriptionError",
 ]
