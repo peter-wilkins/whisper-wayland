@@ -238,6 +238,11 @@ class Config:
         return self._property_handlers.get_text_paste_hotkey()
 
     @property
+    def text_insertion_marker_enabled(self) -> bool:
+        """Whether inserted text is prefixed with a correlation marker."""
+        return self._property_handlers.get_text_insertion_marker_enabled()
+
+    @property
     def text_post_process_mode(self) -> str:
         """Transcript post-processing mode."""
         return self._property_handlers.get_text_post_process_mode()

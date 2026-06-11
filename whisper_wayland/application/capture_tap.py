@@ -58,6 +58,7 @@ class CaptureEnvelopeInput:
     transcript_suppression_reason: str | None
     transcription_provider: str | None
     transcription_processor_id: str | None
+    insertion_marker: str | None
     capture_id: str
     created_at_text: str
     artifact_rel: Path
@@ -107,6 +108,7 @@ class CaptureTap:
         transcript_suppression_reason: str | None = None,
         transcription_provider: str | None = None,
         transcription_processor_id: str | None = None,
+        insertion_marker: str | None = None,
     ) -> CaptureTapWriteResult | None:
         """Write local WAV artifact and JSON envelope if capture tap is enabled."""
         if not self._inlet_dir:
@@ -153,6 +155,7 @@ class CaptureTap:
                     transcript_suppression_reason=transcript_suppression_reason,
                     transcription_provider=transcription_provider,
                     transcription_processor_id=transcription_processor_id,
+                    insertion_marker=insertion_marker,
                     capture_id=capture_id,
                     created_at_text=created_at_text,
                     artifact_rel=artifact_rel,
@@ -314,6 +317,8 @@ class CaptureTap:
             "insertionText": envelope_input.insertion_text,
             "postProcessMode": self._config.text_post_process_mode,
         }
+        if envelope_input.insertion_marker:
+            transcript["insertionMarker"] = envelope_input.insertion_marker
 
         if not envelope_input.transcript_suppressed:
             return transcript
@@ -326,6 +331,11 @@ class CaptureTap:
             "suppressionReason": envelope_input.transcript_suppression_reason,
             "rejectedRawTranscriptText": envelope_input.raw_transcript_text,
             "rejectedInsertionText": envelope_input.insertion_text,
+            **(
+                {"insertionMarker": envelope_input.insertion_marker}
+                if envelope_input.insertion_marker
+                else {}
+            ),
         }
 
     def _build_capture_health(

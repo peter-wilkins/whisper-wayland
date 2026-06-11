@@ -117,6 +117,7 @@ local CPU-heavy whisper.cpp server is called only if every primary target fails.
 | `HOTKEY` | Push-to-talk key or mouse-button combination | `ctrl+compose` | No |
 | `HOTKEY_MODE` | Activation mode (`push_to_talk` or `toggle`) | `push_to_talk` | No |
 | `TEXT_INSERTION_METHOD` | Text insertion backend (`auto`, `tmux`, `ydotool`, `wtype`, `xdotool`, or `clipboard`) | `auto` | No |
+| `TEXT_INSERTION_MARKER_ENABLED` | Prefix inserted text with a short `[ww:<id>]` marker for later Codex-log correlation | `false` | No |
 | `TEXT_TMUX_TARGET_PANE` | Explicit tmux pane target for `TEXT_INSERTION_METHOD=tmux`, e.g. `%1` or `session:0.0` | - | No |
 | `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard fallback insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
 | `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, `snappy`, `caveman`, or `extract`) | `raw` | No |

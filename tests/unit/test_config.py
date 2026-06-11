@@ -96,6 +96,7 @@ class TestConfig:
                 assert test_config.hotkey_mode == "push_to_talk"
                 assert test_config.text_tmux_target_pane == ""
                 assert test_config.text_paste_hotkey == "ctrl+v"
+                assert not test_config.text_insertion_marker_enabled
                 assert test_config.text_post_process_openai_api_key == ""
                 assert (
                     test_config.text_post_process_providers
@@ -178,6 +179,7 @@ class TestConfig:
             "HOTKEY_MODE": "toggle",
             "TEXT_TMUX_TARGET_PANE": "whisper-wayland:0.0",
             "TEXT_PASTE_HOTKEY": "ctrl+shift+v",
+            "TEXT_INSERTION_MARKER_ENABLED": "true",
             "TEXT_POST_PROCESS_MODE": "snappy",
             "TEXT_POST_PROCESS_MODEL": "gpt-test-model",
             "TEXT_POST_PROCESS_PROVIDERS": "local-api, openai, local",
@@ -239,6 +241,7 @@ class TestConfig:
             assert test_config.hotkey_mode == "toggle"
             assert test_config.text_tmux_target_pane == "whisper-wayland:0.0"
             assert test_config.text_paste_hotkey == "ctrl+shift+v"
+            assert test_config.text_insertion_marker_enabled
             assert test_config.text_post_process_mode == "snappy"
             assert test_config.text_post_process_model == "gpt-test-model"
             assert test_config.text_post_process_providers == CUSTOM_TEXT_POST_PROCESS_PROVIDERS
@@ -547,6 +550,7 @@ class TestConfig:
             assert summary["audio_level_monitor_enabled"] is False
             assert summary["audio_level_manage_mics_enabled"] is False
             assert summary["audio_transcription_normalization_enabled"] is False
+            assert summary["text_insertion_marker_enabled"] is False
             assert summary["text_post_process_providers"] == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
             assert summary["text_post_process_openai_api_key"] is None
             assert (

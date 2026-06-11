@@ -429,6 +429,10 @@ class PropertyHandlers:
             return "ctrl+v"
         return hotkey
 
+    def get_text_insertion_marker_enabled(self) -> bool:
+        """Return whether inserted text should be prefixed with a correlation marker."""
+        return self._get_bool_env("TEXT_INSERTION_MARKER_ENABLED", False)
+
     def get_text_post_process_mode(self) -> str:
         """Get transcript post-processing mode.
 
@@ -509,6 +513,12 @@ class PropertyHandlers:
         except ValueError as e:
             _logger.error(f"Invalid {name}: {e}")
             raise PropertyHandlerError(f"Invalid {name}: {e}") from e
+
+    @staticmethod
+    def _get_bool_env(name: str, default: bool) -> bool:
+        default_text = "true" if default else "false"
+        value = os.getenv(name, default_text).strip().lower()
+        return value in {"1", "true", "yes", "on"}
 
     @staticmethod
     def new() -> "PropertyHandlers":

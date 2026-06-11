@@ -146,6 +146,7 @@ class TestCaptureTap:
                 "Insert transcript.",
                 transcription_provider="deepgram",
                 transcription_processor_id="nova-3",
+                insertion_marker="ww:abc123ef",
             )
 
         assert result is not None
@@ -198,6 +199,7 @@ class TestCaptureTap:
             "rawTranscriptText": "raw transcript",
             "insertionText": "Insert transcript.",
             "postProcessMode": "caveman",
+            "insertionMarker": "ww:abc123ef",
         }
         assert envelope["captureContext"]["captureInlet"] == "local-file-drop"
         assert envelope["captureContext"]["deviceLabel"] == "alsa_input.pci"
@@ -297,6 +299,7 @@ class TestCaptureTap:
                 "TEXT_POST_PROCESS_MODE": "caveman",
                 "TEXT_POST_PROCESS_MODEL": "local",
                 "AUDIO_TRANSCRIPTION_NORMALIZATION_ENABLED": "true",
+                "TEXT_INSERTION_MARKER_ENABLED": "true",
             },
             clear=True,
         ):
@@ -314,7 +317,7 @@ class TestCaptureTap:
             processor.process_audio(audio_data)
 
         assert insert_calls
-        assert insert_calls[0][0] == "Raw transcript"
+        assert re.match(r"^\[ww:[0-9a-f]{8}\] Raw transcript$", insert_calls[0][0])
         assert insert_calls[0][1]
         sent_audio = transcription_client.transcribe_audio.call_args.args[0]
         assert sent_audio != audio_data
@@ -325,6 +328,7 @@ class TestCaptureTap:
         assert artifact_path.read_bytes() == audio_data
         assert envelope["transcript"]["rawTranscriptText"] == "uh raw raw transcript"
         assert envelope["transcript"]["insertionText"] == "Raw transcript"
+        assert re.match(r"^ww:[0-9a-f]{8}$", envelope["transcript"]["insertionMarker"])
         assert envelope["processor"]["provider"] == "deepgram"
         assert envelope["processor"]["processorId"] == "nova-3"
 

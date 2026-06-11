@@ -5,6 +5,7 @@ Coordinates audio transcription and text insertion workflow.
 
 import logging
 import re
+import secrets
 import typing
 
 import whisper_wayland as ww
@@ -137,6 +138,9 @@ class TranscriptionProcessor:
                     audio_data,
                     transcription_result.raw_text,
                 )
+                insertion_marker = (
+                    None if suppression_reason else self._new_insertion_marker()
+                )
                 self._capture_tap.write(
                     audio_data=audio_data,
                     raw_transcript_text=transcription_result.raw_text,
@@ -147,6 +151,7 @@ class TranscriptionProcessor:
                     transcription_processor_id=(
                         transcription_result.transcription_processor_id
                     ),
+                    insertion_marker=insertion_marker,
                 )
                 if suppression_reason is not None:
                     _logger.info(
@@ -155,8 +160,12 @@ class TranscriptionProcessor:
                     )
                     self._show_idle()
                 else:
+                    insertion_text = self._text_with_marker(
+                        transcription_result.insertion_text,
+                        insertion_marker,
+                    )
                     self._handle_insert_result(
-                        self.text_handler.insert_text(transcription_result.insertion_text)
+                        self.text_handler.insert_text(insertion_text)
                     )
                 self._audio_level_monitor.check_audio(audio_data, audio_source)
             else:
@@ -253,6 +262,17 @@ class TranscriptionProcessor:
         if not normalized_text:
             return 0
         return len(normalized_text.split())
+
+    def _new_insertion_marker(self) -> str | None:
+        if not self._transcription_client.config.text_insertion_marker_enabled:
+            return None
+        return f"ww:{secrets.token_hex(4)}"
+
+    @staticmethod
+    def _text_with_marker(text: str, marker: str | None) -> str:
+        if not marker:
+            return text
+        return f"[{marker}] {text}"
 
     @staticmethod
     def new(

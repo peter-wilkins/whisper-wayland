@@ -110,6 +110,9 @@ class ConfigValidator:
             "text_insertion_method": config_instance.text_insertion_method,
             "text_tmux_target_pane": config_instance.text_tmux_target_pane,
             "text_paste_hotkey": config_instance.text_paste_hotkey,
+            "text_insertion_marker_enabled": (
+                config_instance.text_insertion_marker_enabled
+            ),
             "text_post_process_mode": config_instance.text_post_process_mode,
             "text_post_process_model": config_instance.text_post_process_model,
             "text_post_process_openai_api_key": (
