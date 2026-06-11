@@ -95,6 +95,7 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `OPENAI_API_KEY` | OpenAI API key for Whisper service | - | Yes |
+| `TEXT_POST_PROCESS_OPENAI_API_KEY` | Optional separate OpenAI API key for transcript rewriting/extraction | - | No |
 | `DEEPGRAM_API_KEY` | Optional Deepgram API key for `deepgram:<model>` transcription race targets | - | No |
 | `WHISPER_MODEL` | OpenAI transcription model, or a legacy Whisper size alias | `gpt-4o-transcribe` | No |
 | `TRANSCRIPTION_REQUEST_TIMEOUT_SECS` | Per-request timeout for transcription API calls | `20` | No |

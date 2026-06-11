@@ -96,6 +96,7 @@ class TestConfig:
                 assert test_config.hotkey_mode == "push_to_talk"
                 assert test_config.text_tmux_target_pane == ""
                 assert test_config.text_paste_hotkey == "ctrl+v"
+                assert test_config.text_post_process_openai_api_key == ""
                 assert (
                     test_config.text_post_process_providers
                     == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
@@ -489,6 +490,13 @@ class TestConfig:
                 test_config = ww.Config("/nonexistent/test.env")
                 assert test_config.text_post_process_model == "gpt-test"
 
+            with unittest.mock.patch.dict(
+                os.environ,
+                {"TEXT_POST_PROCESS_OPENAI_API_KEY": "sk-rewrite-test"},
+            ):
+                test_config = ww.Config("/nonexistent/test.env")
+                assert test_config.text_post_process_openai_api_key == "sk-rewrite-test"
+
     def test_config_load_env_file(self) -> None:
         """Test loading configuration from .env file."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
@@ -540,6 +548,7 @@ class TestConfig:
             assert summary["audio_level_manage_mics_enabled"] is False
             assert summary["audio_transcription_normalization_enabled"] is False
             assert summary["text_post_process_providers"] == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
+            assert summary["text_post_process_openai_api_key"] is None
             assert (
                 summary["text_post_process_local_api_url"]
                 == DEFAULT_TEXT_POST_PROCESS_LOCAL_API_URL

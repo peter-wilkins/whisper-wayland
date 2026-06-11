@@ -453,6 +453,10 @@ class PropertyHandlers:
         """
         return os.getenv("TEXT_POST_PROCESS_MODEL", "gpt-4.1-mini").strip()
 
+    def get_text_post_process_openai_api_key(self) -> str:
+        """Get optional OpenAI API key used only for transcript post-processing."""
+        return os.getenv("TEXT_POST_PROCESS_OPENAI_API_KEY", "").strip()
+
     def get_text_post_process_providers(self) -> list[str]:
         """Get ordered transcript rewrite provider names."""
         raw_providers = os.getenv("TEXT_POST_PROCESS_PROVIDERS", "openai,local")

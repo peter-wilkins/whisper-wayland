@@ -248,6 +248,11 @@ class Config:
         return self._property_handlers.get_text_post_process_model()
 
     @property
+    def text_post_process_openai_api_key(self) -> str:
+        """Optional OpenAI API key used only for transcript post-processing."""
+        return self._property_handlers.get_text_post_process_openai_api_key()
+
+    @property
     def text_post_process_providers(self) -> list[str]:
         """Ordered transcript rewrite providers."""
         return self._property_handlers.get_text_post_process_providers()

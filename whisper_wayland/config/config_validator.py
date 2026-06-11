@@ -112,6 +112,9 @@ class ConfigValidator:
             "text_paste_hotkey": config_instance.text_paste_hotkey,
             "text_post_process_mode": config_instance.text_post_process_mode,
             "text_post_process_model": config_instance.text_post_process_model,
+            "text_post_process_openai_api_key": (
+                "***" if config_instance.text_post_process_openai_api_key else None
+            ),
             "text_post_process_providers": config_instance.text_post_process_providers,
             "text_post_process_local_api_url": (
                 config_instance.text_post_process_local_api_url

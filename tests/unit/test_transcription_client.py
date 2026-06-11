@@ -24,6 +24,7 @@ CAVEMAN_MAX_OUTPUT_TOKENS = 256
 EXTRACT_MAX_OUTPUT_TOKENS = 768
 LOCAL_API_CUSTOM_TIMEOUT_SECS = 0.75
 EXPECTED_TRANSCRIPTION_RACE_CALLS = 2
+EXPECTED_SEPARATE_OPENAI_CLIENT_CALLS = 2
 
 
 class TestTranscriptionClient:
@@ -761,6 +762,50 @@ class TestTranscriptionClient:
 
             assert client.post_process_text("openai clean this") == "OpenAI cleaned."
             mock_client.responses.create.assert_called_once()
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.transcription_client.openai.OpenAI")
+    def test_post_process_text_uses_separate_openai_key(
+        self,
+        mock_openai_class: unittest.mock.MagicMock,
+    ) -> None:
+        """Test transcript rewriting can use a separate OpenAI API key."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-transcribe-test",
+                "TEXT_POST_PROCESS_OPENAI_API_KEY": "sk-rewrite-test",
+                "TEXT_POST_PROCESS_MODE": "extract",
+                "TEXT_POST_PROCESS_MODEL": "gpt-test",
+                "TEXT_POST_PROCESS_PROVIDERS": "openai,local",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            primary_client = unittest.mock.Mock()
+            rewrite_client = unittest.mock.Mock()
+            rewrite_response = unittest.mock.Mock()
+            rewrite_response.output_text = "- Rewrite with separate key"
+            rewrite_client.responses.create.return_value = rewrite_response
+            mock_openai_class.side_effect = [primary_client, rewrite_client]
+            client = transcription_client.TranscriptionClient(test_config)
+
+            assert client.post_process_text("rewrite with separate key") == (
+                "- Rewrite with separate key"
+            )
+
+        assert mock_openai_class.call_count == EXPECTED_SEPARATE_OPENAI_CLIENT_CALLS
+        mock_openai_class.assert_any_call(
+            api_key="sk-transcribe-test",
+            timeout=test_config.transcription_request_timeout_secs,
+            max_retries=0,
+        )
+        mock_openai_class.assert_any_call(
+            api_key="sk-rewrite-test",
+            timeout=test_config.transcription_request_timeout_secs,
+            max_retries=0,
+        )
+        primary_client.responses.create.assert_not_called()
+        rewrite_client.responses.create.assert_called_once()
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_post_process_text_caveman_falls_back_to_local_on_error(

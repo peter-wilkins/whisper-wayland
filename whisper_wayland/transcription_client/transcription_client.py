@@ -171,11 +171,12 @@ class TranscriptionClient:
             _logger.debug("Skipping OpenAI post-processing because model is local")
             return None
 
-        if not self._client:
+        client = self._post_process_openai_client()
+        if not client:
             return None
 
         try:
-            response = self._client.responses.create(
+            response = client.responses.create(
                 model=self.config.text_post_process_model,
                 input=[
                     {
@@ -198,6 +199,17 @@ class TranscriptionClient:
             _logger.warning(f"OpenAI transcript post-processing failed: {e}")
 
         return None
+
+    def _post_process_openai_client(self) -> openai.OpenAI | None:
+        """Return the OpenAI client for transcript rewriting."""
+        rewrite_api_key = self.config.text_post_process_openai_api_key
+        if rewrite_api_key:
+            return openai.OpenAI(
+                api_key=rewrite_api_key,
+                timeout=self.config.transcription_request_timeout_secs,
+                max_retries=0,
+            )
+        return self._client
 
     def _post_process_with_local_api(self, text: str, mode: str) -> str | None:
         """Try same-machine personal dictionary rewrite API."""
