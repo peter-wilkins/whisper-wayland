@@ -118,7 +118,7 @@ local CPU-heavy whisper.cpp server is called only if every primary target fails.
 | `TEXT_INSERTION_METHOD` | Text insertion backend (`auto`, `tmux`, `ydotool`, `wtype`, `xdotool`, or `clipboard`) | `auto` | No |
 | `TEXT_TMUX_TARGET_PANE` | Explicit tmux pane target for `TEXT_INSERTION_METHOD=tmux`, e.g. `%1` or `session:0.0` | - | No |
 | `TEXT_PASTE_HOTKEY` | Paste shortcut for clipboard fallback insertion (`ctrl+v` or `ctrl+shift+v`) | `ctrl+v` | No |
-| `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, `snappy`, or `caveman`) | `raw` | No |
+| `TEXT_POST_PROCESS_MODE` | Rewrite transcript before insertion (`raw`, `clean`, `snappy`, `caveman`, or `extract`) | `raw` | No |
 | `TEXT_POST_PROCESS_MODEL` | OpenAI text model for transcript rewriting, or `local` for local caveman cleanup | `gpt-4.1-mini` | No |
 | `TEXT_POST_PROCESS_PROVIDERS` | Ordered comma-separated rewrite providers (`local-api`, `openai`, `local`) | `openai,local` | No |
 | `TEXT_POST_PROCESS_LOCAL_API_URL` | Same-machine personal dictionary rewrite API endpoint | `http://127.0.0.1:8765/v1/transcript/rewrite` | No |

@@ -477,6 +477,10 @@ class TestConfig:
                 test_config = ww.Config("/nonexistent/test.env")
                 assert test_config.text_post_process_mode == "caveman"
 
+            with unittest.mock.patch.dict(os.environ, {"TEXT_POST_PROCESS_MODE": "extract"}):
+                test_config = ww.Config("/nonexistent/test.env")
+                assert test_config.text_post_process_mode == "extract"
+
             with unittest.mock.patch.dict(os.environ, {"TEXT_POST_PROCESS_MODE": "invalid"}):
                 test_config = ww.Config("/nonexistent/test.env")
                 assert test_config.text_post_process_mode == "raw"

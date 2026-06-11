@@ -433,10 +433,10 @@ class PropertyHandlers:
         """Get transcript post-processing mode.
 
         Returns:
-            Post-processing mode: "raw", "clean", "snappy", or "caveman"
+            Post-processing mode: "raw", "clean", "snappy", "caveman", or "extract"
         """
         mode = os.getenv("TEXT_POST_PROCESS_MODE", "raw").strip().lower()
-        valid_modes = ["raw", "clean", "snappy", "caveman"]
+        valid_modes = ["raw", "clean", "snappy", "caveman", "extract"]
         if mode not in valid_modes:
             _logger.warning(
                 f"Invalid TEXT_POST_PROCESS_MODE '{mode}', using raw. "

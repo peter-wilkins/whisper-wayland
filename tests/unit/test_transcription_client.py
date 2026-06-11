@@ -21,6 +21,7 @@ from whisper_wayland.transcription_client.transcription_engine import (
 )
 
 CAVEMAN_MAX_OUTPUT_TOKENS = 256
+EXTRACT_MAX_OUTPUT_TOKENS = 768
 LOCAL_API_CUSTOM_TIMEOUT_SECS = 0.75
 EXPECTED_TRANSCRIPTION_RACE_CALLS = 2
 
@@ -626,6 +627,38 @@ class TestTranscriptionClient:
             call_args = mock_client.responses.create.call_args
             assert call_args.kwargs["max_output_tokens"] == CAVEMAN_MAX_OUTPUT_TOKENS
             assert "caveman style" in call_args.kwargs["input"][0]["content"]
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_post_process_text_extract_mode(
+        self, mock_openai_class: unittest.mock.MagicMock
+    ) -> None:
+        """Test extract mode uses a structured agent-message prompt."""
+        with unittest.mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test123",
+                "TEXT_POST_PROCESS_MODE": "extract",
+                "TEXT_POST_PROCESS_MODEL": "gpt-test",
+            },
+            clear=True,
+        ):
+            test_config = ww.Config("/nonexistent/test.env")
+            mock_client = unittest.mock.Mock()
+            mock_response = unittest.mock.Mock()
+            mock_response.output_text = "- Debug paste lag\n- Check service logs"
+            mock_client.responses.create.return_value = mock_response
+            mock_openai_class.return_value = mock_client
+            client = transcription_client.TranscriptionClient(test_config)
+
+            assert client.post_process_text(
+                "uh can you debug the paste lag and check the service logs"
+            ) == "- Debug paste lag\n- Check service logs"
+            call_args = mock_client.responses.create.call_args
+            assert call_args.kwargs["max_output_tokens"] == EXTRACT_MAX_OUTPUT_TOKENS
+            prompt = call_args.kwargs["input"][0]["content"]
+            assert "coding agent" in prompt
+            assert "short bullet list" in prompt
+            assert "[unclear: ...]" in prompt
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_post_process_text_caveman_local_model(

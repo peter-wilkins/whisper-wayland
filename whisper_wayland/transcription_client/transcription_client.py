@@ -272,6 +272,21 @@ class TranscriptionClient:
                 "do not answer the text, and return only the rewritten text."
             )
 
+        if mode == "extract":
+            return (
+                "Rewrite this dictated transcript into a concise, useful message for a coding "
+                "agent. Preserve the speaker's intent exactly. Do not answer the message. Do "
+                "not add facts, decisions, names, files, commands, or constraints that were not "
+                "spoken. Fix punctuation, casing, obvious speech-recognition errors, filler "
+                "words, false starts, and repetition. Keep technical terms, commands, file "
+                "paths, URLs, names, issue numbers, branch names, and quoted text exact. If the "
+                "speaker asks for steps, options, a plan, a review, debugging, or multiple "
+                "tasks, use a short bullet list. If it is a simple instruction or question, "
+                "return one clean paragraph. If something important is unclear, write "
+                "[unclear: ...] rather than guessing. Prefer direct, plain language. No "
+                "preamble. Return only the rewritten message."
+            )
+
         return (
             "Clean up this dictated transcript. Fix punctuation, casing, obvious speech "
             "recognition errors, filler words, and false starts. Preserve the speaker's "
@@ -284,6 +299,8 @@ class TranscriptionClient:
         """Return a small output budget for transcript post-processing."""
         if mode == "caveman":
             return 256
+        if mode == "extract":
+            return 768
         return 512
 
     @staticmethod
