@@ -37,6 +37,7 @@ Issues = "https://github.com/whisper-wayland/whisper-wayland/issues"
 
 [project.scripts]
 whisper-wayland = "whisper_wayland.main:main"
+ww-audio-conditioning = "whisper_wayland.audio_conditioning.cli:main"
 
 [tool.pytest.ini_options]
 minversion = "7.0"

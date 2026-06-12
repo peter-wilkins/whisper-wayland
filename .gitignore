@@ -166,3 +166,4 @@ transcription.txt
 *.log
 .claude/
 .env
+local/

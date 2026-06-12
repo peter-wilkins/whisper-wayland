@@ -1,0 +1,94 @@
+# Audio Conditioning Harness
+
+WhisperWayland hosts the first Linux experiment for Field Relay Audio
+Conditioning. The harness is deliberately local-first and file-based:
+
+```text
+audio file
+-> high-pass filter
+-> VAD segments
+-> Opus chunks
+-> transcription/cost comparison
+```
+
+Private audio, private transcripts, and run histories live under ignored
+`local/audio-conditioning/`.
+
+## Fixture Layout
+
+Use fixture folders:
+
+```text
+local/audio-conditioning/fixtures/clean-001/
+  source.wav
+  fixture.json
+```
+
+`fixture.json`:
+
+```json
+{
+  "id": "clean-001",
+  "sourceFile": "source.wav",
+  "acousticProfile": "clean",
+  "scenario": "Clean indoor speech",
+  "expectedWords": ["example"],
+  "expectedSilence": false,
+  "expectedSpeechWindows": [
+    {"startSeconds": 1.0, "endSeconds": 12.0}
+  ],
+  "noiseNotes": "Quiet room",
+  "notes": "Local-only fixture"
+}
+```
+
+Supported profiles: `clean`, `fanwind`, `fieldmovement`, `outdoorwind`,
+`nospeech`.
+
+## Run
+
+Without transcription:
+
+```bash
+.venv/bin/ww-audio-conditioning \
+  local/audio-conditioning/fixtures
+```
+
+With OpenAI transcription comparison:
+
+```bash
+.venv/bin/ww-audio-conditioning \
+  --transcribe \
+  local/audio-conditioning/fixtures
+```
+
+Direct audio files also work:
+
+```bash
+.venv/bin/ww-audio-conditioning \
+  /home/peter/continuum-core/data/landing-queue/audio-captures/artifacts/2026-06-12/example.wav
+```
+
+Each run writes:
+
+```text
+local/audio-conditioning/runs/<run-id>/
+  run.json
+  report.md
+  conditioned/*.wav
+  segments/*.opus
+```
+
+## Current Boundary
+
+This is not Android/Kotlin work. Portable pieces are:
+
+- FFmpeg filter graph: `highpass`
+- FFmpeg VAD primitive: `silencedetect`
+- Opus chunk export
+- JSON run/report schema
+- acoustic profile thresholds
+
+The harness accepts future Field Relay session audio files, but today the visible
+local corpus is WhisperWayland capture tap audio under Continuum's
+`audio-captures/artifacts/`.
