@@ -192,9 +192,14 @@ def test_review_player_writes_audio_buttons_for_transcription_plan(tmp_path: Pat
     assert 'src="segments/clip.ogg"' in html
     assert "Score 0.910" in html
     assert "data-target=\"clip-1\"" in html
-    assert 'data-label="speech"' in html
-    assert 'data-label="partial"' in html
-    assert 'data-label="noise"' in html
+    assert 'data-label="only_noise"' in html
+    assert "Only noise" in html
+    assert 'data-label="incomplete_voice_note"' in html
+    assert "Incomplete voice note" in html
+    assert 'data-label="more_noise_than_voice"' in html
+    assert "More noise than voice" in html
+    assert 'data-label="complete_voice_note"' in html
+    assert "Complete voice note captured" in html
 
 
 def test_review_player_saves_one_label_per_clip(tmp_path: Path) -> None:
@@ -206,7 +211,7 @@ def test_review_player_saves_one_label_per_clip(tmp_path: Path) -> None:
         "sourceStartSeconds": 1.0,
         "sourceEndSeconds": 3.5,
     }
-    second_payload = {**first_payload, "label": "partial"}
+    second_payload = {**first_payload, "label": "more_noise_than_voice"}
 
     _save_review_label(tmp_path, first_payload)
     labels_payload = _save_review_label(tmp_path, second_payload)
@@ -214,8 +219,24 @@ def test_review_player_saves_one_label_per_clip(tmp_path: Path) -> None:
     labels = labels_payload["labels"]
     assert len(labels) == 1
     assert labels[0]["relativePath"] == "segments/clip.ogg"
-    assert labels[0]["label"] == "partial"
+    assert labels[0]["label"] == "more_noise_than_voice"
     assert (tmp_path / "review-labels.json").exists()
+
+
+def test_review_player_migrates_legacy_labels(tmp_path: Path) -> None:
+    payload = {
+        "relativePath": "segments/clip.ogg",
+        "label": "partial",
+        "speechRank": 1,
+        "speechScore": 0.91,
+        "sourceStartSeconds": 1.0,
+        "sourceEndSeconds": 3.5,
+    }
+
+    labels_payload = _save_review_label(tmp_path, payload)
+
+    assert labels_payload["schema"] == "whisper_wayland.audio_conditioning.review_labels.v2"
+    assert labels_payload["labels"][0]["label"] == "incomplete_voice_note"
 
 
 def _write_synthetic_wav(path: Path) -> None:

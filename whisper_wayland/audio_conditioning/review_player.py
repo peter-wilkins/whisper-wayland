@@ -16,6 +16,18 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 INDEX_NAME = "review.html"
 LABELS_NAME = "review-labels.json"
+LABEL_SCHEMA = "whisper_wayland.audio_conditioning.review_labels.v2"
+LABEL_OPTIONS = {
+    "only_noise": "Only noise",
+    "incomplete_voice_note": "Incomplete voice note",
+    "more_noise_than_voice": "More noise than voice",
+    "complete_voice_note": "Complete voice note captured",
+}
+LEGACY_LABELS = {
+    "noise": "only_noise",
+    "partial": "incomplete_voice_note",
+    "speech": "complete_voice_note",
+}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -99,7 +111,20 @@ def _load_run_payload(run_dir: Path) -> dict[str, typing.Any]:
     payload = json.loads(run_json.read_text(encoding="utf-8"))
     if "transcriptionPlan" not in payload:
         raise ValueError("run.json does not contain a transcriptionPlan")
+    payload["reviewLabels"] = _load_review_labels(run_dir)
     return payload
+
+
+def _load_review_labels(run_dir: Path) -> dict[str, str]:
+    labels_path = run_dir / LABELS_NAME
+    if not labels_path.exists():
+        return {}
+    labels_payload = json.loads(labels_path.read_text(encoding="utf-8"))
+    return {
+        str(item["relativePath"]): _normalize_label(str(item["label"]))
+        for item in labels_payload.get("labels", [])
+        if item.get("relativePath") and _normalize_label(str(item.get("label", "")))
+    }
 
 
 def _save_review_label(
@@ -107,9 +132,9 @@ def _save_review_label(
     payload: dict[str, typing.Any],
 ) -> dict[str, typing.Any]:
     relative_path = str(payload.get("relativePath", "")).strip()
-    label = str(payload.get("label", "")).strip()
-    if label not in {"speech", "partial", "noise"}:
-        raise ValueError("label must be speech, partial, or noise")
+    label = _normalize_label(str(payload.get("label", "")).strip())
+    if not label:
+        raise ValueError(f"label must be one of: {', '.join(LABEL_OPTIONS)}")
     if not relative_path or os.path.isabs(relative_path) or ".." in Path(relative_path).parts:
         raise ValueError("relativePath must be a safe relative path")
 
@@ -117,15 +142,13 @@ def _save_review_label(
     if labels_path.exists():
         labels_payload = json.loads(labels_path.read_text(encoding="utf-8"))
     else:
-        labels_payload = {
-            "schema": "whisper_wayland.audio_conditioning.review_labels.v1",
-            "labels": [],
-        }
+        labels_payload = {"labels": []}
 
     labels = [
-        item
+        {**item, "label": _normalize_label(str(item.get("label", "")))}
         for item in labels_payload.get("labels", [])
         if item.get("relativePath") != relative_path
+        and _normalize_label(str(item.get("label", "")))
     ]
     labels.append(
         {
@@ -137,6 +160,7 @@ def _save_review_label(
             "sourceEndSeconds": payload.get("sourceEndSeconds"),
         }
     )
+    labels_payload["schema"] = LABEL_SCHEMA
     labels_payload["labels"] = sorted(labels, key=lambda item: str(item["relativePath"]))
     tmp_path = labels_path.with_suffix(".json.tmp")
     tmp_path.write_text(json.dumps(labels_payload, indent=2) + "\n", encoding="utf-8")
@@ -144,12 +168,19 @@ def _save_review_label(
     return labels_payload
 
 
+def _normalize_label(label: str) -> str:
+    normalized = label.strip().lower().replace(" ", "_")
+    return LEGACY_LABELS.get(normalized, normalized if normalized in LABEL_OPTIONS else "")
+
+
 def _render_html(payload: dict[str, typing.Any]) -> str:
     plan = payload["transcriptionPlan"]
     source = payload["source"]
+    review_labels = dict(payload.get("reviewLabels", {}))
     segments = list(plan.get("segments", []))
     cards = "\n".join(
-        _render_segment_card(segment, index) for index, segment in enumerate(segments, start=1)
+        _render_segment_card(segment, index, review_labels)
+        for index, segment in enumerate(segments, start=1)
     )
     if not cards:
         cards = '<p class="empty">No selected transcription candidates.</p>'
@@ -423,9 +454,14 @@ def _render_stat(label: str, value: typing.Any) -> str:
     )
 
 
-def _render_segment_card(segment: dict[str, typing.Any], index: int) -> str:
+def _render_segment_card(
+    segment: dict[str, typing.Any],
+    index: int,
+    review_labels: dict[str, str],
+) -> str:
     audio_id = f"clip-{index}"
-    relative_path = html.escape(str(segment["relative_path"]))
+    raw_relative_path = str(segment["relative_path"])
+    relative_path = html.escape(raw_relative_path)
     start = float(segment["source_start_seconds"])
     end = float(segment["source_end_seconds"])
     duration = max(0.0, end - start)
@@ -433,6 +469,11 @@ def _render_segment_card(segment: dict[str, typing.Any], index: int) -> str:
     score = float(segment.get("speech_score", 0.0))
     reason = html.escape(str(segment.get("speech_features", {}).get("reason", "candidate")))
     play_label = html.escape(str(rank))
+    selected_label = review_labels.get(raw_relative_path, "")
+    label_buttons = "\n".join(
+        _render_label_button(value, display, selected_label)
+        for value, display in LABEL_OPTIONS.items()
+    )
     return f"""<article
   class="clip"
   data-relative-path="{relative_path}"
@@ -453,12 +494,18 @@ def _render_segment_card(segment: dict[str, typing.Any], index: int) -> str:
     </button>
     <audio id="{audio_id}" controls preload="metadata" src="{relative_path}"></audio>
     <div class="labels" aria-label="Clip labels">
-      <button class="label" type="button" data-label="speech">Speech</button>
-      <button class="label" type="button" data-label="partial">Partial</button>
-      <button class="label" type="button" data-label="noise">Noise</button>
+      {label_buttons}
     </div>
   </div>
 </article>"""
+
+
+def _render_label_button(value: str, display: str, selected_label: str) -> str:
+    selected_class = " selected" if value == selected_label else ""
+    return (
+        f'<button class="label{selected_class}" type="button" '
+        f'data-label="{html.escape(value)}">{html.escape(display)}</button>'
+    )
 
 
 if __name__ == "__main__":
