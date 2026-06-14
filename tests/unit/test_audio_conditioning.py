@@ -106,6 +106,8 @@ def test_stream_replay_writes_events_and_report(tmp_path: Path) -> None:
         chunk_seconds=0.6,
         overlap_seconds=0.1,
         profile_name="clean",
+        transcription_candidate_limit=1,
+        transcription_min_score=0.0,
     )
 
     payload = harness.run()
@@ -115,6 +117,10 @@ def test_stream_replay_writes_events_and_report(tmp_path: Path) -> None:
     assert payload["summary"]["chunkCount"] >= MIN_EXPECTED_STREAM_CHUNKS
     assert "averageSpeechScore" in payload["summary"]
     assert payload["topSpeechCandidates"]
+    assert payload["transcriptionPlan"]["mode"] == "ranked_non_overlapping_candidates_dry_run"
+    assert payload["transcriptionPlan"]["selectedSegmentCount"] == 1
+    assert payload["transcriptionPlan"]["transcriptionEnabled"] is False
+    assert payload["transcriptionPlan"]["segments"][0].speech_rank == 1
     assert payload["segments"][0].speech_rank is not None
     assert payload["segments"][0].speech_features["reason"]
     assert (run_dir / "events.jsonl").exists()

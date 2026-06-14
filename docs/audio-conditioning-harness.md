@@ -70,6 +70,16 @@ Direct audio files also work:
   /home/peter/continuum-core/data/landing-queue/audio-captures/artifacts/2026-06-12/example.wav
 ```
 
+Pseudo-streaming replay can dry-run what would be sent to transcription without
+calling any API:
+
+```bash
+.venv/bin/ww-audio-stream-replay \
+  local/audio-conditioning/fixtures/raw-day-phone-wing-20260612/Voice\ 004_sd.m4a \
+  --transcription-candidate-limit 5 \
+  --transcription-min-score 0.7
+```
+
 Each run writes:
 
 ```text
@@ -85,6 +95,10 @@ adds rank/score/reason columns to `report.md`. The ranking pass is deliberately
 cheap and local-only: it scores VAD candidates using PCM features such as RMS,
 peak, zero-crossing rate, short-frame RMS variation, duration, and clipping
 ratio. It does not transcribe, upload, or discard audio by itself.
+
+The replay `transcriptionPlan` is also local-only. It selects the best ranked
+non-overlapping candidate segments, estimates selected duration/bytes, and
+keeps `transcriptionEnabled` false.
 
 ## Current Boundary
 

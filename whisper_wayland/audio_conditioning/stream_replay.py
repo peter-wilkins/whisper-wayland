@@ -25,6 +25,8 @@ DEFAULT_CHUNK_SECONDS = 10.0
 DEFAULT_OVERLAP_SECONDS = 1.0
 DEFAULT_PROFILE = "outdoorwind"
 DEFAULT_OPUS_BITRATE = "18k"
+DEFAULT_TRANSCRIPTION_CANDIDATE_LIMIT = 10
+DEFAULT_TRANSCRIPTION_MIN_SCORE = 0.45
 EVENT_SCHEMA = "whisper_wayland.audio_conditioning.stream_event.v1"
 RUN_SCHEMA = "whisper_wayland.audio_conditioning.stream_replay_run.v1"
 
@@ -75,6 +77,8 @@ class StreamReplayHarness:
         overlap_seconds: float = DEFAULT_OVERLAP_SECONDS,
         profile_name: str = DEFAULT_PROFILE,
         opus_bitrate: str = DEFAULT_OPUS_BITRATE,
+        transcription_candidate_limit: int = DEFAULT_TRANSCRIPTION_CANDIDATE_LIMIT,
+        transcription_min_score: float = DEFAULT_TRANSCRIPTION_MIN_SCORE,
     ) -> None:
         """Create a pseudo-streaming replay run."""
         self.source_path = source_path.expanduser()
@@ -84,6 +88,8 @@ class StreamReplayHarness:
         self.overlap_seconds = overlap_seconds
         self.profile = profile_for_name(profile_name)
         self.opus_bitrate = opus_bitrate
+        self.transcription_candidate_limit = max(0, transcription_candidate_limit)
+        self.transcription_min_score = transcription_min_score
         self.run_dir = output_root / "runs" / self.run_id
         self.segments_dir = self.run_dir / "segments"
         self.manifests_dir = self.run_dir / "manifests"
@@ -281,6 +287,13 @@ class StreamReplayHarness:
         )
         encoded_bytes = sum(segment.byte_length for segment in kept_segments)
         top_segments = _top_speech_candidates(kept_segments)
+        transcription_plan = _transcription_plan(
+            kept_segments=kept_segments,
+            source_duration=source_duration,
+            source_bytes=source_bytes,
+            candidate_limit=self.transcription_candidate_limit,
+            min_score=self.transcription_min_score,
+        )
         return {
             "schema": RUN_SCHEMA,
             "runId": self.run_id,
@@ -297,6 +310,8 @@ class StreamReplayHarness:
                 "profile": asdict(self.profile),
                 "opusBitrate": self.opus_bitrate,
                 "transcriptionEnabled": False,
+                "transcriptionCandidateLimit": self.transcription_candidate_limit,
+                "transcriptionMinScore": self.transcription_min_score,
             },
             "summary": {
                 "chunkCount": len(chunks),
@@ -321,6 +336,7 @@ class StreamReplayHarness:
             },
             "segments": kept_segments,
             "topSpeechCandidates": top_segments,
+            "transcriptionPlan": transcription_plan,
         }
 
     def _write_event(
@@ -366,6 +382,19 @@ class StreamReplayHarness:
             f"- Processing elapsed: {summary['processingElapsedSeconds']:.3f}s",
             "- Transcription: disabled",
             "",
+            "## Transcription Plan",
+            "",
+            f"- Candidate limit: {payload['transcriptionPlan']['candidateLimit']}",
+            f"- Minimum score: {payload['transcriptionPlan']['minScore']:.3f}",
+            f"- Selected candidates: {payload['transcriptionPlan']['selectedSegmentCount']}",
+            f"- Selected duration: "
+            f"{payload['transcriptionPlan']['selectedDurationSeconds']:.3f}s",
+            f"- Selected bytes: {payload['transcriptionPlan']['selectedByteLength']}",
+            f"- Upload size reduction vs raw: "
+            f"{payload['transcriptionPlan']['uploadSizeReductionPercent']:.1f}%",
+            f"- Duration reduction vs raw: "
+            f"{payload['transcriptionPlan']['durationReductionPercent']:.1f}%",
+            "",
             "## Segments",
             "",
             "| Rank | Score | Chunk | Start | End | Duration | Bytes | Reason | File |",
@@ -399,6 +428,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--overlap-seconds", type=float, default=DEFAULT_OVERLAP_SECONDS)
     parser.add_argument("--profile", default=DEFAULT_PROFILE)
     parser.add_argument("--opus-bitrate", default=DEFAULT_OPUS_BITRATE)
+    parser.add_argument(
+        "--transcription-candidate-limit",
+        type=int,
+        default=DEFAULT_TRANSCRIPTION_CANDIDATE_LIMIT,
+        help="Maximum ranked candidates to include in the dry-run transcription plan.",
+    )
+    parser.add_argument(
+        "--transcription-min-score",
+        type=float,
+        default=DEFAULT_TRANSCRIPTION_MIN_SCORE,
+        help="Minimum speech score to include in the dry-run transcription plan.",
+    )
     args = parser.parse_args(argv)
 
     harness = StreamReplayHarness(
@@ -409,11 +450,16 @@ def main(argv: list[str] | None = None) -> int:
         overlap_seconds=args.overlap_seconds,
         profile_name=args.profile,
         opus_bitrate=args.opus_bitrate,
+        transcription_candidate_limit=args.transcription_candidate_limit,
+        transcription_min_score=args.transcription_min_score,
     )
     payload = harness.run()
     print(f"Wrote run: {harness.run_dir}")
     print(f"Chunks: {payload['summary']['chunkCount']}")
     print(f"Kept segments: {payload['summary']['keptSegmentCount']}")
+    print(f"Planned transcription segments: {payload['transcriptionPlan']['selectedSegmentCount']}")
+    selected_duration = payload["transcriptionPlan"]["selectedDurationSeconds"]
+    print(f"Planned transcription duration: {selected_duration}s")
     print(f"Audio duration sent: {payload['summary']['audioDurationSentSeconds']}s")
     return 0
 
@@ -479,13 +525,86 @@ def _assign_speech_ranks(segments: list[KeptSegment]) -> list[KeptSegment]:
 
 
 def _top_speech_candidates(segments: list[KeptSegment]) -> list[KeptSegment]:
+    return _ranked_speech_candidates(segments)[:10]
+
+
+def _ranked_speech_candidates(segments: list[KeptSegment]) -> list[KeptSegment]:
     return sorted(
         segments,
         key=lambda segment: (
             segment.speech_rank is None,
             segment.speech_rank or len(segments) + 1,
         ),
-    )[:10]
+    )
+
+
+def _transcription_plan(
+    *,
+    kept_segments: list[KeptSegment],
+    source_duration: float,
+    source_bytes: int,
+    candidate_limit: int,
+    min_score: float,
+) -> dict[str, typing.Any]:
+    ranked_candidates = _select_non_overlapping_candidates(
+        kept_segments=kept_segments,
+        candidate_limit=candidate_limit,
+        min_score=min_score,
+    )
+    selected_duration = round(
+        sum(segment.duration_seconds for segment in ranked_candidates),
+        3,
+    )
+    selected_bytes = sum(segment.byte_length for segment in ranked_candidates)
+    return {
+        "mode": "ranked_non_overlapping_candidates_dry_run",
+        "transcriptionEnabled": False,
+        "candidateLimit": candidate_limit,
+        "minScore": min_score,
+        "selectedSegmentCount": len(ranked_candidates),
+        "selectedDurationSeconds": selected_duration,
+        "selectedByteLength": selected_bytes,
+        "durationReductionPercent": _duration_reduction_percent(
+            source_duration,
+            selected_duration,
+        ),
+        "uploadSizeReductionPercent": _size_reduction_percent(
+            source_bytes,
+            selected_bytes,
+        ),
+        "segments": ranked_candidates,
+    }
+
+
+def _select_non_overlapping_candidates(
+    *,
+    kept_segments: list[KeptSegment],
+    candidate_limit: int,
+    min_score: float,
+) -> list[KeptSegment]:
+    selected: list[KeptSegment] = []
+    for segment in _ranked_speech_candidates(kept_segments):
+        if len(selected) >= candidate_limit:
+            break
+        if segment.speech_score < min_score:
+            continue
+        if any(_segments_overlap(segment, existing) for existing in selected):
+            continue
+        selected.append(segment)
+    return selected
+
+
+def _segments_overlap(left: KeptSegment, right: KeptSegment) -> bool:
+    return (
+        left.source_start_seconds < right.source_end_seconds
+        and right.source_start_seconds < left.source_end_seconds
+    )
+
+
+def _duration_reduction_percent(original_duration: float, new_duration: float) -> float:
+    if original_duration <= 0:
+        return 0.0
+    return round((1 - (new_duration / original_duration)) * 100, 1)
 
 
 def _average_speech_score(segments: list[KeptSegment]) -> float:
