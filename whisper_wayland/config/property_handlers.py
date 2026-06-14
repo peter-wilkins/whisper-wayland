@@ -93,7 +93,7 @@ class PropertyHandlers:
         """Get minimum clip duration before auto VAD applies."""
         return self._get_float_env(
             "TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS",
-            "60",
+            "30",
             allow_zero=False,
         )
 

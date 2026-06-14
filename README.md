@@ -101,7 +101,7 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `TRANSCRIPTION_REQUEST_TIMEOUT_SECS` | Per-request timeout for transcription API calls | `20` | No |
 | `TRANSCRIPTION_MAX_RETRIES` | App-level transcription retry count after timeout/API failure | `1` | No |
 | `TRANSCRIPTION_RACE_MODELS` | Optional comma-separated extra transcription targets to race in parallel; supports OpenAI model names, `deepgram:<model>`, `openai-compatible:<base-url>#<model>`, and `whispercpp:<inference-url>` | - | No |
-| `TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS` | Minimum duration before `auto` VAD applies | `60` | No |
+| `TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS` | Minimum duration before `auto` VAD applies | `30` | No |
 | `AUDIO_TRANSCRIPTION_VAD_MODE` | Laptop push-to-talk VAD mode (`none`, `auto`, or `silero`) | `auto` | No |
 | `LOCAL_API_DEFAULT_VAD_MODE` | Default local API VAD mode when `vad` query param is absent | `auto` | No |
 | `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
