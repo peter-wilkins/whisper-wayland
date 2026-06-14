@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import wave
 from pathlib import Path
 
@@ -12,6 +13,8 @@ from whisper_wayland.audio_conditioning.ffmpeg_tools import (
 )
 from whisper_wayland.audio_conditioning.fixtures import load_fixture_json
 from whisper_wayland.audio_conditioning.harness import AudioConditioningHarness
+from whisper_wayland.audio_conditioning.models import SpeechSegment
+from whisper_wayland.audio_conditioning.speech_ranking import rank_speech_segment
 from whisper_wayland.audio_conditioning.stream_replay import (
     StreamReplayHarness,
     _merged_interval_duration,
@@ -110,6 +113,10 @@ def test_stream_replay_writes_events_and_report(tmp_path: Path) -> None:
     run_dir = output_root / "runs" / "stream-test"
     assert payload["schema"] == "whisper_wayland.audio_conditioning.stream_replay_run.v1"
     assert payload["summary"]["chunkCount"] >= MIN_EXPECTED_STREAM_CHUNKS
+    assert "averageSpeechScore" in payload["summary"]
+    assert payload["topSpeechCandidates"]
+    assert payload["segments"][0].speech_rank is not None
+    assert payload["segments"][0].speech_features["reason"]
     assert (run_dir / "events.jsonl").exists()
     assert (run_dir / "run.json").exists()
     assert (run_dir / "report.md").exists()
@@ -124,14 +131,52 @@ def test_merged_interval_duration_counts_overlap_once() -> None:
     assert duration == EXPECTED_MERGED_INTERVAL_DURATION
 
 
+def test_speech_ranking_scores_tone_above_silence(tmp_path: Path) -> None:
+    speechy = tmp_path / "speechy.wav"
+    silent = tmp_path / "silent.wav"
+    _write_sine_wav(speechy, frequency_hz=220.0, amplitude=1800, duration_seconds=2.0)
+    _write_sine_wav(silent, frequency_hz=220.0, amplitude=0, duration_seconds=2.0)
+    segment = SpeechSegment(index=1, start_seconds=0.0, end_seconds=2.0)
+
+    speechy_ranking = rank_speech_segment(speechy, segment)
+    silent_ranking = rank_speech_segment(silent, segment)
+
+    assert speechy_ranking.score > silent_ranking.score
+    assert speechy_ranking.reason == "weak_speech_candidate"
+    assert silent_ranking.reason == "likely_silent"
+
+
 def _write_synthetic_wav(path: Path) -> None:
     sample_rate = 16000
     silence = b"\x00\x00" * int(sample_rate * 0.4)
-    tone_frame = (3000).to_bytes(2, byteorder="little", signed=True)
-    tone = tone_frame * int(sample_rate * 0.6)
+    tone = bytearray()
+    for index in range(int(sample_rate * 0.6)):
+        value = int(3000 * math.sin(2 * math.pi * 220 * index / sample_rate))
+        tone.extend(value.to_bytes(2, byteorder="little", signed=True))
     frames = silence + tone + silence
     with wave.open(str(path), "wb") as wav_file:
         wav_file.setnchannels(1)
         wav_file.setsampwidth(2)
         wav_file.setframerate(sample_rate)
-        wav_file.writeframes(frames)
+        wav_file.writeframes(bytes(frames))
+
+
+def _write_sine_wav(
+    path: Path,
+    *,
+    frequency_hz: float,
+    amplitude: int,
+    duration_seconds: float,
+) -> None:
+    sample_rate = 16000
+    frame_count = int(sample_rate * duration_seconds)
+    frames = bytearray()
+    for index in range(frame_count):
+        value = int(amplitude * math.sin(2 * math.pi * frequency_hz * index / sample_rate))
+        frames.extend(value.to_bytes(2, byteorder="little", signed=True))
+
+    with wave.open(str(path), "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(bytes(frames))

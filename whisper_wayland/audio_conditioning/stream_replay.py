@@ -19,6 +19,7 @@ from whisper_wayland.audio_conditioning.ffmpeg_tools import (
 )
 from whisper_wayland.audio_conditioning.harness import DEFAULT_LOCAL_ROOT
 from whisper_wayland.audio_conditioning.profiles import profile_for_name
+from whisper_wayland.audio_conditioning.speech_ranking import rank_speech_segment
 
 DEFAULT_CHUNK_SECONDS = 10.0
 DEFAULT_OVERLAP_SECONDS = 1.0
@@ -52,6 +53,9 @@ class KeptSegment:
     relative_path: str
     byte_length: int
     decision: str
+    speech_rank: int | None
+    speech_score: float
+    speech_features: dict[str, float | str]
 
     @property
     def duration_seconds(self) -> float:
@@ -112,6 +116,7 @@ class StreamReplayHarness:
             self._write_event("chunk.received", asdict(chunk), start_monotonic)
             kept_segments.extend(self._process_chunk(chunk, start_monotonic))
 
+        kept_segments = _assign_speech_ranks(kept_segments)
         elapsed = round(time.monotonic() - start_monotonic, 3)
         payload = self._run_payload(
             source_duration=source_duration,
@@ -156,6 +161,7 @@ class StreamReplayHarness:
             for segment in speech_segments:
                 source_start = round(chunk.start_seconds + segment.start_seconds, 3)
                 source_end = round(chunk.start_seconds + segment.end_seconds, 3)
+                ranking = rank_speech_segment(conditioned_chunk, segment)
                 output_path = (
                     self.segments_dir
                     / f"chunk-{chunk.index:04d}-{source_start:.3f}-{source_end:.3f}.ogg"
@@ -173,6 +179,9 @@ class StreamReplayHarness:
                     relative_path=output_path.relative_to(self.run_dir).as_posix(),
                     byte_length=output_path.stat().st_size,
                     decision="kept_speech_like_audio",
+                    speech_rank=None,
+                    speech_score=ranking.score,
+                    speech_features=ranking.to_json(),
                 )
                 kept.append(kept_segment)
                 self._write_event(
@@ -271,6 +280,7 @@ class StreamReplayHarness:
             ]
         )
         encoded_bytes = sum(segment.byte_length for segment in kept_segments)
+        top_segments = _top_speech_candidates(kept_segments)
         return {
             "schema": RUN_SCHEMA,
             "runId": self.run_id,
@@ -291,6 +301,8 @@ class StreamReplayHarness:
             "summary": {
                 "chunkCount": len(chunks),
                 "keptSegmentCount": len(kept_segments),
+                "topSpeechCandidateCount": len(top_segments),
+                "averageSpeechScore": _average_speech_score(kept_segments),
                 "rawDurationSeconds": source_duration,
                 "keptDurationSeconds": audio_sent_duration,
                 "audioDurationSentSeconds": audio_sent_duration,
@@ -308,6 +320,7 @@ class StreamReplayHarness:
                 "processingElapsedSeconds": elapsed_seconds,
             },
             "segments": kept_segments,
+            "topSpeechCandidates": top_segments,
         }
 
     def _write_event(
@@ -341,6 +354,8 @@ class StreamReplayHarness:
             f"- Raw duration: {summary['rawDurationSeconds']:.3f}s",
             f"- Chunks: {summary['chunkCount']}",
             f"- Kept segments: {summary['keptSegmentCount']}",
+            f"- Top speech candidates: {summary['topSpeechCandidateCount']}",
+            f"- Average speech score: {summary['averageSpeechScore']:.3f}",
             f"- Audio duration sent: {summary['audioDurationSentSeconds']:.3f}s",
             f"- Source coverage kept/discarded: "
             f"{summary['keptSourceCoverageSeconds']:.3f}s / "
@@ -353,17 +368,20 @@ class StreamReplayHarness:
             "",
             "## Segments",
             "",
-            "| Chunk | Start | End | Duration | Bytes | File |",
-            "| ---: | ---: | ---: | ---: | ---: | --- |",
+            "| Rank | Score | Chunk | Start | End | Duration | Bytes | Reason | File |",
+            "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |",
         ]
         for segment in payload["segments"]:
             duration = segment.duration_seconds
             lines.append(
-                f"| {segment.chunk_index} | "
+                f"| {_rank_cell(segment.speech_rank)} | "
+                f"{segment.speech_score:.3f} | "
+                f"{segment.chunk_index} | "
                 f"{segment.source_start_seconds:.3f} | "
                 f"{segment.source_end_seconds:.3f} | "
                 f"{duration:.3f} | "
                 f"{segment.byte_length} | "
+                f"{segment.speech_features['reason']} | "
                 f"`{segment.relative_path}` |"
             )
         path.write_text("\n".join(lines) + "\n")
@@ -430,6 +448,54 @@ def _merged_interval_duration(intervals: list[tuple[float, float]]) -> float:
         previous_start, previous_end = merged[-1]
         merged[-1] = (previous_start, max(previous_end, end))
     return round(sum(end - start for start, end in merged), 3)
+
+
+def _assign_speech_ranks(segments: list[KeptSegment]) -> list[KeptSegment]:
+    ranked_segments = sorted(
+        segments,
+        key=lambda segment: (
+            -segment.speech_score,
+            segment.source_start_seconds,
+            segment.source_end_seconds,
+        ),
+    )
+    rank_by_identity = {
+        id(segment): rank for rank, segment in enumerate(ranked_segments, start=1)
+    }
+    return [
+        KeptSegment(
+            chunk_index=segment.chunk_index,
+            source_start_seconds=segment.source_start_seconds,
+            source_end_seconds=segment.source_end_seconds,
+            relative_path=segment.relative_path,
+            byte_length=segment.byte_length,
+            decision=segment.decision,
+            speech_rank=rank_by_identity[id(segment)],
+            speech_score=segment.speech_score,
+            speech_features=segment.speech_features,
+        )
+        for segment in segments
+    ]
+
+
+def _top_speech_candidates(segments: list[KeptSegment]) -> list[KeptSegment]:
+    return sorted(
+        segments,
+        key=lambda segment: (
+            segment.speech_rank is None,
+            segment.speech_rank or len(segments) + 1,
+        ),
+    )[:10]
+
+
+def _average_speech_score(segments: list[KeptSegment]) -> float:
+    if not segments:
+        return 0.0
+    return round(sum(segment.speech_score for segment in segments) / len(segments), 3)
+
+
+def _rank_cell(rank: int | None) -> str:
+    return "" if rank is None else str(rank)
 
 
 def _utc_run_id() -> str:

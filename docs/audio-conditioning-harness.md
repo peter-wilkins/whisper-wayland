@@ -7,6 +7,7 @@ Conditioning. The harness is deliberately local-first and file-based:
 audio file
 -> high-pass filter
 -> VAD segments
+-> local speech ranking
 -> Opus chunks
 -> transcription/cost comparison
 ```
@@ -79,12 +80,19 @@ local/audio-conditioning/runs/<run-id>/
   segments/*.opus
 ```
 
+Pseudo-streaming replay also writes `topSpeechCandidates` in `run.json` and
+adds rank/score/reason columns to `report.md`. The ranking pass is deliberately
+cheap and local-only: it scores VAD candidates using PCM features such as RMS,
+peak, zero-crossing rate, short-frame RMS variation, duration, and clipping
+ratio. It does not transcribe, upload, or discard audio by itself.
+
 ## Current Boundary
 
 This is not Android/Kotlin work. Portable pieces are:
 
 - FFmpeg filter graph: `highpass`
 - FFmpeg VAD primitive: `silencedetect`
+- Cheap local speech ranking from PCM features
 - Opus chunk export
 - JSON run/report schema
 - acoustic profile thresholds
