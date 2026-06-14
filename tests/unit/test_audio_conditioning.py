@@ -14,7 +14,10 @@ from whisper_wayland.audio_conditioning.ffmpeg_tools import (
 from whisper_wayland.audio_conditioning.fixtures import load_fixture_json
 from whisper_wayland.audio_conditioning.harness import AudioConditioningHarness
 from whisper_wayland.audio_conditioning.models import SpeechSegment
-from whisper_wayland.audio_conditioning.review_player import write_review_player
+from whisper_wayland.audio_conditioning.review_player import (
+    _save_review_label,
+    write_review_player,
+)
 from whisper_wayland.audio_conditioning.speech_ranking import rank_speech_segment
 from whisper_wayland.audio_conditioning.stream_replay import (
     StreamReplayHarness,
@@ -189,6 +192,30 @@ def test_review_player_writes_audio_buttons_for_transcription_plan(tmp_path: Pat
     assert 'src="segments/clip.ogg"' in html
     assert "Score 0.910" in html
     assert "data-target=\"clip-1\"" in html
+    assert 'data-label="speech"' in html
+    assert 'data-label="partial"' in html
+    assert 'data-label="noise"' in html
+
+
+def test_review_player_saves_one_label_per_clip(tmp_path: Path) -> None:
+    first_payload = {
+        "relativePath": "segments/clip.ogg",
+        "label": "noise",
+        "speechRank": 1,
+        "speechScore": 0.91,
+        "sourceStartSeconds": 1.0,
+        "sourceEndSeconds": 3.5,
+    }
+    second_payload = {**first_payload, "label": "partial"}
+
+    _save_review_label(tmp_path, first_payload)
+    labels_payload = _save_review_label(tmp_path, second_payload)
+
+    labels = labels_payload["labels"]
+    assert len(labels) == 1
+    assert labels[0]["relativePath"] == "segments/clip.ogg"
+    assert labels[0]["label"] == "partial"
+    assert (tmp_path / "review-labels.json").exists()
 
 
 def _write_synthetic_wav(path: Path) -> None:
