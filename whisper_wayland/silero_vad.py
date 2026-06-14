@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import io
 import json
 import logging
 import subprocess
 import tempfile
 import urllib.request
 import wave
+from contextlib import suppress
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -163,6 +165,41 @@ class SileroVadPreprocessor:
         return probabilities
 
 
+def audio_duration_seconds(audio_data: bytes, filename: str | None = None) -> float | None:
+    """Return audio duration in seconds without changing the audio."""
+    if not audio_data:
+        return 0.0
+
+    wav_duration = _wav_duration_seconds_from_bytes(audio_data)
+    if wav_duration is not None:
+        return wav_duration
+
+    with tempfile.TemporaryDirectory(prefix="ww-audio-duration-") as tmp_text:
+        source_path = Path(tmp_text) / (filename or "input.audio")
+        source_path.write_bytes(audio_data)
+        result = subprocess.run(  # noqa: S603 - fixed executable args, no shell
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(source_path),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    if result.returncode != 0:
+        _logger.debug("Could not detect audio duration: %s", result.stderr.strip())
+        return None
+    with suppress(ValueError):
+        return round(float(result.stdout.strip()), 3)
+    return None
+
+
 def _ffmpeg_to_wav(source_path: Path, wav_path: Path) -> None:
     _run_ffmpeg(
         [
@@ -309,6 +346,15 @@ def _read_wav_float32(wav_path: Path) -> np.ndarray:
 def _wav_duration_seconds(wav_path: Path) -> float:
     with wave.open(str(wav_path), "rb") as wav_file:
         return round(wav_file.getnframes() / wav_file.getframerate(), 3)
+
+
+def _wav_duration_seconds_from_bytes(audio_data: bytes) -> float | None:
+    with suppress(wave.Error, EOFError):
+        with wave.open(io.BytesIO(audio_data), "rb") as wav_file:
+            sample_rate = wav_file.getframerate()
+            if sample_rate:
+                return round(wav_file.getnframes() / sample_rate, 3)
+    return None
 
 
 def _duration_reduction_percent(original_duration: float, new_duration: float) -> float:

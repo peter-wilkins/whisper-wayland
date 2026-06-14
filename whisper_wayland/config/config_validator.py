@@ -61,6 +61,11 @@ class ConfigValidator:
             ),
             "transcription_max_retries": config_instance.transcription_max_retries,
             "transcription_race_models": config_instance.transcription_race_models,
+            "transcription_vad_auto_min_duration_seconds": (
+                config_instance.transcription_vad_auto_min_duration_seconds
+            ),
+            "audio_transcription_vad_mode": config_instance.audio_transcription_vad_mode,
+            "local_api_default_vad_mode": config_instance.local_api_default_vad_mode,
             "audio_sample_rate": config_instance.audio_sample_rate,
             "audio_chunk_size": config_instance.audio_chunk_size,
             "audio_preroll_seconds": config_instance.audio_preroll_seconds,

@@ -89,6 +89,22 @@ class PropertyHandlers:
 
         return models
 
+    def get_transcription_vad_auto_min_duration_seconds(self) -> float:
+        """Get minimum clip duration before auto VAD applies."""
+        return self._get_float_env(
+            "TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS",
+            "60",
+            allow_zero=False,
+        )
+
+    def get_audio_transcription_vad_mode(self) -> str:
+        """Get laptop push-to-talk transcription VAD mode."""
+        return self._get_vad_mode_env("AUDIO_TRANSCRIPTION_VAD_MODE", "auto")
+
+    def get_local_api_default_vad_mode(self) -> str:
+        """Get default local API VAD mode when query param is absent."""
+        return self._get_vad_mode_env("LOCAL_API_DEFAULT_VAD_MODE", "auto")
+
     # Audio Configuration
     def get_audio_sample_rate(self) -> int:
         """Get audio recording sample rate in Hz.
@@ -492,6 +508,21 @@ class PropertyHandlers:
     def get_continuum_capture_inlet_dir(self) -> str:
         """Get optional Continuum local capture inlet directory."""
         return os.getenv("CONTINUUM_CAPTURE_INLET_DIR", "").strip()
+
+    @staticmethod
+    def _get_vad_mode_env(name: str, default: str) -> str:
+        mode = os.getenv(name, default).strip().lower()
+        valid_modes = {"none", "auto", "silero"}
+        if mode not in valid_modes:
+            _logger.warning(
+                "Invalid %s '%s', using %s. Valid modes: %s",
+                name,
+                mode,
+                default,
+                sorted(valid_modes),
+            )
+            return default
+        return mode
 
     @staticmethod
     def _get_float_env(

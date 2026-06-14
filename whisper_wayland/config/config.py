@@ -87,6 +87,21 @@ class Config:
         return self._property_handlers.get_transcription_race_models()
 
     @property
+    def transcription_vad_auto_min_duration_seconds(self) -> float:
+        """Minimum audio duration before auto VAD applies."""
+        return self._property_handlers.get_transcription_vad_auto_min_duration_seconds()
+
+    @property
+    def audio_transcription_vad_mode(self) -> str:
+        """VAD mode for laptop push-to-talk batch transcription."""
+        return self._property_handlers.get_audio_transcription_vad_mode()
+
+    @property
+    def local_api_default_vad_mode(self) -> str:
+        """Default VAD mode for the local transcription API."""
+        return self._property_handlers.get_local_api_default_vad_mode()
+
+    @property
     def streaming_transcription_enabled(self) -> bool:
         """Whether realtime streaming transcription should be attempted."""
         return self._property_handlers.get_streaming_transcription_enabled()

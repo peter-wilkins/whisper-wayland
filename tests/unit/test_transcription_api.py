@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import http.client
+import io
 import json
 import threading
+import wave
 from http import HTTPStatus
 from http.server import ThreadingHTTPServer
 
@@ -148,6 +150,48 @@ def test_transcription_api_can_preprocess_with_silero_vad() -> None:
     }
 
 
+def test_transcription_api_auto_vad_skips_short_audio() -> None:
+    client = FakeTranscriptionClient()
+    vad = FakeSileroVad()
+    api = TranscriptionApi(
+        client,  # type: ignore[arg-type]
+        silero_vad=vad,  # type: ignore[arg-type]
+        default_vad="auto",
+        auto_vad_min_duration_seconds=1.0,
+    )
+    short_audio = _test_wav(duration_seconds=0.5)
+
+    result = api.transcribe(
+        UploadedAudio(data=short_audio, filename="short.wav", content_type="audio/wav"),
+        vad=api.default_vad,
+    )
+
+    assert client.audio_data == short_audio
+    assert vad.audio_data == b""
+    assert result["vad"] == {"enabled": False, "provider": None}
+
+
+def test_transcription_api_auto_vad_filters_long_audio() -> None:
+    client = FakeTranscriptionClient()
+    vad = FakeSileroVad()
+    api = TranscriptionApi(
+        client,  # type: ignore[arg-type]
+        silero_vad=vad,  # type: ignore[arg-type]
+        default_vad="auto",
+        auto_vad_min_duration_seconds=1.0,
+    )
+    long_audio = _test_wav(duration_seconds=1.5)
+
+    result = api.transcribe(
+        UploadedAudio(data=long_audio, filename="long.wav", content_type="audio/wav"),
+        vad=api.default_vad,
+    )
+
+    assert vad.audio_data == long_audio
+    assert client.audio_data == b"speech-only"
+    assert result["vad"]["enabled"] is True
+
+
 def test_transcription_api_returns_word_timestamps() -> None:
     client = FakeTranscriptionClient()
     api = TranscriptionApi(client)  # type: ignore[arg-type]
@@ -285,3 +329,14 @@ def _request_json(
     payload = json.loads(response.read())
     connection.close()
     return response.status, payload
+
+
+def _test_wav(*, duration_seconds: float, sample_rate: int = 16000) -> bytes:
+    frame_count = int(duration_seconds * sample_rate)
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(b"\x00\x00" * frame_count)
+    return buffer.getvalue()

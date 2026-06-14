@@ -101,6 +101,9 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `TRANSCRIPTION_REQUEST_TIMEOUT_SECS` | Per-request timeout for transcription API calls | `20` | No |
 | `TRANSCRIPTION_MAX_RETRIES` | App-level transcription retry count after timeout/API failure | `1` | No |
 | `TRANSCRIPTION_RACE_MODELS` | Optional comma-separated extra transcription targets to race in parallel; supports OpenAI model names, `deepgram:<model>`, `openai-compatible:<base-url>#<model>`, and `whispercpp:<inference-url>` | - | No |
+| `TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS` | Minimum duration before `auto` VAD applies | `60` | No |
+| `AUDIO_TRANSCRIPTION_VAD_MODE` | Laptop push-to-talk VAD mode (`none`, `auto`, or `silero`) | `auto` | No |
+| `LOCAL_API_DEFAULT_VAD_MODE` | Default local API VAD mode when `vad` query param is absent | `auto` | No |
 | `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
 | `AUDIO_PREROLL_SECONDS` | Local pre-roll audio prepended when push-to-talk starts (`0` to `3`) | `1.0` | No |
 | `AUDIO_INPUT_DEVICE_INDEX` | Explicit PyAudio input device index, blank for auto-selection | - | No |
@@ -204,6 +207,11 @@ Silero runs locally through ONNX Runtime and sends only detected speech regions
 to the configured transcription backend. The response includes a `vad` block
 with segment timings and duration reduction. The ONNX model is cached on first
 use at `local/models/silero_vad_op18_ifless.onnx`.
+
+By default, `LOCAL_API_DEFAULT_VAD_MODE=auto`: short clips stay raw for low
+latency, and clips longer than `TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS`
+use Silero to remove pauses before upload. Override per request with
+`?vad=none`, `?vad=auto`, or `?vad=silero`.
 
 ## Troubleshooting
 

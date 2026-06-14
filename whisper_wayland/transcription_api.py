@@ -11,7 +11,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import whisper_wayland as ww
-from whisper_wayland.silero_vad import SileroVadPreprocessor
+from whisper_wayland.silero_vad import SileroVadPreprocessor, audio_duration_seconds
 
 _logger = logging.getLogger(__name__)
 
@@ -38,10 +38,19 @@ class TranscriptionApi:
         transcription_client: ww.TranscriptionClient,
         *,
         silero_vad: SileroVadPreprocessor | None = None,
+        default_vad: str | None = None,
+        auto_vad_min_duration_seconds: float | None = None,
     ) -> None:
         """Create an API wrapper."""
         self._transcription_client = transcription_client
         self._silero_vad = silero_vad or SileroVadPreprocessor()
+        config = getattr(transcription_client, "config", None)
+        self.default_vad = default_vad or getattr(config, "local_api_default_vad_mode", "none")
+        self.auto_vad_min_duration_seconds = (
+            auto_vad_min_duration_seconds
+            if auto_vad_min_duration_seconds is not None
+            else getattr(config, "transcription_vad_auto_min_duration_seconds", 60.0)
+        )
 
     def transcribe(
         self,
@@ -140,10 +149,12 @@ class TranscriptionApi:
         vad: str,
     ) -> tuple[UploadedAudio, dict[str, object]]:
         """Apply optional local preprocessing before transcription."""
+        if vad == "auto":
+            vad = self._resolve_auto_vad(audio)
         if vad == "none":
             return audio, {"enabled": False, "provider": None}
         if vad != "silero":
-            raise ValueError("vad must be 'none' or 'silero'")
+            raise ValueError("vad must be 'none', 'auto', or 'silero'")
 
         vad_result = self._silero_vad.filter_audio(audio.data, audio.filename)
         return (
@@ -154,6 +165,15 @@ class TranscriptionApi:
             ),
             vad_result.metadata(),
         )
+
+    def _resolve_auto_vad(self, audio: UploadedAudio) -> str:
+        duration = audio_duration_seconds(audio.data, audio.filename)
+        if duration is None:
+            _logger.debug("Skipping auto VAD because audio duration is unknown")
+            return "none"
+        if duration >= self.auto_vad_min_duration_seconds:
+            return "silero"
+        return "none"
 
 
 class TranscriptionApiRequestHandler(BaseHTTPRequestHandler):
@@ -186,7 +206,7 @@ class TranscriptionApiRequestHandler(BaseHTTPRequestHandler):
             params = urllib.parse.parse_qs(query)
             language = params.get("language", ["en"])[0] or "en"
             post_process = _query_bool(params.get("postProcess", ["false"])[0])
-            vad = params.get("vad", ["none"])[0].strip().lower() or "none"
+            vad = params.get("vad", [self.api.default_vad])[0].strip().lower() or "none"
             audio = self._read_uploaded_audio()
             if path == "/v1/transcribe/words":
                 result = self.api.transcribe_with_word_timestamps(

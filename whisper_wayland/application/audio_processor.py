@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 import whisper_wayland as ww
 from whisper_wayland.audio_recorder.normalizer import normalize_wav_for_transcription
+from whisper_wayland.silero_vad import SileroVadPreprocessor, audio_duration_seconds
 from whisper_wayland.transcription_client import TranscriptionBackendMetadata
 
 _logger = logging.getLogger(__name__)
@@ -28,13 +29,19 @@ class BatchTranscriptionResult:
 class AudioProcessor:
     """Manages audio transcription processing."""
 
-    def __init__(self, transcription_client: "ww.TranscriptionClient") -> None:
+    def __init__(
+        self,
+        transcription_client: "ww.TranscriptionClient",
+        *,
+        silero_vad: SileroVadPreprocessor | None = None,
+    ) -> None:
         """Initialize audio processor.
 
         Args:
             transcription_client: Transcription client instance
         """
         self.transcription_client = transcription_client
+        self._silero_vad = silero_vad or SileroVadPreprocessor()
 
     def transcribe_audio(self, audio_data: bytes) -> typing.Optional[str]:
         """Transcribe audio data to text.
@@ -82,33 +89,65 @@ class AudioProcessor:
             return None
 
     def _prepare_audio_for_transcription(self, audio_data: bytes) -> bytes:
-        """Apply optional transcription-only normalization."""
+        """Apply optional transcription-only conditioning."""
         config = self.transcription_client.config
-        if not config.audio_transcription_normalization_enabled:
-            return audio_data
+        prepared_audio = audio_data
+        if config.audio_transcription_normalization_enabled:
+            try:
+                result = normalize_wav_for_transcription(
+                    audio_data=prepared_audio,
+                    target_rms_dbfs=config.audio_transcription_normalization_target_rms_dbfs,
+                    max_peak_amplitude=config.audio_transcription_normalization_max_peak_amplitude,
+                    max_gain=config.audio_transcription_normalization_max_gain,
+                )
+            except Exception as e:
+                _logger.warning("Audio normalization failed; using raw transcription audio: %s", e)
+            else:
+                if result.applied:
+                    _logger.info(
+                        "Normalized audio for transcription: gain=%.3fx rms %.1f->%.1f dBFS "
+                        "peak %.1f->%.1f dBFS",
+                        result.gain,
+                        result.before_rms_dbfs,
+                        result.after_rms_dbfs,
+                        result.before_peak_dbfs,
+                        result.after_peak_dbfs,
+                    )
+                prepared_audio = result.audio_data
+
+        if not self._should_apply_vad(prepared_audio):
+            return prepared_audio
 
         try:
-            result = normalize_wav_for_transcription(
-                audio_data=audio_data,
-                target_rms_dbfs=config.audio_transcription_normalization_target_rms_dbfs,
-                max_peak_amplitude=config.audio_transcription_normalization_max_peak_amplitude,
-                max_gain=config.audio_transcription_normalization_max_gain,
-            )
+            vad_result = self._silero_vad.filter_audio(prepared_audio, "recording.wav")
         except Exception as e:
-            _logger.warning("Audio normalization failed; using raw transcription audio: %s", e)
-            return audio_data
+            _logger.warning("Silero VAD failed; using unfiltered transcription audio: %s", e)
+            return prepared_audio
 
-        if result.applied:
-            _logger.info(
-                "Normalized audio for transcription: gain=%.3fx rms %.1f->%.1f dBFS "
-                "peak %.1f->%.1f dBFS",
-                result.gain,
-                result.before_rms_dbfs,
-                result.after_rms_dbfs,
-                result.before_peak_dbfs,
-                result.after_peak_dbfs,
-            )
-        return result.audio_data
+        _logger.info(
+            "Applied Silero VAD for transcription: %.3fs -> %.3fs across %s segments",
+            vad_result.raw_duration_seconds,
+            vad_result.speech_duration_seconds,
+            len(vad_result.segments),
+        )
+        return vad_result.audio_data
+
+    def _should_apply_vad(self, audio_data: bytes) -> bool:
+        config = self.transcription_client.config
+        mode = config.audio_transcription_vad_mode
+        if mode == "none":
+            return False
+        if mode == "silero":
+            return True
+        if mode != "auto":
+            return False
+
+        duration = audio_duration_seconds(audio_data, "recording.wav")
+        threshold = config.transcription_vad_auto_min_duration_seconds
+        if duration is None:
+            _logger.debug("Skipping auto VAD because audio duration is unknown")
+            return False
+        return duration >= threshold
 
     def _last_transcription_backend(self) -> TranscriptionBackendMetadata | None:
         backend = getattr(self.transcription_client, "last_transcription_backend", None)

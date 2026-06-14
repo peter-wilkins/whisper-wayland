@@ -42,12 +42,14 @@ DEFAULT_TRANSCRIPTION_MAX_RETRIES = 1
 CUSTOM_TRANSCRIPTION_MAX_RETRIES = 0
 DEFAULT_TRANSCRIPTION_RACE_MODELS: list[str] = []
 CUSTOM_TRANSCRIPTION_RACE_MODELS = ["gpt-4o-mini-transcribe", "whisper-1"]
+DEFAULT_TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS = 60
+CUSTOM_TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS = 45.5
 
 
 class TestConfig:
     """Test cases for Config class."""
 
-    def test_config_initialization_with_defaults(self) -> None:
+    def test_config_initialization_with_defaults(self) -> None:  # noqa: PLR0915
         """Test config initialization with default values."""
         # Temporarily remove LOG_LEVEL to test default
         old_log_level = os.environ.pop("LOG_LEVEL", None)
@@ -64,6 +66,12 @@ class TestConfig:
                 )
                 assert test_config.transcription_max_retries == DEFAULT_TRANSCRIPTION_MAX_RETRIES
                 assert test_config.transcription_race_models == DEFAULT_TRANSCRIPTION_RACE_MODELS
+                assert (
+                    test_config.transcription_vad_auto_min_duration_seconds
+                    == DEFAULT_TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS
+                )
+                assert test_config.audio_transcription_vad_mode == "auto"
+                assert test_config.local_api_default_vad_mode == "auto"
                 assert test_config.audio_sample_rate == ww.Constants.DEFAULT_SAMPLE_RATE
                 assert test_config.audio_chunk_size == ww.Constants.DEFAULT_CHUNK_SIZE
                 assert test_config.audio_preroll_seconds == DEFAULT_AUDIO_PREROLL_SECONDS
@@ -155,6 +163,11 @@ class TestConfig:
             ),
             "TRANSCRIPTION_MAX_RETRIES": str(CUSTOM_TRANSCRIPTION_MAX_RETRIES),
             "TRANSCRIPTION_RACE_MODELS": "gpt-4o-mini-transcribe, whisper-1",
+            "TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS": str(
+                CUSTOM_TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS
+            ),
+            "AUDIO_TRANSCRIPTION_VAD_MODE": "none",
+            "LOCAL_API_DEFAULT_VAD_MODE": "silero",
             "AUDIO_SAMPLE_RATE": "44100",
             "AUDIO_CHUNK_SIZE": "2048",
             "AUDIO_PREROLL_SECONDS": str(CUSTOM_AUDIO_PREROLL_SECONDS),
@@ -209,6 +222,12 @@ class TestConfig:
             )
             assert test_config.transcription_max_retries == CUSTOM_TRANSCRIPTION_MAX_RETRIES
             assert test_config.transcription_race_models == CUSTOM_TRANSCRIPTION_RACE_MODELS
+            assert (
+                test_config.transcription_vad_auto_min_duration_seconds
+                == CUSTOM_TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS
+            )
+            assert test_config.audio_transcription_vad_mode == "none"
+            assert test_config.local_api_default_vad_mode == "silero"
             assert test_config.audio_sample_rate == ww.Constants.HIGH_QUALITY_SAMPLE_RATE
             assert test_config.audio_chunk_size == ww.Constants.LARGE_CHUNK_SIZE
             assert test_config.audio_preroll_seconds == CUSTOM_AUDIO_PREROLL_SECONDS
