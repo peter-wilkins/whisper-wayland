@@ -147,6 +147,41 @@ recording on/off.
 - **whisper-1**: Legacy hosted Whisper model
 - **tiny/base/small/medium/large**: Legacy aliases mapped to `whisper-1`
 
+## Local Transcription API
+
+WhisperWayland can run a local file-transcription API for other projects. This
+does not use the recorder, hotkey, clipboard, or text insertion path.
+
+```bash
+.venv/bin/python -m whisper_wayland.transcription_api --port 8788
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8788/health
+```
+
+Raw audio body:
+
+```bash
+curl -sS http://127.0.0.1:8788/v1/transcribe \
+  -H 'Content-Type: audio/wav' \
+  -H 'X-Filename: advert.wav' \
+  --data-binary @advert.wav
+```
+
+Multipart upload:
+
+```bash
+curl -sS http://127.0.0.1:8788/v1/transcribe \
+  -F file=@advert.wav
+```
+
+Add `?language=en&postProcess=true` to request the configured transcript
+tidy-up pass as `postProcessedText`. The raw transcript is always returned as
+`text`.
+
 ## Troubleshooting
 
 ### Common Issues
