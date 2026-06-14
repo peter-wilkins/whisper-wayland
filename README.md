@@ -182,6 +182,18 @@ Add `?language=en&postProcess=true` to request the configured transcript
 tidy-up pass as `postProcessedText`. The raw transcript is always returned as
 `text`.
 
+For long/noisy files, add Silero VAD preprocessing before transcription:
+
+```bash
+curl -sS 'http://127.0.0.1:8788/v1/transcribe?language=en&vad=silero' \
+  -F file=@field-recording.ogg
+```
+
+Silero runs locally through ONNX Runtime and sends only detected speech regions
+to the configured transcription backend. The response includes a `vad` block
+with segment timings and duration reduction. The ONNX model is cached on first
+use at `local/models/silero_vad_op18_ifless.onnx`.
+
 ## Troubleshooting
 
 ### Common Issues

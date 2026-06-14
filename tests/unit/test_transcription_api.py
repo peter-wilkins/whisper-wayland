@@ -9,6 +9,7 @@ from http import HTTPStatus
 from http.server import ThreadingHTTPServer
 
 import whisper_wayland as ww
+from whisper_wayland.silero_vad import VadResult, VadSegment
 from whisper_wayland.transcription_api import (
     TranscriptionApi,
     TranscriptionApiRequestHandler,
@@ -40,6 +41,30 @@ class FakeTranscriptionClient:
         return f"Clean: {text}"
 
 
+class FakeSileroVad:
+    """Fake Silero VAD preprocessor for API tests."""
+
+    def __init__(self) -> None:
+        """Create fake VAD."""
+        self.audio_data = b""
+        self.filename = ""
+
+    def filter_audio(self, audio_data: bytes, filename: str | None = None) -> VadResult:
+        """Return deterministic filtered audio."""
+        self.audio_data = audio_data
+        self.filename = filename or ""
+        return VadResult(
+            audio_data=b"speech-only",
+            content_type="audio/ogg",
+            filename_suffix=".silero.ogg",
+            raw_duration_seconds=10.0,
+            speech_duration_seconds=3.0,
+            segments=[VadSegment(start_seconds=1.0, end_seconds=4.0)],
+            threshold=0.5,
+            model_path="fake.onnx",
+        )
+
+
 def test_transcription_api_transcribes_uploaded_audio() -> None:
     client = FakeTranscriptionClient()
     api = TranscriptionApi(client)  # type: ignore[arg-type]
@@ -61,6 +86,39 @@ def test_transcription_api_transcribes_uploaded_audio() -> None:
     assert result["text"] == "Hello from audio."
     assert result["postProcessedText"] == "Clean: Hello from audio."
     assert result["backend"] == {"provider": "fake", "processorId": "fake-model"}
+
+
+def test_transcription_api_can_preprocess_with_silero_vad() -> None:
+    client = FakeTranscriptionClient()
+    vad = FakeSileroVad()
+    api = TranscriptionApi(client, silero_vad=vad)  # type: ignore[arg-type]
+
+    result = api.transcribe(
+        UploadedAudio(
+            data=b"raw-audio",
+            filename="long.wav",
+            content_type="audio/wav",
+        ),
+        vad="silero",
+    )
+
+    assert vad.audio_data == b"raw-audio"
+    assert vad.filename == "long.wav"
+    assert client.audio_data == b"speech-only"
+    assert result["transcribedFilename"] == "long.wav.silero.ogg"
+    assert result["transcribedContentType"] == "audio/ogg"
+    assert result["transcribedByteLength"] == len(b"speech-only")
+    assert result["vad"] == {
+        "enabled": True,
+        "provider": "silero",
+        "threshold": 0.5,
+        "modelPath": "fake.onnx",
+        "rawDurationSeconds": 10.0,
+        "speechDurationSeconds": 3.0,
+        "durationReductionPercent": 70.0,
+        "segmentCount": 1,
+        "segments": [{"start_seconds": 1.0, "end_seconds": 4.0}],
+    }
 
 
 def test_parse_multipart_audio_extracts_file_field() -> None:
@@ -126,7 +184,10 @@ def _start_test_server(
         def log_message(self, format: str, *args: object) -> None:  # noqa: A002
             return
 
-    Handler.api = TranscriptionApi(client or FakeTranscriptionClient())  # type: ignore[arg-type]
+    Handler.api = TranscriptionApi(
+        client or FakeTranscriptionClient(),  # type: ignore[arg-type]
+        silero_vad=FakeSileroVad(),  # type: ignore[arg-type]
+    )
     Handler.max_upload_bytes = 1024 * 1024
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)

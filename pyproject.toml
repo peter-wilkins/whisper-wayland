@@ -23,6 +23,8 @@ classifiers = [
 ]
 dependencies = [
     "evdev>=1.9.2",
+    "numpy>=2.4.6",
+    "onnxruntime>=1.26.0",
     "openai>=1.0.0",
     "pyaudio>=0.2.11",
     "pynput>=1.7.6",

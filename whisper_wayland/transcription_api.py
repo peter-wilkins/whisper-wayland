@@ -11,6 +11,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import whisper_wayland as ww
+from whisper_wayland.silero_vad import SileroVadPreprocessor
 
 _logger = logging.getLogger(__name__)
 
@@ -32,9 +33,15 @@ class UploadedAudio:
 class TranscriptionApi:
     """Small local API wrapper around the existing transcription client."""
 
-    def __init__(self, transcription_client: ww.TranscriptionClient) -> None:
+    def __init__(
+        self,
+        transcription_client: ww.TranscriptionClient,
+        *,
+        silero_vad: SileroVadPreprocessor | None = None,
+    ) -> None:
         """Create an API wrapper."""
         self._transcription_client = transcription_client
+        self._silero_vad = silero_vad or SileroVadPreprocessor()
 
     def transcribe(
         self,
@@ -42,9 +49,26 @@ class TranscriptionApi:
         *,
         language: str = "en",
         post_process: bool = False,
+        vad: str = "none",
     ) -> dict[str, object]:
         """Transcribe uploaded audio and return a JSON-serializable payload."""
-        transcript = self._transcription_client.transcribe_audio(audio.data, language=language)
+        vad_metadata: dict[str, object] = {"enabled": False, "provider": None}
+        transcription_audio = audio
+        if vad == "silero":
+            vad_result = self._silero_vad.filter_audio(audio.data, audio.filename)
+            vad_metadata = vad_result.metadata()
+            transcription_audio = UploadedAudio(
+                data=vad_result.audio_data,
+                filename=_append_filename_suffix(audio.filename, vad_result.filename_suffix),
+                content_type=vad_result.content_type,
+            )
+        elif vad != "none":
+            raise ValueError("vad must be 'none' or 'silero'")
+
+        transcript = self._transcription_client.transcribe_audio(
+            transcription_audio.data,
+            language=language,
+        )
         if transcript is None:
             transcript = ""
 
@@ -59,7 +83,11 @@ class TranscriptionApi:
             "filename": audio.filename,
             "contentType": audio.content_type,
             "byteLength": len(audio.data),
+            "transcribedFilename": transcription_audio.filename,
+            "transcribedContentType": transcription_audio.content_type,
+            "transcribedByteLength": len(transcription_audio.data),
             "language": language,
+            "vad": vad_metadata,
             "text": transcript,
             "postProcessedText": processed_text,
             "backend": (
@@ -103,11 +131,13 @@ class TranscriptionApiRequestHandler(BaseHTTPRequestHandler):
             params = urllib.parse.parse_qs(query)
             language = params.get("language", ["en"])[0] or "en"
             post_process = _query_bool(params.get("postProcess", ["false"])[0])
+            vad = params.get("vad", ["none"])[0].strip().lower() or "none"
             audio = self._read_uploaded_audio()
             result = self.api.transcribe(
                 audio,
                 language=language,
                 post_process=post_process,
+                vad=vad,
             )
         except ValueError as e:
             self._write_error(HTTPStatus.BAD_REQUEST, str(e))
@@ -194,6 +224,12 @@ def main(argv: list[str] | None = None) -> int:
 
 def _query_bool(value: str) -> bool:
     return value.lower() in {"1", "true", "yes", "on"}
+
+
+def _append_filename_suffix(filename: str | None, suffix: str) -> str | None:
+    if not filename:
+        return None
+    return f"{filename}{suffix}"
 
 
 def _parse_multipart_audio(body: bytes, content_type: str) -> UploadedAudio:
