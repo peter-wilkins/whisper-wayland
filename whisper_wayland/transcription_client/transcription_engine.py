@@ -42,6 +42,24 @@ class EngineTranscriptionResult:
     backend: TranscriptionBackend
 
 
+@dataclass(frozen=True)
+class WordTimestamp:
+    """Single word with start/end offsets in seconds."""
+
+    word: str
+    start: float
+    end: float
+
+
+@dataclass(frozen=True)
+class TimestampedTranscriptionResult:
+    """Text plus timestamp metadata from a transcription backend."""
+
+    text: str
+    words: list[WordTimestamp]
+    backend: TranscriptionBackend
+
+
 class TranscriptionEngineError(Exception):
     """Raised when transcription engine operations fail."""
 
@@ -121,6 +139,49 @@ class TranscriptionEngine:
                     raise TranscriptionEngineError(f"Transcription failed: {e}") from e
 
         return None
+
+    def transcribe_audio_with_word_timestamps(
+        self,
+        audio_data: bytes,
+        language: str = "en",
+    ) -> TimestampedTranscriptionResult | None:
+        """Transcribe audio with word-level timestamps using OpenAI whisper-1."""
+        if not audio_data:
+            _logger.warning("No audio data provided for timestamped transcription")
+            return None
+
+        audio_file = io.BytesIO(audio_data)
+        audio_file.name = "audio.wav"
+        model = "whisper-1"
+        try:
+            response = self._client.audio.transcriptions.create(
+                model=model,
+                file=audio_file,
+                language=language,
+                response_format="verbose_json",
+                timestamp_granularities=["word"],
+            )
+        except openai.RateLimitError as e:
+            _logger.error(f"OpenAI API rate limit exceeded: {e}")
+            raise TranscriptionEngineError(f"API rate limit exceeded: {e}") from e
+        except openai.BadRequestError as e:
+            _logger.error(f"OpenAI API bad request error: {e}")
+            raise TranscriptionEngineError(f"API bad request error: {e}") from e
+        except openai.APIError as e:
+            _logger.error(f"OpenAI API error: {e}")
+            raise TranscriptionEngineError(f"API error: {e}") from e
+        except openai.AuthenticationError as e:
+            _logger.error(f"OpenAI authentication error: {e}")
+            raise TranscriptionEngineError(f"Authentication error: {e}") from e
+        except Exception as e:
+            _logger.error(f"Unexpected timestamped transcription error: {e}")
+            raise TranscriptionEngineError(f"Unexpected error: {e}") from e
+
+        return TimestampedTranscriptionResult(
+            text=str(_response_value(response, "text", "")).strip(),
+            words=_word_timestamps_from_response(response),
+            backend=TranscriptionBackend(provider="openai", processor_id=model),
+        )
 
     def _race_transcriptions(self, audio_data: bytes, language: str) -> EngineTranscriptionResult:
         """Race configured transcription models and return the first successful result."""
@@ -517,3 +578,26 @@ class TranscriptionEngine:
             TranscriptionEngine instance
         """
         return TranscriptionEngine(client, config)
+
+
+def _word_timestamps_from_response(response: object) -> list[WordTimestamp]:
+    raw_words = _response_value(response, "words", []) or []
+    words: list[WordTimestamp] = []
+    for raw_word in raw_words:
+        word = str(_response_value(raw_word, "word", "")).strip()
+        if not word:
+            continue
+        words.append(
+            WordTimestamp(
+                word=word,
+                start=float(_response_value(raw_word, "start", 0.0)),
+                end=float(_response_value(raw_word, "end", 0.0)),
+            )
+        )
+    return words
+
+
+def _response_value(response: object, key: str, default: object = None) -> object:
+    if isinstance(response, dict):
+        return response.get(key, default)
+    return getattr(response, key, default)

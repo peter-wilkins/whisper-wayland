@@ -12,11 +12,17 @@ from whisper_wayland.transcription_client.transcription_client import (
     TranscriptionClient,
     TranscriptionError,
 )
+from whisper_wayland.transcription_client.transcription_engine import (
+    TimestampedTranscriptionResult,
+    WordTimestamp,
+)
 
 __all__ = [
     "RealtimeStreamingTranscriptionClient",
     "StreamingTranscriptionResult",
+    "TimestampedTranscriptionResult",
     "TranscriptionBackendMetadata",
     "TranscriptionClient",
     "TranscriptionError",
+    "WordTimestamp",
 ]

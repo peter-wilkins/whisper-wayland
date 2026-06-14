@@ -21,6 +21,7 @@ from whisper_wayland.transcription_client.client_validator import (
 )
 from whisper_wayland.transcription_client.connection_tester import ConnectionTester
 from whisper_wayland.transcription_client.transcription_engine import (
+    TimestampedTranscriptionResult,
     TranscriptionBackend,
     TranscriptionEngine,
     TranscriptionEngineError,
@@ -116,6 +117,26 @@ class TranscriptionClient:
 
             self.last_transcription_backend = self._to_client_backend(result.backend)
             return result.text
+        except TranscriptionEngineError as e:
+            raise TranscriptionError(str(e)) from e
+
+    def transcribe_audio_with_word_timestamps(
+        self,
+        audio_data: bytes,
+        language: str = "en",
+    ) -> TimestampedTranscriptionResult | None:
+        """Transcribe audio and include word-level timestamps."""
+        try:
+            result = self._transcription_engine.transcribe_audio_with_word_timestamps(
+                audio_data,
+                language,
+            )
+            if not result:
+                self.last_transcription_backend = None
+                return None
+
+            self.last_transcription_backend = self._to_client_backend(result.backend)
+            return result
         except TranscriptionEngineError as e:
             raise TranscriptionError(str(e)) from e
 

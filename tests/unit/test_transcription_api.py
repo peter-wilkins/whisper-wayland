@@ -16,6 +16,11 @@ from whisper_wayland.transcription_api import (
     UploadedAudio,
     _parse_multipart_audio,
 )
+from whisper_wayland.transcription_client.transcription_engine import (
+    TimestampedTranscriptionResult,
+    TranscriptionBackend,
+    WordTimestamp,
+)
 
 
 class FakeTranscriptionClient:
@@ -39,6 +44,28 @@ class FakeTranscriptionClient:
     def post_process_text(self, text: str) -> str:
         """Return deterministic post-processed text."""
         return f"Clean: {text}"
+
+    def transcribe_audio_with_word_timestamps(
+        self,
+        audio_data: bytes,
+        language: str = "en",
+    ) -> TimestampedTranscriptionResult:
+        """Record request and return deterministic timestamped transcript."""
+        self.audio_data = audio_data
+        self.language = language
+        self.last_transcription_backend = ww.TranscriptionBackendMetadata(
+            provider="openai",
+            processor_id="whisper-1",
+        )
+        return TimestampedTranscriptionResult(
+            text="Hello from audio.",
+            words=[
+                WordTimestamp(word="Hello", start=0.1, end=0.4),
+                WordTimestamp(word="from", start=0.4, end=0.6),
+                WordTimestamp(word="audio.", start=0.6, end=1.0),
+            ],
+            backend=TranscriptionBackend(provider="openai", processor_id="whisper-1"),
+        )
 
 
 class FakeSileroVad:
@@ -121,6 +148,29 @@ def test_transcription_api_can_preprocess_with_silero_vad() -> None:
     }
 
 
+def test_transcription_api_returns_word_timestamps() -> None:
+    client = FakeTranscriptionClient()
+    api = TranscriptionApi(client)  # type: ignore[arg-type]
+
+    result = api.transcribe_with_word_timestamps(
+        UploadedAudio(
+            data=b"audio",
+            filename="ad.wav",
+            content_type="audio/wav",
+        ),
+        language="en",
+    )
+
+    assert client.audio_data == b"audio"
+    assert result["text"] == "Hello from audio."
+    assert result["words"] == [
+        {"word": "Hello", "startSeconds": 0.1, "endSeconds": 0.4},
+        {"word": "from", "startSeconds": 0.4, "endSeconds": 0.6},
+        {"word": "audio.", "startSeconds": 0.6, "endSeconds": 1.0},
+    ]
+    assert result["backend"] == {"provider": "openai", "processorId": "whisper-1"}
+
+
 def test_parse_multipart_audio_extracts_file_field() -> None:
     boundary = "test-boundary"
     body = (
@@ -173,6 +223,33 @@ def test_handler_raw_audio_response() -> None:
         assert payload["byteLength"] == len(b"raw-audio")
         assert payload["language"] == "es"
         assert payload["postProcessedText"] == "Clean: Hello from audio."
+    finally:
+        server.shutdown()
+
+
+def test_handler_word_timestamp_response() -> None:
+    client = FakeTranscriptionClient()
+    server = _start_test_server(client)
+
+    try:
+        status, payload = _request_json(
+            server,
+            "POST",
+            "/v1/transcribe/words?language=en",
+            b"raw-audio",
+            headers={
+                "Content-Type": "audio/wav",
+                "X-Filename": "clip.wav",
+            },
+        )
+        assert status == HTTPStatus.OK.value
+        assert payload["filename"] == "clip.wav"
+        assert payload["text"] == "Hello from audio."
+        assert payload["words"][0] == {
+            "word": "Hello",
+            "startSeconds": 0.1,
+            "endSeconds": 0.4,
+        }
     finally:
         server.shutdown()
 

@@ -96,6 +96,38 @@ class TestTranscriptionClient:
         mock_transcription.create.assert_called_once()
 
     @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
+    def test_transcribe_audio_with_word_timestamps(
+        self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
+    ) -> None:
+        """Test word timestamp transcription uses whisper-1 verbose JSON."""
+        mock_client = unittest.mock.Mock()
+        mock_transcription = unittest.mock.Mock()
+        mock_transcription.create.return_value = {
+            "text": "Hello world.",
+            "words": [
+                {"word": "Hello", "start": 0.0, "end": 0.4},
+                {"word": "world.", "start": 0.4, "end": 0.9},
+            ],
+        }
+        mock_client.audio.transcriptions = mock_transcription
+        mock_openai_class.return_value = mock_client
+
+        client = transcription_client.TranscriptionClient(test_config)
+
+        result = client.transcribe_audio_with_word_timestamps(b"fake_audio_data")
+
+        assert result is not None
+        assert result.text == "Hello world."
+        assert [word.word for word in result.words] == ["Hello", "world."]
+        assert result.backend.provider == "openai"
+        assert result.backend.processor_id == "whisper-1"
+        mock_transcription.create.assert_called_once()
+        _, kwargs = mock_transcription.create.call_args
+        assert kwargs["model"] == "whisper-1"
+        assert kwargs["response_format"] == "verbose_json"
+        assert kwargs["timestamp_granularities"] == ["word"]
+
+    @unittest.mock.patch("whisper_wayland.transcription_client.client_validator.openai.OpenAI")
     def test_transcribe_audio_empty_data(
         self, mock_openai_class: unittest.mock.MagicMock, test_config: "ww.Config"
     ) -> None:

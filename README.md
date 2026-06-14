@@ -182,6 +182,17 @@ Add `?language=en&postProcess=true` to request the configured transcript
 tidy-up pass as `postProcessedText`. The raw transcript is always returned as
 `text`.
 
+Word-level timestamps:
+
+```bash
+curl -sS http://127.0.0.1:8788/v1/transcribe/words \
+  -F file=@advert.wav
+```
+
+This endpoint returns `text` plus a `words` array containing `word`,
+`startSeconds`, and `endSeconds`. It uses OpenAI `whisper-1` because the
+timestamp API requires `verbose_json` word granularity support.
+
 For long/noisy files, add Silero VAD preprocessing before transcription:
 
 ```bash

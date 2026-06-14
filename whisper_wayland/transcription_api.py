@@ -52,18 +52,7 @@ class TranscriptionApi:
         vad: str = "none",
     ) -> dict[str, object]:
         """Transcribe uploaded audio and return a JSON-serializable payload."""
-        vad_metadata: dict[str, object] = {"enabled": False, "provider": None}
-        transcription_audio = audio
-        if vad == "silero":
-            vad_result = self._silero_vad.filter_audio(audio.data, audio.filename)
-            vad_metadata = vad_result.metadata()
-            transcription_audio = UploadedAudio(
-                data=vad_result.audio_data,
-                filename=_append_filename_suffix(audio.filename, vad_result.filename_suffix),
-                content_type=vad_result.content_type,
-            )
-        elif vad != "none":
-            raise ValueError("vad must be 'none' or 'silero'")
+        transcription_audio, vad_metadata = self._prepare_audio(audio, vad)
 
         transcript = self._transcription_client.transcribe_audio(
             transcription_audio.data,
@@ -100,6 +89,72 @@ class TranscriptionApi:
             ),
         }
 
+    def transcribe_with_word_timestamps(
+        self,
+        audio: UploadedAudio,
+        *,
+        language: str = "en",
+        vad: str = "none",
+    ) -> dict[str, object]:
+        """Transcribe uploaded audio and return word-level timestamps."""
+        transcription_audio, vad_metadata = self._prepare_audio(audio, vad)
+        result = self._transcription_client.transcribe_audio_with_word_timestamps(
+            transcription_audio.data,
+            language=language,
+        )
+        text = result.text if result else ""
+        words = result.words if result else []
+        backend = self._transcription_client.last_transcription_backend
+        return {
+            "schema": API_VERSION,
+            "filename": audio.filename,
+            "contentType": audio.content_type,
+            "byteLength": len(audio.data),
+            "transcribedFilename": transcription_audio.filename,
+            "transcribedContentType": transcription_audio.content_type,
+            "transcribedByteLength": len(transcription_audio.data),
+            "language": language,
+            "vad": vad_metadata,
+            "text": text,
+            "words": [
+                {
+                    "word": word.word,
+                    "startSeconds": word.start,
+                    "endSeconds": word.end,
+                }
+                for word in words
+            ],
+            "backend": (
+                {
+                    "provider": backend.provider,
+                    "processorId": backend.processor_id,
+                }
+                if backend
+                else None
+            ),
+        }
+
+    def _prepare_audio(
+        self,
+        audio: UploadedAudio,
+        vad: str,
+    ) -> tuple[UploadedAudio, dict[str, object]]:
+        """Apply optional local preprocessing before transcription."""
+        if vad == "none":
+            return audio, {"enabled": False, "provider": None}
+        if vad != "silero":
+            raise ValueError("vad must be 'none' or 'silero'")
+
+        vad_result = self._silero_vad.filter_audio(audio.data, audio.filename)
+        return (
+            UploadedAudio(
+                data=vad_result.audio_data,
+                filename=_append_filename_suffix(audio.filename, vad_result.filename_suffix),
+                content_type=vad_result.content_type,
+            ),
+            vad_result.metadata(),
+        )
+
 
 class TranscriptionApiRequestHandler(BaseHTTPRequestHandler):
     """HTTP handler for the local transcription API."""
@@ -123,7 +178,7 @@ class TranscriptionApiRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler hook
         """Handle transcription requests."""
         path, _, query = self.path.partition("?")
-        if path != "/v1/transcribe":
+        if path not in {"/v1/transcribe", "/v1/transcribe/words"}:
             self._write_error(HTTPStatus.NOT_FOUND, "Not found")
             return
 
@@ -133,12 +188,19 @@ class TranscriptionApiRequestHandler(BaseHTTPRequestHandler):
             post_process = _query_bool(params.get("postProcess", ["false"])[0])
             vad = params.get("vad", ["none"])[0].strip().lower() or "none"
             audio = self._read_uploaded_audio()
-            result = self.api.transcribe(
-                audio,
-                language=language,
-                post_process=post_process,
-                vad=vad,
-            )
+            if path == "/v1/transcribe/words":
+                result = self.api.transcribe_with_word_timestamps(
+                    audio,
+                    language=language,
+                    vad=vad,
+                )
+            else:
+                result = self.api.transcribe(
+                    audio,
+                    language=language,
+                    post_process=post_process,
+                    vad=vad,
+                )
         except ValueError as e:
             self._write_error(HTTPStatus.BAD_REQUEST, str(e))
             return
