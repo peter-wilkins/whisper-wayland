@@ -80,12 +80,21 @@ calling any API:
   --transcription-min-score 0.7
 ```
 
+Build and serve a local media player for a replay run:
+
+```bash
+.venv/bin/ww-audio-review \
+  local/audio-conditioning/runs/<run-id> \
+  --serve
+```
+
 Each run writes:
 
 ```text
 local/audio-conditioning/runs/<run-id>/
   run.json
   report.md
+  review.html
   conditioned/*.wav
   segments/*.opus
 ```

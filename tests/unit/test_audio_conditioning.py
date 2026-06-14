@@ -14,6 +14,7 @@ from whisper_wayland.audio_conditioning.ffmpeg_tools import (
 from whisper_wayland.audio_conditioning.fixtures import load_fixture_json
 from whisper_wayland.audio_conditioning.harness import AudioConditioningHarness
 from whisper_wayland.audio_conditioning.models import SpeechSegment
+from whisper_wayland.audio_conditioning.review_player import write_review_player
 from whisper_wayland.audio_conditioning.speech_ranking import rank_speech_segment
 from whisper_wayland.audio_conditioning.stream_replay import (
     StreamReplayHarness,
@@ -150,6 +151,44 @@ def test_speech_ranking_scores_tone_above_silence(tmp_path: Path) -> None:
     assert speechy_ranking.score > silent_ranking.score
     assert speechy_ranking.reason == "weak_speech_candidate"
     assert silent_ranking.reason == "likely_silent"
+
+
+def test_review_player_writes_audio_buttons_for_transcription_plan(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    segments_dir = run_dir / "segments"
+    segments_dir.mkdir(parents=True)
+    (segments_dir / "clip.ogg").write_bytes(b"fake ogg")
+    (run_dir / "run.json").write_text(
+        json.dumps(
+            {
+                "source": {"path": "source.m4a"},
+                "transcriptionPlan": {
+                    "selectedSegmentCount": 1,
+                    "selectedDurationSeconds": 2.5,
+                    "durationReductionPercent": 90.0,
+                    "uploadSizeReductionPercent": 99.0,
+                    "segments": [
+                        {
+                            "relative_path": "segments/clip.ogg",
+                            "source_start_seconds": 1.0,
+                            "source_end_seconds": 3.5,
+                            "speech_rank": 1,
+                            "speech_score": 0.91,
+                            "speech_features": {"reason": "speech_candidate"},
+                        }
+                    ],
+                },
+            }
+        )
+    )
+
+    index_path = write_review_player(run_dir)
+
+    html = index_path.read_text()
+    assert "WhisperWayland Audio Review" in html
+    assert 'src="segments/clip.ogg"' in html
+    assert "Score 0.910" in html
+    assert "data-target=\"clip-1\"" in html
 
 
 def _write_synthetic_wav(path: Path) -> None:
