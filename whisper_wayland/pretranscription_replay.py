@@ -21,7 +21,22 @@ _logger = logging.getLogger(__name__)
 
 DEFAULT_OUTPUT_ROOT = Path("local/pretranscription-replay")
 DEFAULT_MAX_IN_FLIGHT_CHUNKS = 16
+DEFAULT_COALESCE_MIN_DURATION_SECONDS = 4.0
+DEFAULT_COALESCE_MAX_DURATION_SECONDS = 12.0
+DEFAULT_COALESCE_MAX_GAP_SECONDS = 3.0
 SCHEMA = "whisper-wayland.pretranscription-replay.v1"
+
+
+@dataclass(frozen=True)
+class ReplaySettings:
+    """Settings for a pre-transcription replay run."""
+
+    output_root: Path = DEFAULT_OUTPUT_ROOT
+    run_id: str | None = None
+    max_in_flight_chunks: int = DEFAULT_MAX_IN_FLIGHT_CHUNKS
+    coalesce_min_duration_seconds: float = DEFAULT_COALESCE_MIN_DURATION_SECONDS
+    coalesce_max_duration_seconds: float = DEFAULT_COALESCE_MAX_DURATION_SECONDS
+    coalesce_max_gap_seconds: float = DEFAULT_COALESCE_MAX_GAP_SECONDS
 
 
 @dataclass(frozen=True)
@@ -50,6 +65,7 @@ class ReplayResult:
     raw_duration_seconds: float
     chunk_count: int
     transcribe_enabled: bool
+    coalescing: dict[str, float]
     assembled_text: str | None
     chunks: list[ReplayChunkResult]
 
@@ -60,26 +76,40 @@ class PretranscriptionReplay:
     def __init__(
         self,
         *,
-        output_root: Path = DEFAULT_OUTPUT_ROOT,
-        run_id: str | None = None,
+        settings: ReplaySettings | None = None,
         silero_vad: SileroVadPreprocessor | None = None,
         client_factory: typing.Callable[[], ww.TranscriptionClient] | None = None,
-        max_in_flight_chunks: int = DEFAULT_MAX_IN_FLIGHT_CHUNKS,
     ) -> None:
         """Create a replay harness."""
-        self.output_root = output_root
-        self.run_id = run_id or _utc_run_id()
-        self.run_dir = output_root / "runs" / self.run_id
+        self.settings = settings or ReplaySettings()
+        self.output_root = self.settings.output_root
+        self.run_id = self.settings.run_id or _utc_run_id()
+        self.run_dir = self.output_root / "runs" / self.run_id
         self.chunks_dir = self.run_dir / "chunks"
         self.silero_vad = silero_vad or SileroVadPreprocessor()
         self.client_factory = client_factory
-        self.max_in_flight_chunks = max(1, max_in_flight_chunks)
+        self.max_in_flight_chunks = max(1, self.settings.max_in_flight_chunks)
+        self.coalesce_min_duration_seconds = max(
+            0.0,
+            self.settings.coalesce_min_duration_seconds,
+        )
+        self.coalesce_max_duration_seconds = max(
+            0.0,
+            self.settings.coalesce_max_duration_seconds,
+        )
+        self.coalesce_max_gap_seconds = max(0.0, self.settings.coalesce_max_gap_seconds)
 
     def run_file(self, source_path: Path, *, transcribe: bool = False) -> ReplayResult:
         """Run replay for a local source file."""
         self.chunks_dir.mkdir(parents=True, exist_ok=True)
         audio_data = source_path.read_bytes()
-        split_result = self.silero_vad.split_audio(audio_data, source_path.name)
+        split_result = self.silero_vad.split_audio(
+            audio_data,
+            source_path.name,
+            min_chunk_duration_seconds=self.coalesce_min_duration_seconds,
+            max_chunk_duration_seconds=self.coalesce_max_duration_seconds,
+            max_chunk_gap_seconds=self.coalesce_max_gap_seconds,
+        )
         chunk_results = self._write_chunk_audio(split_result.chunks)
         if transcribe:
             chunk_results = self._transcribe_chunks(chunk_results)
@@ -92,6 +122,11 @@ class PretranscriptionReplay:
             raw_duration_seconds=split_result.raw_duration_seconds,
             chunk_count=len(chunk_results),
             transcribe_enabled=transcribe,
+            coalescing={
+                "minDurationSeconds": self.coalesce_min_duration_seconds,
+                "maxDurationSeconds": self.coalesce_max_duration_seconds,
+                "maxGapSeconds": self.coalesce_max_gap_seconds,
+            },
             assembled_text=assembled_text,
             chunks=chunk_results,
         )
@@ -194,12 +229,35 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_MAX_IN_FLIGHT_CHUNKS,
         help="Safety ceiling for parallel chunk transcription jobs.",
     )
+    parser.add_argument(
+        "--coalesce-min-duration-seconds",
+        type=float,
+        default=DEFAULT_COALESCE_MIN_DURATION_SECONDS,
+        help="Merge adjacent VAD chunks until phrase chunks are at least this long.",
+    )
+    parser.add_argument(
+        "--coalesce-max-duration-seconds",
+        type=float,
+        default=DEFAULT_COALESCE_MAX_DURATION_SECONDS,
+        help="Do not merge phrase chunks beyond this duration.",
+    )
+    parser.add_argument(
+        "--coalesce-max-gap-seconds",
+        type=float,
+        default=DEFAULT_COALESCE_MAX_GAP_SECONDS,
+        help="Maximum silence gap between VAD chunks that can be merged.",
+    )
     args = parser.parse_args(argv)
 
     replay = PretranscriptionReplay(
-        output_root=args.output_root,
-        run_id=args.run_id,
-        max_in_flight_chunks=args.max_in_flight_chunks,
+        settings=ReplaySettings(
+            output_root=args.output_root,
+            run_id=args.run_id,
+            max_in_flight_chunks=args.max_in_flight_chunks,
+            coalesce_min_duration_seconds=args.coalesce_min_duration_seconds,
+            coalesce_max_duration_seconds=args.coalesce_max_duration_seconds,
+            coalesce_max_gap_seconds=args.coalesce_max_gap_seconds,
+        ),
     )
     result = replay.run_file(args.audio_file, transcribe=args.transcribe)
     print(f"Wrote run: {result.run_dir}")
@@ -248,6 +306,9 @@ def _write_report(path: Path, result: ReplayResult) -> None:
         f"- Duration: `{result.raw_duration_seconds:.3f}s`",
         f"- Chunks: `{result.chunk_count}`",
         f"- Transcribed: `{result.transcribe_enabled}`",
+        f"- Coalesce min duration: `{result.coalescing['minDurationSeconds']:.3f}s`",
+        f"- Coalesce max duration: `{result.coalescing['maxDurationSeconds']:.3f}s`",
+        f"- Coalesce max gap: `{result.coalescing['maxGapSeconds']:.3f}s`",
     ]
     if result.assembled_text:
         lines.extend(["", "## Assembled Text", "", result.assembled_text])

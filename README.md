@@ -230,6 +230,15 @@ assembled chunk transcripts:
 .venv/bin/python -m whisper_wayland.pretranscription_replay path/to/capture.wav --transcribe
 ```
 
+Replay coalesces small VAD regions into phrase-sized chunks by default:
+
+```bash
+.venv/bin/python -m whisper_wayland.pretranscription_replay path/to/capture.wav \
+  --coalesce-min-duration-seconds 4 \
+  --coalesce-max-duration-seconds 12 \
+  --coalesce-max-gap-seconds 3
+```
+
 ## Troubleshooting
 
 ### Common Issues

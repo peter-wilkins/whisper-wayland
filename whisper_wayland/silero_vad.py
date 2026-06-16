@@ -30,6 +30,15 @@ STATE_SHAPE = (2, 1, 128)
 
 
 @dataclass(frozen=True)
+class VadCoalescingConfig:
+    """Settings for merging adjacent VAD speech regions into phrase chunks."""
+
+    min_chunk_duration_seconds: float
+    max_chunk_duration_seconds: float | None
+    max_chunk_gap_seconds: float
+
+
+@dataclass(frozen=True)
 class VadSegment:
     """One detected speech segment."""
 
@@ -168,7 +177,15 @@ class SileroVadPreprocessor:
                 model_path=split_result.model_path,
             )
 
-    def split_audio(self, audio_data: bytes, filename: str | None = None) -> VadSplitResult:
+    def split_audio(
+        self,
+        audio_data: bytes,
+        filename: str | None = None,
+        *,
+        min_chunk_duration_seconds: float = 0.0,
+        max_chunk_duration_seconds: float | None = None,
+        max_chunk_gap_seconds: float = 0.0,
+    ) -> VadSplitResult:
         """Return individual speech chunks as Ogg audio for early transcription."""
         self._ensure_model()
         with tempfile.TemporaryDirectory(prefix="ww-silero-vad-") as tmp_text:
@@ -181,6 +198,12 @@ class SileroVadPreprocessor:
             probabilities = self._probabilities(wav_path)
             raw_duration = _wav_duration_seconds(wav_path)
             segments = _segments_from_probabilities(probabilities, self.threshold)
+            segments = _coalesce_segments(
+                segments,
+                min_chunk_duration_seconds=min_chunk_duration_seconds,
+                max_chunk_duration_seconds=max_chunk_duration_seconds,
+                max_chunk_gap_seconds=max_chunk_gap_seconds,
+            )
             if not segments:
                 return VadSplitResult(
                     raw_duration_seconds=raw_duration,
@@ -429,6 +452,65 @@ def _segments_from_probabilities(
             )
 
     return _merge_segments(segments, max_gap_seconds=0.25)
+
+
+def _coalesce_segments(
+    segments: list[VadSegment],
+    *,
+    min_chunk_duration_seconds: float,
+    max_chunk_duration_seconds: float | None,
+    max_chunk_gap_seconds: float,
+) -> list[VadSegment]:
+    config = VadCoalescingConfig(
+        min_chunk_duration_seconds=min_chunk_duration_seconds,
+        max_chunk_duration_seconds=max_chunk_duration_seconds,
+        max_chunk_gap_seconds=max_chunk_gap_seconds,
+    )
+    if not segments:
+        return []
+    if config.min_chunk_duration_seconds <= 0 and config.max_chunk_gap_seconds <= 0:
+        return segments
+
+    coalesced = [segments[0]]
+    for segment in segments[1:]:
+        previous = coalesced[-1]
+        gap_seconds = segment.start_seconds - previous.end_seconds
+        merged = VadSegment(
+            start_seconds=previous.start_seconds,
+            end_seconds=segment.end_seconds,
+        )
+        if _should_coalesce_segment(
+            previous,
+            segment,
+            merged,
+            gap_seconds=gap_seconds,
+            config=config,
+        ):
+            coalesced[-1] = merged
+        else:
+            coalesced.append(segment)
+    return coalesced
+
+
+def _should_coalesce_segment(
+    previous: VadSegment,
+    segment: VadSegment,
+    merged: VadSegment,
+    *,
+    gap_seconds: float,
+    config: VadCoalescingConfig,
+) -> bool:
+    if gap_seconds > config.max_chunk_gap_seconds:
+        return False
+    max_duration = config.max_chunk_duration_seconds
+    if max_duration and merged.duration_seconds > max_duration:
+        return False
+
+    return (
+        previous.duration_seconds < config.min_chunk_duration_seconds
+        or segment.duration_seconds < config.min_chunk_duration_seconds
+        or (max_duration is not None and merged.duration_seconds <= max_duration)
+    )
 
 
 def _merge_segments(segments: list[VadSegment], *, max_gap_seconds: float) -> list[VadSegment]:

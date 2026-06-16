@@ -55,3 +55,18 @@ API-spending transcript comparison:
 ```bash
 .venv/bin/python -m whisper_wayland.pretranscription_replay path/to/capture.wav --transcribe
 ```
+
+## Replay Finding
+
+The first transcription replay on a 45 second dictation split the audio into 13
+micro-chunks. It completed without chunk failures, but very short chunks hurt
+transcription quality by removing context around ambiguous words. Replay should
+therefore coalesce adjacent VAD regions into phrase-sized chunks before live
+integration is attempted.
+
+With default coalescing settings, the same recording produced 5 phrase chunks.
+Quality improved: chunking no longer produced standalone filler fragments and
+the word "read" was no longer misrecognized as "red". Provider choice still
+matters. On this sample, OpenAI `whisper-1` on the coalesced chunks recognized
+"switch tacks" correctly, while Deepgram `nova-3` and the current race path
+misrecognized it as "switch tax".
