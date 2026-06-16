@@ -43,6 +43,7 @@ ww-audio-conditioning = "whisper_wayland.audio_conditioning.cli:main"
 ww-audio-stream-replay = "whisper_wayland.audio_conditioning.stream_replay:main"
 ww-audio-review = "whisper_wayland.audio_conditioning.review_player:main"
 ww-transcription-api = "whisper_wayland.transcription_api:main"
+ww-pretranscription-replay = "whisper_wayland.pretranscription_replay:main"
 
 [tool.pytest.ini_options]
 minversion = "7.0"

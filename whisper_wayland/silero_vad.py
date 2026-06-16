@@ -73,6 +73,26 @@ class VadResult:
         }
 
 
+@dataclass(frozen=True)
+class VadAudioChunk:
+    """One detected speech chunk exported as audio bytes."""
+
+    segment: VadSegment
+    audio_data: bytes
+    content_type: str
+    filename_suffix: str
+
+
+@dataclass(frozen=True)
+class VadSplitResult:
+    """Speech chunks and metadata after local VAD chunking."""
+
+    raw_duration_seconds: float
+    chunks: list[VadAudioChunk]
+    threshold: float
+    model_path: str
+
+
 class SileroVadPreprocessor:
     """Preprocess audio by keeping only Silero VAD speech regions."""
 
@@ -90,39 +110,97 @@ class SileroVadPreprocessor:
 
     def filter_audio(self, audio_data: bytes, filename: str | None = None) -> VadResult:
         """Return speech-only Ogg audio for transcription."""
+        split_result = self.split_audio(audio_data, filename)
+        if not split_result.chunks:
+            return VadResult(
+                audio_data=b"",
+                content_type="audio/ogg",
+                filename_suffix=".silero.ogg",
+                raw_duration_seconds=split_result.raw_duration_seconds,
+                speech_duration_seconds=0.0,
+                segments=[],
+                threshold=split_result.threshold,
+                model_path=split_result.model_path,
+            )
+
+        with tempfile.TemporaryDirectory(prefix="ww-silero-vad-") as tmp_text:
+            tmp_dir = Path(tmp_text)
+            speech_path = tmp_dir / "speech.ogg"
+            concat_path = tmp_dir / "concat.txt"
+            chunk_paths = []
+            for index, chunk in enumerate(split_result.chunks, start=1):
+                chunk_path = tmp_dir / f"chunk-{index:04d}.ogg"
+                chunk_path.write_bytes(chunk.audio_data)
+                chunk_paths.append(chunk_path)
+
+            concat_path.write_text(
+                "\n".join(f"file '{path.resolve()}'" for path in chunk_paths) + "\n",
+                encoding="utf-8",
+            )
+            _run_ffmpeg(
+                [
+                    "ffmpeg",
+                    "-hide_banner",
+                    "-y",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    str(concat_path),
+                    "-c",
+                    "copy",
+                    str(speech_path),
+                ]
+            )
+            speech_duration = round(
+                sum(chunk.segment.duration_seconds for chunk in split_result.chunks),
+                3,
+            )
+            return VadResult(
+                audio_data=speech_path.read_bytes(),
+                content_type="audio/ogg",
+                filename_suffix=".silero.ogg",
+                raw_duration_seconds=split_result.raw_duration_seconds,
+                speech_duration_seconds=speech_duration,
+                segments=[chunk.segment for chunk in split_result.chunks],
+                threshold=split_result.threshold,
+                model_path=split_result.model_path,
+            )
+
+    def split_audio(self, audio_data: bytes, filename: str | None = None) -> VadSplitResult:
+        """Return individual speech chunks as Ogg audio for early transcription."""
         self._ensure_model()
         with tempfile.TemporaryDirectory(prefix="ww-silero-vad-") as tmp_text:
             tmp_dir = Path(tmp_text)
             source_path = tmp_dir / (filename or "input.audio")
             source_path.write_bytes(audio_data)
             wav_path = tmp_dir / "input.wav"
-            speech_path = tmp_dir / "speech.ogg"
 
             _ffmpeg_to_wav(source_path, wav_path)
             probabilities = self._probabilities(wav_path)
             raw_duration = _wav_duration_seconds(wav_path)
             segments = _segments_from_probabilities(probabilities, self.threshold)
             if not segments:
-                return VadResult(
-                    audio_data=b"",
-                    content_type="audio/ogg",
-                    filename_suffix=".silero.ogg",
+                return VadSplitResult(
                     raw_duration_seconds=raw_duration,
-                    speech_duration_seconds=0.0,
-                    segments=[],
+                    chunks=[],
                     threshold=self.threshold,
                     model_path=str(self.model_path),
                 )
 
-            _export_segments_to_ogg(wav_path, speech_path, segments)
-            speech_duration = round(sum(segment.duration_seconds for segment in segments), 3)
-            return VadResult(
-                audio_data=speech_path.read_bytes(),
-                content_type="audio/ogg",
-                filename_suffix=".silero.ogg",
+            chunks = [
+                VadAudioChunk(
+                    segment=segment,
+                    audio_data=_export_segment_to_ogg_bytes(wav_path, tmp_dir, index, segment),
+                    content_type="audio/ogg",
+                    filename_suffix=f".chunk-{index:04d}.ogg",
+                )
+                for index, segment in enumerate(segments, start=1)
+            ]
+            return VadSplitResult(
                 raw_duration_seconds=raw_duration,
-                speech_duration_seconds=speech_duration,
-                segments=segments,
+                chunks=chunks,
                 threshold=self.threshold,
                 model_path=str(self.model_path),
             )
@@ -217,6 +295,36 @@ def _ffmpeg_to_wav(source_path: Path, wav_path: Path) -> None:
             str(wav_path),
         ]
     )
+
+
+def _export_segment_to_ogg_bytes(
+    wav_path: Path,
+    tmp_dir: Path,
+    index: int,
+    segment: VadSegment,
+) -> bytes:
+    segment_path = tmp_dir / f"segment-{index:04d}.ogg"
+    _run_ffmpeg(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-y",
+            "-ss",
+            f"{segment.start_seconds:.3f}",
+            "-t",
+            f"{segment.duration_seconds:.3f}",
+            "-i",
+            str(wav_path),
+            "-c:a",
+            "libopus",
+            "-b:a",
+            "18k",
+            "-vbr",
+            "on",
+            str(segment_path),
+        ]
+    )
+    return segment_path.read_bytes()
 
 
 def _export_segments_to_ogg(wav_path: Path, output_path: Path, segments: list[VadSegment]) -> None:

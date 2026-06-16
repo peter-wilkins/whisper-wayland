@@ -213,6 +213,23 @@ latency, and clips longer than `TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS`
 use Silero to remove pauses before upload. Override per request with
 `?vad=none`, `?vad=auto`, or `?vad=silero`.
 
+## Pre-Transcription Replay
+
+Replay existing local audio through the experimental pre-transcription chunker:
+
+```bash
+.venv/bin/python -m whisper_wayland.pretranscription_replay path/to/capture.wav
+```
+
+This dry run writes chunk timings and local chunk audio under
+`local/pretranscription-replay/` without transcription API calls. Add
+`--transcribe` only when you intentionally want to spend API calls and compare
+assembled chunk transcripts:
+
+```bash
+.venv/bin/python -m whisper_wayland.pretranscription_replay path/to/capture.wav --transcribe
+```
+
 ## Troubleshooting
 
 ### Common Issues
