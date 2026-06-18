@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import unittest.mock
+
 import whisper_wayland as ww
 from whisper_wayland.pretranscription_replay import PretranscriptionReplay, ReplaySettings
 from whisper_wayland.silero_vad import VadAudioChunk, VadSegment, VadSplitResult
@@ -101,3 +104,29 @@ def test_pretranscription_replay_transcribes_and_assembles_by_timeline(tmp_path)
     assert result.assembled_text == "First chunk. Second chunk."
     assert [chunk.text for chunk in result.chunks] == ["First chunk.", "Second chunk."]
     assert {chunk.transcription_provider for chunk in result.chunks} == {"fake"}
+
+
+def test_chunk_transcription_config_overrides_batch_provider_settings(tmp_path) -> None:
+    with unittest.mock.patch.dict(
+        os.environ,
+        {
+            "OPENAI_API_KEY": "sk-test123",
+            "WHISPER_MODEL": "deepgram:nova-3",
+            "TRANSCRIPTION_RACE_MODELS": "whispercpp:http://127.0.0.1:2022/inference",
+            "PRETRANSCRIPTION_CHUNK_WHISPER_MODEL": "whisper-1",
+            "PRETRANSCRIPTION_CHUNK_RACE_MODELS": "",
+        },
+        clear=True,
+    ):
+        replay = PretranscriptionReplay(
+            settings=ReplaySettings(
+                output_root=tmp_path / "runs",
+                run_id="test-run",
+            ),
+            silero_vad=FakeSileroVad(),  # type: ignore[arg-type]
+        )
+
+        config = replay._chunk_transcription_config()
+
+    assert config.whisper_model == "whisper-1"
+    assert config.transcription_race_models == []

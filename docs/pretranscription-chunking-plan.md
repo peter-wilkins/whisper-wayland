@@ -70,3 +70,8 @@ the word "read" was no longer misrecognized as "red". Provider choice still
 matters. On this sample, OpenAI `whisper-1` on the coalesced chunks recognized
 "switch tacks" correctly, while Deepgram `nova-3` and the current race path
 misrecognized it as "switch tax".
+
+Pre-transcription chunking should therefore have its own provider configuration
+instead of inheriting the normal batch transcription race. Current experimental
+default: use OpenAI `whisper-1` for chunks and no chunk race. Normal batch
+transcription keeps using `WHISPER_MODEL` and `TRANSCRIPTION_RACE_MODELS`.

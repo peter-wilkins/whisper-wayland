@@ -37,6 +37,8 @@ class ReplaySettings:
     coalesce_min_duration_seconds: float = DEFAULT_COALESCE_MIN_DURATION_SECONDS
     coalesce_max_duration_seconds: float = DEFAULT_COALESCE_MAX_DURATION_SECONDS
     coalesce_max_gap_seconds: float = DEFAULT_COALESCE_MAX_GAP_SECONDS
+    chunk_whisper_model: str | None = None
+    chunk_race_models: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -66,8 +68,22 @@ class ReplayResult:
     chunk_count: int
     transcribe_enabled: bool
     coalescing: dict[str, float]
+    chunk_transcription: dict[str, object] | None
     assembled_text: str | None
     chunks: list[ReplayChunkResult]
+
+
+@dataclass(frozen=True)
+class ChunkTranscriptionConfig:
+    """Config proxy that overrides only chunk transcription provider settings."""
+
+    base_config: typing.Any
+    whisper_model: str
+    transcription_race_models: list[str]
+
+    def __getattr__(self, name: str) -> object:
+        """Delegate all other configuration to the base config."""
+        return getattr(self.base_config, name)
 
 
 class PretranscriptionReplay:
@@ -111,8 +127,14 @@ class PretranscriptionReplay:
             max_chunk_gap_seconds=self.coalesce_max_gap_seconds,
         )
         chunk_results = self._write_chunk_audio(split_result.chunks)
+        chunk_transcription = None
         if transcribe:
-            chunk_results = self._transcribe_chunks(chunk_results)
+            chunk_config = self._chunk_transcription_config()
+            chunk_transcription = {
+                "model": chunk_config.whisper_model,
+                "raceModels": chunk_config.transcription_race_models,
+            }
+            chunk_results = self._transcribe_chunks(chunk_results, chunk_config)
 
         assembled_text = _assemble_text(chunk_results) if transcribe else None
         result = ReplayResult(
@@ -127,6 +149,7 @@ class PretranscriptionReplay:
                 "maxDurationSeconds": self.coalesce_max_duration_seconds,
                 "maxGapSeconds": self.coalesce_max_gap_seconds,
             },
+            chunk_transcription=chunk_transcription,
             assembled_text=assembled_text,
             chunks=chunk_results,
         )
@@ -157,6 +180,7 @@ class PretranscriptionReplay:
     def _transcribe_chunks(
         self,
         chunk_results: list[ReplayChunkResult],
+        chunk_config: ChunkTranscriptionConfig,
     ) -> list[ReplayChunkResult]:
         if not chunk_results:
             return []
@@ -164,7 +188,7 @@ class PretranscriptionReplay:
         completed: dict[int, ReplayChunkResult] = {}
         with futures.ThreadPoolExecutor(max_workers=self.max_in_flight_chunks) as executor:
             future_to_chunk = {
-                executor.submit(self._transcribe_chunk, chunk): chunk
+                executor.submit(self._transcribe_chunk, chunk, chunk_config): chunk
                 for chunk in chunk_results
             }
             for completed_future in futures.as_completed(future_to_chunk):
@@ -183,8 +207,12 @@ class PretranscriptionReplay:
 
         return [completed[chunk.index] for chunk in chunk_results]
 
-    def _transcribe_chunk(self, chunk: ReplayChunkResult) -> ReplayChunkResult:
-        client = self._new_transcription_client()
+    def _transcribe_chunk(
+        self,
+        chunk: ReplayChunkResult,
+        chunk_config: ChunkTranscriptionConfig,
+    ) -> ReplayChunkResult:
+        client = self._new_transcription_client(chunk_config)
         audio_path = self.run_dir / chunk.audio_relative_path
         text = client.transcribe_audio(audio_path.read_bytes()) or ""
         backend = client.last_transcription_backend
@@ -196,10 +224,28 @@ class PretranscriptionReplay:
             error=None,
         )
 
-    def _new_transcription_client(self) -> ww.TranscriptionClient:
+    def _new_transcription_client(
+        self,
+        chunk_config: ChunkTranscriptionConfig,
+    ) -> ww.TranscriptionClient:
         if self.client_factory:
             return self.client_factory()
-        return ww.TranscriptionClient(ww.Config())
+        return ww.TranscriptionClient(chunk_config)  # type: ignore[arg-type]
+
+    def _chunk_transcription_config(self) -> ChunkTranscriptionConfig:
+        base_config = ww.Config()
+        return ChunkTranscriptionConfig(
+            base_config=base_config,
+            whisper_model=(
+                self.settings.chunk_whisper_model
+                or base_config.pretranscription_chunk_whisper_model
+            ),
+            transcription_race_models=(
+                self.settings.chunk_race_models
+                if self.settings.chunk_race_models is not None
+                else base_config.pretranscription_chunk_race_models
+            ),
+        )
 
     def _write_result(self, result: ReplayResult) -> None:
         payload = asdict(result)
@@ -247,6 +293,20 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_COALESCE_MAX_GAP_SECONDS,
         help="Maximum silence gap between VAD chunks that can be merged.",
     )
+    parser.add_argument(
+        "--chunk-whisper-model",
+        help=(
+            "Override PRETRANSCRIPTION_CHUNK_WHISPER_MODEL for this replay "
+            "without changing normal batch transcription."
+        ),
+    )
+    parser.add_argument(
+        "--chunk-race-models",
+        help=(
+            "Comma-separated chunk-only race models. Empty string means no race. "
+            "Defaults to PRETRANSCRIPTION_CHUNK_RACE_MODELS."
+        ),
+    )
     args = parser.parse_args(argv)
 
     replay = PretranscriptionReplay(
@@ -257,6 +317,12 @@ def main(argv: list[str] | None = None) -> int:
             coalesce_min_duration_seconds=args.coalesce_min_duration_seconds,
             coalesce_max_duration_seconds=args.coalesce_max_duration_seconds,
             coalesce_max_gap_seconds=args.coalesce_max_gap_seconds,
+            chunk_whisper_model=args.chunk_whisper_model,
+            chunk_race_models=(
+                _parse_csv(args.chunk_race_models)
+                if args.chunk_race_models is not None
+                else None
+            ),
         ),
     )
     result = replay.run_file(args.audio_file, transcribe=args.transcribe)
@@ -310,6 +376,13 @@ def _write_report(path: Path, result: ReplayResult) -> None:
         f"- Coalesce max duration: `{result.coalescing['maxDurationSeconds']:.3f}s`",
         f"- Coalesce max gap: `{result.coalescing['maxGapSeconds']:.3f}s`",
     ]
+    if result.chunk_transcription:
+        lines.extend(
+            [
+                f"- Chunk model: `{result.chunk_transcription['model']}`",
+                f"- Chunk race models: `{result.chunk_transcription['raceModels']}`",
+            ]
+        )
     if result.assembled_text:
         lines.extend(["", "## Assembled Text", "", result.assembled_text])
     lines.extend(["", "## Chunks", ""])
@@ -328,6 +401,10 @@ def _write_report(path: Path, result: ReplayResult) -> None:
 
 def _utc_run_id() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _parse_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 
 if __name__ == "__main__":

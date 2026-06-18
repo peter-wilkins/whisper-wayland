@@ -75,19 +75,7 @@ class PropertyHandlers:
 
     def get_transcription_race_models(self) -> list[str]:
         """Get additional transcription models to race in parallel."""
-        raw_models = os.getenv("TRANSCRIPTION_RACE_MODELS", "").strip()
-        if not raw_models:
-            return []
-
-        models = []
-        seen = set()
-        for model in raw_models.split(","):
-            normalized = model.strip()
-            if normalized and normalized not in seen:
-                models.append(normalized)
-                seen.add(normalized)
-
-        return models
+        return self._get_comma_separated_env("TRANSCRIPTION_RACE_MODELS")
 
     def get_transcription_vad_auto_min_duration_seconds(self) -> float:
         """Get minimum clip duration before auto VAD applies."""
@@ -104,6 +92,17 @@ class PropertyHandlers:
     def get_local_api_default_vad_mode(self) -> str:
         """Get default local API VAD mode when query param is absent."""
         return self._get_vad_mode_env("LOCAL_API_DEFAULT_VAD_MODE", "auto")
+
+    def get_pretranscription_chunk_whisper_model(self) -> str:
+        """Get transcription model used for pre-transcription chunks."""
+        return (
+            os.getenv("PRETRANSCRIPTION_CHUNK_WHISPER_MODEL", "whisper-1").strip()
+            or "whisper-1"
+        )
+
+    def get_pretranscription_chunk_race_models(self) -> list[str]:
+        """Get additional race models used only for pre-transcription chunks."""
+        return self._get_comma_separated_env("PRETRANSCRIPTION_CHUNK_RACE_MODELS")
 
     # Audio Configuration
     def get_audio_sample_rate(self) -> int:
@@ -523,6 +522,21 @@ class PropertyHandlers:
             )
             return default
         return mode
+
+    @staticmethod
+    def _get_comma_separated_env(name: str) -> list[str]:
+        raw_values = os.getenv(name, "").strip()
+        if not raw_values:
+            return []
+
+        values = []
+        seen = set()
+        for value in raw_values.split(","):
+            normalized = value.strip()
+            if normalized and normalized not in seen:
+                values.append(normalized)
+                seen.add(normalized)
+        return values
 
     @staticmethod
     def _get_float_env(

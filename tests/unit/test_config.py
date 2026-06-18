@@ -44,6 +44,10 @@ DEFAULT_TRANSCRIPTION_RACE_MODELS: list[str] = []
 CUSTOM_TRANSCRIPTION_RACE_MODELS = ["gpt-4o-mini-transcribe", "whisper-1"]
 DEFAULT_TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS = 30
 CUSTOM_TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS = 45.5
+DEFAULT_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL = "whisper-1"
+DEFAULT_PRETRANSCRIPTION_CHUNK_RACE_MODELS: list[str] = []
+CUSTOM_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL = "gpt-4o-transcribe"
+CUSTOM_PRETRANSCRIPTION_CHUNK_RACE_MODELS = ["whisper-1", "deepgram:nova-3"]
 
 
 class TestConfig:
@@ -72,6 +76,14 @@ class TestConfig:
                 )
                 assert test_config.audio_transcription_vad_mode == "auto"
                 assert test_config.local_api_default_vad_mode == "auto"
+                assert (
+                    test_config.pretranscription_chunk_whisper_model
+                    == DEFAULT_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL
+                )
+                assert (
+                    test_config.pretranscription_chunk_race_models
+                    == DEFAULT_PRETRANSCRIPTION_CHUNK_RACE_MODELS
+                )
                 assert test_config.audio_sample_rate == ww.Constants.DEFAULT_SAMPLE_RATE
                 assert test_config.audio_chunk_size == ww.Constants.DEFAULT_CHUNK_SIZE
                 assert test_config.audio_preroll_seconds == DEFAULT_AUDIO_PREROLL_SECONDS
@@ -168,6 +180,10 @@ class TestConfig:
             ),
             "AUDIO_TRANSCRIPTION_VAD_MODE": "none",
             "LOCAL_API_DEFAULT_VAD_MODE": "silero",
+            "PRETRANSCRIPTION_CHUNK_WHISPER_MODEL": (
+                CUSTOM_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL
+            ),
+            "PRETRANSCRIPTION_CHUNK_RACE_MODELS": "whisper-1, deepgram:nova-3",
             "AUDIO_SAMPLE_RATE": "44100",
             "AUDIO_CHUNK_SIZE": "2048",
             "AUDIO_PREROLL_SECONDS": str(CUSTOM_AUDIO_PREROLL_SECONDS),
@@ -228,6 +244,14 @@ class TestConfig:
             )
             assert test_config.audio_transcription_vad_mode == "none"
             assert test_config.local_api_default_vad_mode == "silero"
+            assert (
+                test_config.pretranscription_chunk_whisper_model
+                == CUSTOM_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL
+            )
+            assert (
+                test_config.pretranscription_chunk_race_models
+                == CUSTOM_PRETRANSCRIPTION_CHUNK_RACE_MODELS
+            )
             assert test_config.audio_sample_rate == ww.Constants.HIGH_QUALITY_SAMPLE_RATE
             assert test_config.audio_chunk_size == ww.Constants.LARGE_CHUNK_SIZE
             assert test_config.audio_preroll_seconds == CUSTOM_AUDIO_PREROLL_SECONDS
@@ -572,6 +596,14 @@ class TestConfig:
             assert summary["text_insertion_marker_enabled"] is False
             assert summary["text_post_process_providers"] == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
             assert summary["text_post_process_openai_api_key"] is None
+            assert (
+                summary["pretranscription_chunk_whisper_model"]
+                == DEFAULT_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL
+            )
+            assert (
+                summary["pretranscription_chunk_race_models"]
+                == DEFAULT_PRETRANSCRIPTION_CHUNK_RACE_MODELS
+            )
             assert (
                 summary["text_post_process_local_api_url"]
                 == DEFAULT_TEXT_POST_PROCESS_LOCAL_API_URL

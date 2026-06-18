@@ -102,6 +102,16 @@ class Config:
         return self._property_handlers.get_local_api_default_vad_mode()
 
     @property
+    def pretranscription_chunk_whisper_model(self) -> str:
+        """Transcription model used for pre-transcription chunks."""
+        return self._property_handlers.get_pretranscription_chunk_whisper_model()
+
+    @property
+    def pretranscription_chunk_race_models(self) -> list[str]:
+        """Additional race models used only for pre-transcription chunks."""
+        return self._property_handlers.get_pretranscription_chunk_race_models()
+
+    @property
     def streaming_transcription_enabled(self) -> bool:
         """Whether realtime streaming transcription should be attempted."""
         return self._property_handlers.get_streaming_transcription_enabled()

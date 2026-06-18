@@ -66,6 +66,12 @@ class ConfigValidator:
             ),
             "audio_transcription_vad_mode": config_instance.audio_transcription_vad_mode,
             "local_api_default_vad_mode": config_instance.local_api_default_vad_mode,
+            "pretranscription_chunk_whisper_model": (
+                config_instance.pretranscription_chunk_whisper_model
+            ),
+            "pretranscription_chunk_race_models": (
+                config_instance.pretranscription_chunk_race_models
+            ),
             "audio_sample_rate": config_instance.audio_sample_rate,
             "audio_chunk_size": config_instance.audio_chunk_size,
             "audio_preroll_seconds": config_instance.audio_preroll_seconds,

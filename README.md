@@ -104,6 +104,8 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS` | Minimum duration before `auto` VAD applies | `30` | No |
 | `AUDIO_TRANSCRIPTION_VAD_MODE` | Laptop push-to-talk VAD mode (`none`, `auto`, or `silero`) | `auto` | No |
 | `LOCAL_API_DEFAULT_VAD_MODE` | Default local API VAD mode when `vad` query param is absent | `auto` | No |
+| `PRETRANSCRIPTION_CHUNK_WHISPER_MODEL` | Model used only for pre-transcription chunk replay/live experiments | `whisper-1` | No |
+| `PRETRANSCRIPTION_CHUNK_RACE_MODELS` | Optional chunk-only race targets; leave empty for OpenAI-only chunking | - | No |
 | `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
 | `AUDIO_PREROLL_SECONDS` | Local pre-roll audio prepended when push-to-talk starts (`0` to `3`) | `1.0` | No |
 | `AUDIO_INPUT_DEVICE_INDEX` | Explicit PyAudio input device index, blank for auto-selection | - | No |
@@ -238,6 +240,11 @@ Replay coalesces small VAD regions into phrase-sized chunks by default:
   --coalesce-max-duration-seconds 12 \
   --coalesce-max-gap-seconds 3
 ```
+
+Chunk transcription uses `PRETRANSCRIPTION_CHUNK_WHISPER_MODEL=whisper-1` and
+`PRETRANSCRIPTION_CHUNK_RACE_MODELS=` by default, independent of normal batch
+transcription. Override per replay with `--chunk-whisper-model` and
+`--chunk-race-models`.
 
 ## Troubleshooting
 
