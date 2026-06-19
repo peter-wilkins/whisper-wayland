@@ -112,6 +112,41 @@ class Config:
         return self._property_handlers.get_pretranscription_chunk_race_models()
 
     @property
+    def pretranscription_chunking_enabled(self) -> bool:
+        """Whether live pre-transcription chunking is enabled."""
+        return self._property_handlers.get_pretranscription_chunking_enabled()
+
+    @property
+    def pretranscription_chunk_min_recording_seconds(self) -> float:
+        """Recording duration before live chunking starts."""
+        return self._property_handlers.get_pretranscription_chunk_min_recording_seconds()
+
+    @property
+    def pretranscription_chunk_poll_interval_seconds(self) -> float:
+        """Interval between live audio snapshot checks."""
+        return self._property_handlers.get_pretranscription_chunk_poll_interval_seconds()
+
+    @property
+    def pretranscription_chunk_stable_tail_seconds(self) -> float:
+        """Trailing audio retained until recording release."""
+        return self._property_handlers.get_pretranscription_chunk_stable_tail_seconds()
+
+    @property
+    def pretranscription_chunk_coalesce_min_duration_seconds(self) -> float:
+        """Minimum preferred duration for a live phrase chunk."""
+        return self._property_handlers.get_pretranscription_chunk_coalesce_min_duration_seconds()
+
+    @property
+    def pretranscription_chunk_coalesce_max_duration_seconds(self) -> float:
+        """Maximum duration for a live phrase chunk; zero means unlimited."""
+        return self._property_handlers.get_pretranscription_chunk_coalesce_max_duration_seconds()
+
+    @property
+    def pretranscription_chunk_coalesce_max_gap_seconds(self) -> float:
+        """Largest silence gap that may be merged into a live phrase chunk."""
+        return self._property_handlers.get_pretranscription_chunk_coalesce_max_gap_seconds()
+
+    @property
     def streaming_transcription_enabled(self) -> bool:
         """Whether realtime streaming transcription should be attempted."""
         return self._property_handlers.get_streaming_transcription_enabled()
@@ -215,9 +250,7 @@ class Config:
     @property
     def audio_transcription_normalization_max_peak_amplitude(self) -> float:
         """Maximum peak amplitude after transcription-only normalization."""
-        return (
-            self._property_handlers.get_audio_transcription_normalization_max_peak_amplitude()
-        )
+        return self._property_handlers.get_audio_transcription_normalization_max_peak_amplitude()
 
     @property
     def audio_transcription_normalization_max_gain(self) -> float:

@@ -46,8 +46,20 @@ DEFAULT_TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS = 30
 CUSTOM_TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS = 45.5
 DEFAULT_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL = "whisper-1"
 DEFAULT_PRETRANSCRIPTION_CHUNK_RACE_MODELS: list[str] = []
+DEFAULT_PRETRANSCRIPTION_CHUNK_MIN_RECORDING_SECONDS = 10
+DEFAULT_PRETRANSCRIPTION_CHUNK_POLL_INTERVAL_SECONDS = 2
+DEFAULT_PRETRANSCRIPTION_CHUNK_STABLE_TAIL_SECONDS = 3
+DEFAULT_PRETRANSCRIPTION_CHUNK_COALESCE_MIN_DURATION_SECONDS = 4
+DEFAULT_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_DURATION_SECONDS = 12
+DEFAULT_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_GAP_SECONDS = 3
 CUSTOM_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL = "gpt-4o-transcribe"
 CUSTOM_PRETRANSCRIPTION_CHUNK_RACE_MODELS = ["whisper-1", "deepgram:nova-3"]
+CUSTOM_PRETRANSCRIPTION_CHUNK_MIN_RECORDING_SECONDS = 11
+CUSTOM_PRETRANSCRIPTION_CHUNK_POLL_INTERVAL_SECONDS = 2.5
+CUSTOM_PRETRANSCRIPTION_CHUNK_STABLE_TAIL_SECONDS = 3.5
+CUSTOM_PRETRANSCRIPTION_CHUNK_COALESCE_MIN_DURATION_SECONDS = 4.5
+CUSTOM_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_DURATION_SECONDS = 13
+CUSTOM_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_GAP_SECONDS = 3.5
 
 
 class TestConfig:
@@ -84,6 +96,31 @@ class TestConfig:
                     test_config.pretranscription_chunk_race_models
                     == DEFAULT_PRETRANSCRIPTION_CHUNK_RACE_MODELS
                 )
+                assert not test_config.pretranscription_chunking_enabled
+                assert (
+                    test_config.pretranscription_chunk_min_recording_seconds
+                    == DEFAULT_PRETRANSCRIPTION_CHUNK_MIN_RECORDING_SECONDS
+                )
+                assert (
+                    test_config.pretranscription_chunk_poll_interval_seconds
+                    == DEFAULT_PRETRANSCRIPTION_CHUNK_POLL_INTERVAL_SECONDS
+                )
+                assert (
+                    test_config.pretranscription_chunk_stable_tail_seconds
+                    == DEFAULT_PRETRANSCRIPTION_CHUNK_STABLE_TAIL_SECONDS
+                )
+                assert (
+                    test_config.pretranscription_chunk_coalesce_min_duration_seconds
+                    == DEFAULT_PRETRANSCRIPTION_CHUNK_COALESCE_MIN_DURATION_SECONDS
+                )
+                assert (
+                    test_config.pretranscription_chunk_coalesce_max_duration_seconds
+                    == DEFAULT_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_DURATION_SECONDS
+                )
+                assert (
+                    test_config.pretranscription_chunk_coalesce_max_gap_seconds
+                    == DEFAULT_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_GAP_SECONDS
+                )
                 assert test_config.audio_sample_rate == ww.Constants.DEFAULT_SAMPLE_RATE
                 assert test_config.audio_chunk_size == ww.Constants.DEFAULT_CHUNK_SIZE
                 assert test_config.audio_preroll_seconds == DEFAULT_AUDIO_PREROLL_SECONDS
@@ -119,8 +156,7 @@ class TestConfig:
                 assert not test_config.text_insertion_marker_enabled
                 assert test_config.text_post_process_openai_api_key == ""
                 assert (
-                    test_config.text_post_process_providers
-                    == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
+                    test_config.text_post_process_providers == DEFAULT_TEXT_POST_PROCESS_PROVIDERS
                 )
                 assert (
                     test_config.text_post_process_local_api_url
@@ -164,15 +200,13 @@ class TestConfig:
             with pytest.raises(ww.ConfigError, match="OPENAI_API_KEY"):
                 ww.Config()
 
-    def test_config_custom_values(self) -> None:
+    def test_config_custom_values(self) -> None:  # noqa: PLR0915
         """Test config with custom environment values."""
         env_vars = {
             "OPENAI_API_KEY": "sk-custom123",
             "DEEPGRAM_API_KEY": "dg-custom123",
             "WHISPER_MODEL": "large",
-            "TRANSCRIPTION_REQUEST_TIMEOUT_SECS": str(
-                CUSTOM_TRANSCRIPTION_REQUEST_TIMEOUT_SECS
-            ),
+            "TRANSCRIPTION_REQUEST_TIMEOUT_SECS": str(CUSTOM_TRANSCRIPTION_REQUEST_TIMEOUT_SECS),
             "TRANSCRIPTION_MAX_RETRIES": str(CUSTOM_TRANSCRIPTION_MAX_RETRIES),
             "TRANSCRIPTION_RACE_MODELS": "gpt-4o-mini-transcribe, whisper-1",
             "TRANSCRIPTION_VAD_AUTO_MIN_DURATION_SECONDS": str(
@@ -180,10 +214,27 @@ class TestConfig:
             ),
             "AUDIO_TRANSCRIPTION_VAD_MODE": "none",
             "LOCAL_API_DEFAULT_VAD_MODE": "silero",
-            "PRETRANSCRIPTION_CHUNK_WHISPER_MODEL": (
-                CUSTOM_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL
-            ),
+            "PRETRANSCRIPTION_CHUNK_WHISPER_MODEL": (CUSTOM_PRETRANSCRIPTION_CHUNK_WHISPER_MODEL),
             "PRETRANSCRIPTION_CHUNK_RACE_MODELS": "whisper-1, deepgram:nova-3",
+            "PRETRANSCRIPTION_CHUNKING_ENABLED": "true",
+            "PRETRANSCRIPTION_CHUNK_MIN_RECORDING_SECONDS": str(
+                CUSTOM_PRETRANSCRIPTION_CHUNK_MIN_RECORDING_SECONDS
+            ),
+            "PRETRANSCRIPTION_CHUNK_POLL_INTERVAL_SECONDS": str(
+                CUSTOM_PRETRANSCRIPTION_CHUNK_POLL_INTERVAL_SECONDS
+            ),
+            "PRETRANSCRIPTION_CHUNK_STABLE_TAIL_SECONDS": str(
+                CUSTOM_PRETRANSCRIPTION_CHUNK_STABLE_TAIL_SECONDS
+            ),
+            "PRETRANSCRIPTION_CHUNK_COALESCE_MIN_DURATION_SECONDS": str(
+                CUSTOM_PRETRANSCRIPTION_CHUNK_COALESCE_MIN_DURATION_SECONDS
+            ),
+            "PRETRANSCRIPTION_CHUNK_COALESCE_MAX_DURATION_SECONDS": str(
+                CUSTOM_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_DURATION_SECONDS
+            ),
+            "PRETRANSCRIPTION_CHUNK_COALESCE_MAX_GAP_SECONDS": str(
+                CUSTOM_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_GAP_SECONDS
+            ),
             "AUDIO_SAMPLE_RATE": "44100",
             "AUDIO_CHUNK_SIZE": "2048",
             "AUDIO_PREROLL_SECONDS": str(CUSTOM_AUDIO_PREROLL_SECONDS),
@@ -251,6 +302,31 @@ class TestConfig:
             assert (
                 test_config.pretranscription_chunk_race_models
                 == CUSTOM_PRETRANSCRIPTION_CHUNK_RACE_MODELS
+            )
+            assert test_config.pretranscription_chunking_enabled
+            assert (
+                test_config.pretranscription_chunk_min_recording_seconds
+                == CUSTOM_PRETRANSCRIPTION_CHUNK_MIN_RECORDING_SECONDS
+            )
+            assert (
+                test_config.pretranscription_chunk_poll_interval_seconds
+                == CUSTOM_PRETRANSCRIPTION_CHUNK_POLL_INTERVAL_SECONDS
+            )
+            assert (
+                test_config.pretranscription_chunk_stable_tail_seconds
+                == CUSTOM_PRETRANSCRIPTION_CHUNK_STABLE_TAIL_SECONDS
+            )
+            assert (
+                test_config.pretranscription_chunk_coalesce_min_duration_seconds
+                == CUSTOM_PRETRANSCRIPTION_CHUNK_COALESCE_MIN_DURATION_SECONDS
+            )
+            assert (
+                test_config.pretranscription_chunk_coalesce_max_duration_seconds
+                == CUSTOM_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_DURATION_SECONDS
+            )
+            assert (
+                test_config.pretranscription_chunk_coalesce_max_gap_seconds
+                == CUSTOM_PRETRANSCRIPTION_CHUNK_COALESCE_MAX_GAP_SECONDS
             )
             assert test_config.audio_sample_rate == ww.Constants.HIGH_QUALITY_SAMPLE_RATE
             assert test_config.audio_chunk_size == ww.Constants.LARGE_CHUNK_SIZE

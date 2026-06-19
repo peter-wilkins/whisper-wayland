@@ -91,6 +91,10 @@ class HotkeyHandler:
 
             self.audio_recorder.refresh_input_device()
             self.audio_recorder.start_recording()
+            if getattr(self.transcription_processor, "pretranscription_enabled", False) is True:
+                self.transcription_processor.start_pretranscription(
+                    self.audio_recorder.snapshot_recording_audio
+                )
             self._show_recording()
         except ww.AudioRecordingError as e:
             _logger.error(f"Failed to start recording: {e}")
@@ -166,6 +170,9 @@ class HotkeyHandler:
                 if cancel_streaming:
                     cancel_streaming()
                 return
+
+            if getattr(self.transcription_processor, "pretranscription_enabled", False) is True:
+                self.transcription_processor.cancel_pretranscription()
 
             self.audio_recorder.stop_recording()
         except Exception as e:

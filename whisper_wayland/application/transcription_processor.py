@@ -12,6 +12,10 @@ import whisper_wayland as ww
 from whisper_wayland.application.audio_level_monitor import AudioLevelMonitor
 from whisper_wayland.application.audio_processor import AudioProcessor
 from whisper_wayland.application.capture_tap import CaptureTap
+from whisper_wayland.application.live_pretranscription import (
+    LivePretranscriptionSession,
+    PretranscribedAudioResult,
+)
 from whisper_wayland.application.text_handler import TextHandler
 from whisper_wayland.audio_recorder.level_meter import analyze_wav
 from whisper_wayland.transcription_client.realtime_streaming_client import (
@@ -22,9 +26,7 @@ _logger = logging.getLogger(__name__)
 
 SHORT_HALLUCINATION_DURATION_SECONDS = 6.0
 MAX_SILENT_TRANSCRIPT_WORDS = 3
-SUPPRESSION_REASON_LIKELY_EMPTY_RECORDING_HALLUCINATION = (
-    "likely-empty-recording-hallucination"
-)
+SUPPRESSION_REASON_LIKELY_EMPTY_RECORDING_HALLUCINATION = "likely-empty-recording-hallucination"
 KNOWN_SHORT_HALLUCINATIONS = {
     "thank you for watching",
     "thank you thank you",
@@ -57,6 +59,7 @@ class TranscriptionProcessor:
         self._transcription_client = transcription_client
         self._capture_tap = CaptureTap(transcription_client.config)
         self._audio_level_monitor = AudioLevelMonitor.new(transcription_client.config)
+        self._live_pretranscription: LivePretranscriptionSession | None = None
         streaming_enabled = (
             getattr(transcription_client.config, "streaming_transcription_enabled", False) is True
         )
@@ -70,6 +73,34 @@ class TranscriptionProcessor:
     def streaming_enabled(self) -> bool:
         """Return whether realtime streaming transcription is configured."""
         return self._streaming_client is not None
+
+    @property
+    def pretranscription_enabled(self) -> bool:
+        """Return whether live pre-transcription is explicitly enabled."""
+        return self._transcription_client.config.pretranscription_chunking_enabled
+
+    def start_pretranscription(
+        self,
+        snapshot_audio: typing.Callable[[], bytes | None],
+    ) -> None:
+        """Start opt-in chunk transcription while audio is still being captured."""
+        if not self.pretranscription_enabled:
+            return
+        try:
+            self._live_pretranscription = LivePretranscriptionSession(
+                self._transcription_client.config,
+                snapshot_audio,
+            )
+            self._live_pretranscription.start()
+        except Exception as e:
+            self._live_pretranscription = None
+            _logger.warning("Could not start live pre-transcription: %s", e)
+
+    def cancel_pretranscription(self) -> None:
+        """Cancel the active pre-transcription session for a discarded recording."""
+        if self._live_pretranscription:
+            self._live_pretranscription.cancel()
+            self._live_pretranscription = None
 
     def start_streaming(self) -> bool:
         """Start realtime streaming transcription.
@@ -131,16 +162,23 @@ class TranscriptionProcessor:
             audio_source: Optional Pulse/PipeWire source captured by the recorder
         """
         try:
-            transcription_result = self.audio_processor.transcribe_audio_with_result(audio_data)
+            pretranscribed = self._complete_pretranscription(audio_data)
+            transcription_result = (
+                self.audio_processor.result_from_raw_text(
+                    pretranscribed.raw_text,
+                    transcription_provider=pretranscribed.transcription_provider,
+                    transcription_processor_id=pretranscribed.transcription_processor_id,
+                )
+                if pretranscribed
+                else self.audio_processor.transcribe_audio_with_result(audio_data)
+            )
 
             if transcription_result:
                 suppression_reason = self._transcript_suppression_reason(
                     audio_data,
                     transcription_result.raw_text,
                 )
-                insertion_marker = (
-                    None if suppression_reason else self._new_insertion_marker()
-                )
+                insertion_marker = None if suppression_reason else self._new_insertion_marker()
                 self._capture_tap.write(
                     audio_data=audio_data,
                     raw_transcript_text=transcription_result.raw_text,
@@ -148,9 +186,7 @@ class TranscriptionProcessor:
                     transcript_suppressed=suppression_reason is not None,
                     transcript_suppression_reason=suppression_reason,
                     transcription_provider=transcription_result.transcription_provider,
-                    transcription_processor_id=(
-                        transcription_result.transcription_processor_id
-                    ),
+                    transcription_processor_id=(transcription_result.transcription_processor_id),
                     insertion_marker=insertion_marker,
                 )
                 if suppression_reason is not None:
@@ -164,9 +200,7 @@ class TranscriptionProcessor:
                         transcription_result.insertion_text,
                         insertion_marker,
                     )
-                    self._handle_insert_result(
-                        self.text_handler.insert_text(insertion_text)
-                    )
+                    self._handle_insert_result(self.text_handler.insert_text(insertion_text))
                 self._audio_level_monitor.check_audio(audio_data, audio_source)
             else:
                 _logger.info("No transcription result")
@@ -177,8 +211,28 @@ class TranscriptionProcessor:
 
     def close(self) -> None:
         """Clean up processor resources."""
+        self.cancel_pretranscription()
         if self._streaming_client:
             self._streaming_client.close()
+
+    def _complete_pretranscription(
+        self,
+        audio_data: bytes,
+    ) -> PretranscribedAudioResult | None:
+        """Return a complete live chunk transcript, or let normal batch handling run."""
+        session = self._live_pretranscription
+        self._live_pretranscription = None
+        if not session:
+            return None
+        result = session.complete(audio_data)
+        if result:
+            _logger.info(
+                "Assembled %s pre-transcribed speech chunk(s) before insertion",
+                result.chunk_count,
+            )
+        else:
+            _logger.info("Live pre-transcription incomplete; using normal batch transcription")
+        return result
 
     def _handle_insert_result(self, success: bool) -> None:
         """Update status indicator after text insertion."""
@@ -224,10 +278,7 @@ class TranscriptionProcessor:
             raw_transcript_text
         )
 
-        if (
-            not normalized_text
-            and stats.duration_seconds <= SHORT_HALLUCINATION_DURATION_SECONDS
-        ):
+        if not normalized_text and stats.duration_seconds <= SHORT_HALLUCINATION_DURATION_SECONDS:
             return SUPPRESSION_REASON_LIKELY_EMPTY_RECORDING_HALLUCINATION
 
         if stats.likely_silent and (
@@ -249,10 +300,7 @@ class TranscriptionProcessor:
         normalized = text.lower().strip()
         normalized = normalized.replace(".com", " com")
         normalized = (
-            normalized.replace("'", "")
-            .replace("\u2018", "")
-            .replace("\u2019", "")
-            .replace("`", "")
+            normalized.replace("'", "").replace("\u2018", "").replace("\u2019", "").replace("`", "")
         )
         normalized = re.sub(r"[^a-z0-9]+", " ", normalized)
         return " ".join(normalized.split())

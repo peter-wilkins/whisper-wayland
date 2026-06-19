@@ -65,18 +65,7 @@ class AudioProcessor:
             raw_text = self.transcription_client.transcribe_audio(transcription_audio)
 
             if raw_text:
-                insertion_text = self.transcription_client.post_process_text(raw_text)
-                preview_len = ww.Constants.TRANSCRIPTION_PREVIEW_LENGTH
-                preview_text = insertion_text[:preview_len]
-                ellipsis = "..." if len(insertion_text) > preview_len else ""
-                _logger.info(f"Transcription completed: '{preview_text}{ellipsis}'")
-                return BatchTranscriptionResult(
-                    raw_text=raw_text,
-                    insertion_text=insertion_text,
-                    post_process_mode=self.transcription_client.config.text_post_process_mode,
-                    transcription_provider=self._last_transcription_provider(),
-                    transcription_processor_id=self._last_transcription_processor_id(),
-                )
+                return self.result_from_raw_text(raw_text)
 
             _logger.warning("Transcription returned empty result")
             return None
@@ -87,6 +76,38 @@ class AudioProcessor:
         except Exception as e:
             _logger.error(f"Unexpected error during transcription: {e}")
             return None
+
+    def result_from_raw_text(
+        self,
+        raw_text: str,
+        *,
+        transcription_provider: str | None = None,
+        transcription_processor_id: str | None = None,
+    ) -> BatchTranscriptionResult | None:
+        """Post-process an already-transcribed raw transcript for final insertion."""
+        if not raw_text:
+            return None
+
+        insertion_text = self.transcription_client.post_process_text(raw_text)
+        preview_len = ww.Constants.TRANSCRIPTION_PREVIEW_LENGTH
+        preview_text = insertion_text[:preview_len]
+        ellipsis = "..." if len(insertion_text) > preview_len else ""
+        _logger.info(f"Transcription completed: '{preview_text}{ellipsis}'")
+        return BatchTranscriptionResult(
+            raw_text=raw_text,
+            insertion_text=insertion_text,
+            post_process_mode=self.transcription_client.config.text_post_process_mode,
+            transcription_provider=(
+                transcription_provider
+                if transcription_provider is not None
+                else self._last_transcription_provider()
+            ),
+            transcription_processor_id=(
+                transcription_processor_id
+                if transcription_processor_id is not None
+                else self._last_transcription_processor_id()
+            ),
+        )
 
     def _prepare_audio_for_transcription(self, audio_data: bytes) -> bytes:
         """Apply optional transcription-only conditioning."""

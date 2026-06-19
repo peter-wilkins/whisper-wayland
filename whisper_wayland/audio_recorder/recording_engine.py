@@ -146,6 +146,15 @@ class RecordingEngine:
             _logger.error(f"Failed to stop recording: {e}")
             raise RecordingEngineError(f"Failed to stop recording: {e}") from e
 
+    def snapshot_recording(self) -> typing.Optional[bytes]:
+        """Return a WAV snapshot of the active recording without stopping it."""
+        with self._lock:
+            if not self._recording or self._recording_frames is None:
+                return None
+            frames = list(self._recording_frames)
+
+        return self._frames_to_wav(frames)
+
     def _reader_loop(self) -> None:
         """Continuously keep a tiny local pre-roll buffer warm."""
         self._reader_started_event.set()

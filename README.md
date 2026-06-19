@@ -106,6 +106,13 @@ All configuration is handled through environment variables and/or a/the `.env` f
 | `LOCAL_API_DEFAULT_VAD_MODE` | Default local API VAD mode when `vad` query param is absent | `auto` | No |
 | `PRETRANSCRIPTION_CHUNK_WHISPER_MODEL` | Model used only for pre-transcription chunk replay/live experiments | `whisper-1` | No |
 | `PRETRANSCRIPTION_CHUNK_RACE_MODELS` | Optional chunk-only race targets; leave empty for OpenAI-only chunking | - | No |
+| `PRETRANSCRIPTION_CHUNKING_ENABLED` | Enable experimental live chunk transcription for longer push-to-talk recordings | `false` | No |
+| `PRETRANSCRIPTION_CHUNK_MIN_RECORDING_SECONDS` | Recording duration before live chunking starts | `10` | No |
+| `PRETRANSCRIPTION_CHUNK_POLL_INTERVAL_SECONDS` | Seconds between live audio snapshots | `2` | No |
+| `PRETRANSCRIPTION_CHUNK_STABLE_TAIL_SECONDS` | Trailing audio held until release to avoid clipping speech | `3` | No |
+| `PRETRANSCRIPTION_CHUNK_COALESCE_MIN_DURATION_SECONDS` | Minimum preferred live phrase chunk duration | `4` | No |
+| `PRETRANSCRIPTION_CHUNK_COALESCE_MAX_DURATION_SECONDS` | Maximum live phrase chunk duration (`0` means unlimited) | `12` | No |
+| `PRETRANSCRIPTION_CHUNK_COALESCE_MAX_GAP_SECONDS` | Largest silence gap merged into one phrase chunk | `3` | No |
 | `AUDIO_SAMPLE_RATE` | Audio recording sample rate | `16000` | No |
 | `AUDIO_PREROLL_SECONDS` | Local pre-roll audio prepended when push-to-talk starts (`0` to `3`) | `1.0` | No |
 | `AUDIO_INPUT_DEVICE_INDEX` | Explicit PyAudio input device index, blank for auto-selection | - | No |
@@ -245,6 +252,12 @@ Chunk transcription uses `PRETRANSCRIPTION_CHUNK_WHISPER_MODEL=whisper-1` and
 `PRETRANSCRIPTION_CHUNK_RACE_MODELS=` by default, independent of normal batch
 transcription. Override per replay with `--chunk-whisper-model` and
 `--chunk-race-models`.
+
+For an experimental live version, set `PRETRANSCRIPTION_CHUNKING_ENABLED=true`.
+After ten seconds of push-to-talk, it polls local recording snapshots, transcribes
+only stable Silero phrase chunks with the chunk-only provider settings, and waits
+to paste one post-processed final blob after release. Any VAD or chunk failure
+falls back to the normal full-recording batch transcription path.
 
 ## Troubleshooting
 

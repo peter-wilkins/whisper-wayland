@@ -130,6 +130,13 @@ class AudioRecorder:
         except RecordingEngineError as e:
             raise AudioRecordingError(str(e)) from e
 
+    def snapshot_recording_audio(self) -> typing.Optional[bytes]:
+        """Return current recording audio without affecting capture state."""
+        try:
+            return self._recording_engine.snapshot_recording()
+        except RecordingEngineError as e:
+            raise AudioRecordingError(str(e)) from e
+
     def is_recording(self) -> bool:
         """Check if recording is currently in progress.
 

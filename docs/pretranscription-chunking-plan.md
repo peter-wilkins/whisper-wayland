@@ -20,9 +20,9 @@ current UX: paste one final extracted blob after recording stops.
 - Do not run speculative extraction in v1.
 - Add small audio padding around chunk boundaries. Slight duplicate words are
   acceptable; missing first or last words are worse.
-- Use the existing transcription client and provider race setup initially.
+- Use the existing transcription client with a chunk-specific provider setup.
   Chunking changes provider latency and quality dynamics, so provider comparison
-  remains part of the experiment.
+  remains part of the experiment without changing normal batch settings.
 - Do not impose a product cap on total chunks, but keep a high implementation
   safety ceiling to prevent runaway API traffic if VAD misbehaves.
 - Keep chunking behind a feature flag until latency, quality, insertion
@@ -75,3 +75,18 @@ Pre-transcription chunking should therefore have its own provider configuration
 instead of inheriting the normal batch transcription race. Current experimental
 default: use OpenAI `whisper-1` for chunks and no chunk race. Normal batch
 transcription keeps using `WHISPER_MODEL` and `TRANSCRIPTION_RACE_MODELS`.
+
+## Live Slice
+
+The live experimental path is now behind `PRETRANSCRIPTION_CHUNKING_ENABLED`.
+After `PRETRANSCRIPTION_CHUNK_MIN_RECORDING_SECONDS` (default 10), it polls a
+non-destructive recorder snapshot. It sends only phrase chunks ending before the
+stable trailing-audio window, using `PRETRANSCRIPTION_CHUNK_WHISPER_MODEL` and
+`PRETRANSCRIPTION_CHUNK_RACE_MODELS`. On release it re-runs VAD for the complete
+recording, reuses matching early chunk transcripts, transcribes only missing
+chunks, then performs the existing single post-processing/insertion step.
+
+If VAD fails, a chunk fails, or a chunk returns no text, the feature abandons the
+partial result and uses the existing full-recording batch path. The full raw WAV
+and final raw/insertion transcript continue to be captured as one intentional
+capture; live chunks are not written to Continuum.

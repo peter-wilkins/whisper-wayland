@@ -72,6 +72,27 @@ class ConfigValidator:
             "pretranscription_chunk_race_models": (
                 config_instance.pretranscription_chunk_race_models
             ),
+            "pretranscription_chunking_enabled": (
+                config_instance.pretranscription_chunking_enabled
+            ),
+            "pretranscription_chunk_min_recording_seconds": (
+                config_instance.pretranscription_chunk_min_recording_seconds
+            ),
+            "pretranscription_chunk_poll_interval_seconds": (
+                config_instance.pretranscription_chunk_poll_interval_seconds
+            ),
+            "pretranscription_chunk_stable_tail_seconds": (
+                config_instance.pretranscription_chunk_stable_tail_seconds
+            ),
+            "pretranscription_chunk_coalesce_min_duration_seconds": (
+                config_instance.pretranscription_chunk_coalesce_min_duration_seconds
+            ),
+            "pretranscription_chunk_coalesce_max_duration_seconds": (
+                config_instance.pretranscription_chunk_coalesce_max_duration_seconds
+            ),
+            "pretranscription_chunk_coalesce_max_gap_seconds": (
+                config_instance.pretranscription_chunk_coalesce_max_gap_seconds
+            ),
             "audio_sample_rate": config_instance.audio_sample_rate,
             "audio_chunk_size": config_instance.audio_chunk_size,
             "audio_preroll_seconds": config_instance.audio_preroll_seconds,
@@ -79,15 +100,9 @@ class ConfigValidator:
             "audio_input_device_name": config_instance.audio_input_device_name,
             "max_recording_duration": config_instance.max_recording_duration,
             "audio_level_monitor_enabled": config_instance.audio_level_monitor_enabled,
-            "audio_level_auto_adjust_enabled": (
-                config_instance.audio_level_auto_adjust_enabled
-            ),
-            "audio_level_manage_mics_enabled": (
-                config_instance.audio_level_manage_mics_enabled
-            ),
-            "audio_level_check_interval_secs": (
-                config_instance.audio_level_check_interval_secs
-            ),
+            "audio_level_auto_adjust_enabled": (config_instance.audio_level_auto_adjust_enabled),
+            "audio_level_manage_mics_enabled": (config_instance.audio_level_manage_mics_enabled),
+            "audio_level_check_interval_secs": (config_instance.audio_level_check_interval_secs),
             "audio_level_source": config_instance.audio_level_source,
             "audio_transcription_normalization_enabled": (
                 config_instance.audio_transcription_normalization_enabled
@@ -111,9 +126,7 @@ class ConfigValidator:
             "streaming_delta_idle_timeout_secs": (
                 config_instance.streaming_delta_idle_timeout_secs
             ),
-            "streaming_turn_detection_enabled": (
-                config_instance.streaming_turn_detection_enabled
-            ),
+            "streaming_turn_detection_enabled": (config_instance.streaming_turn_detection_enabled),
             "streaming_vad_silence_duration_ms": (
                 config_instance.streaming_vad_silence_duration_ms
             ),
@@ -121,18 +134,14 @@ class ConfigValidator:
             "text_insertion_method": config_instance.text_insertion_method,
             "text_tmux_target_pane": config_instance.text_tmux_target_pane,
             "text_paste_hotkey": config_instance.text_paste_hotkey,
-            "text_insertion_marker_enabled": (
-                config_instance.text_insertion_marker_enabled
-            ),
+            "text_insertion_marker_enabled": (config_instance.text_insertion_marker_enabled),
             "text_post_process_mode": config_instance.text_post_process_mode,
             "text_post_process_model": config_instance.text_post_process_model,
             "text_post_process_openai_api_key": (
                 "***" if config_instance.text_post_process_openai_api_key else None
             ),
             "text_post_process_providers": config_instance.text_post_process_providers,
-            "text_post_process_local_api_url": (
-                config_instance.text_post_process_local_api_url
-            ),
+            "text_post_process_local_api_url": (config_instance.text_post_process_local_api_url),
             "text_post_process_local_api_timeout_secs": (
                 config_instance.text_post_process_local_api_timeout_secs
             ),

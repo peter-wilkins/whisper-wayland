@@ -12,6 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import whisper_wayland as ww
+from whisper_wayland.pretranscription import (
+    ChunkTranscriptionConfig,
+    chunk_transcription_config,
+)
 from whisper_wayland.silero_vad import (
     SileroVadPreprocessor,
     VadAudioChunk,
@@ -71,19 +75,6 @@ class ReplayResult:
     chunk_transcription: dict[str, object] | None
     assembled_text: str | None
     chunks: list[ReplayChunkResult]
-
-
-@dataclass(frozen=True)
-class ChunkTranscriptionConfig:
-    """Config proxy that overrides only chunk transcription provider settings."""
-
-    base_config: typing.Any
-    whisper_model: str
-    transcription_race_models: list[str]
-
-    def __getattr__(self, name: str) -> object:
-        """Delegate all other configuration to the base config."""
-        return getattr(self.base_config, name)
 
 
 class PretranscriptionReplay:
@@ -233,18 +224,10 @@ class PretranscriptionReplay:
         return ww.TranscriptionClient(chunk_config)  # type: ignore[arg-type]
 
     def _chunk_transcription_config(self) -> ChunkTranscriptionConfig:
-        base_config = ww.Config()
-        return ChunkTranscriptionConfig(
-            base_config=base_config,
-            whisper_model=(
-                self.settings.chunk_whisper_model
-                or base_config.pretranscription_chunk_whisper_model
-            ),
-            transcription_race_models=(
-                self.settings.chunk_race_models
-                if self.settings.chunk_race_models is not None
-                else base_config.pretranscription_chunk_race_models
-            ),
+        return chunk_transcription_config(
+            ww.Config(),
+            whisper_model=self.settings.chunk_whisper_model,
+            race_models=self.settings.chunk_race_models,
         )
 
     def _write_result(self, result: ReplayResult) -> None:
@@ -319,9 +302,7 @@ def main(argv: list[str] | None = None) -> int:
             coalesce_max_gap_seconds=args.coalesce_max_gap_seconds,
             chunk_whisper_model=args.chunk_whisper_model,
             chunk_race_models=(
-                _parse_csv(args.chunk_race_models)
-                if args.chunk_race_models is not None
-                else None
+                _parse_csv(args.chunk_race_models) if args.chunk_race_models is not None else None
             ),
         ),
     )

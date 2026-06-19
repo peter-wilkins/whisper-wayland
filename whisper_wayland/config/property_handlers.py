@@ -95,14 +95,63 @@ class PropertyHandlers:
 
     def get_pretranscription_chunk_whisper_model(self) -> str:
         """Get transcription model used for pre-transcription chunks."""
-        return (
-            os.getenv("PRETRANSCRIPTION_CHUNK_WHISPER_MODEL", "whisper-1").strip()
-            or "whisper-1"
-        )
+        return os.getenv("PRETRANSCRIPTION_CHUNK_WHISPER_MODEL", "whisper-1").strip() or "whisper-1"
 
     def get_pretranscription_chunk_race_models(self) -> list[str]:
         """Get additional race models used only for pre-transcription chunks."""
         return self._get_comma_separated_env("PRETRANSCRIPTION_CHUNK_RACE_MODELS")
+
+    def get_pretranscription_chunking_enabled(self) -> bool:
+        """Get whether live pre-transcription chunking is enabled."""
+        return self._get_bool_env("PRETRANSCRIPTION_CHUNKING_ENABLED", False)
+
+    def get_pretranscription_chunk_min_recording_seconds(self) -> float:
+        """Get recording duration before live chunking starts."""
+        return self._get_float_env(
+            "PRETRANSCRIPTION_CHUNK_MIN_RECORDING_SECONDS",
+            "10",
+            allow_zero=False,
+        )
+
+    def get_pretranscription_chunk_poll_interval_seconds(self) -> float:
+        """Get interval between live audio snapshot checks."""
+        return self._get_float_env(
+            "PRETRANSCRIPTION_CHUNK_POLL_INTERVAL_SECONDS",
+            "2",
+            allow_zero=False,
+        )
+
+    def get_pretranscription_chunk_stable_tail_seconds(self) -> float:
+        """Get trailing audio retained until recording release."""
+        return self._get_float_env(
+            "PRETRANSCRIPTION_CHUNK_STABLE_TAIL_SECONDS",
+            "3",
+            allow_zero=True,
+        )
+
+    def get_pretranscription_chunk_coalesce_min_duration_seconds(self) -> float:
+        """Get minimum preferred duration for a live phrase chunk."""
+        return self._get_float_env(
+            "PRETRANSCRIPTION_CHUNK_COALESCE_MIN_DURATION_SECONDS",
+            "4",
+            allow_zero=True,
+        )
+
+    def get_pretranscription_chunk_coalesce_max_duration_seconds(self) -> float:
+        """Get maximum duration for a live phrase chunk; zero means unlimited."""
+        return self._get_float_env(
+            "PRETRANSCRIPTION_CHUNK_COALESCE_MAX_DURATION_SECONDS",
+            "12",
+            allow_zero=True,
+        )
+
+    def get_pretranscription_chunk_coalesce_max_gap_seconds(self) -> float:
+        """Get largest silence gap that may be merged into a live phrase chunk."""
+        return self._get_float_env(
+            "PRETRANSCRIPTION_CHUNK_COALESCE_MAX_GAP_SECONDS",
+            "3",
+            allow_zero=True,
+        )
 
     # Audio Configuration
     def get_audio_sample_rate(self) -> int:
@@ -250,8 +299,7 @@ class PropertyHandlers:
         )
         if value > 1:
             raise PropertyHandlerError(
-                "Invalid AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_PEAK_AMPLITUDE: "
-                "must be <= 1"
+                "Invalid AUDIO_TRANSCRIPTION_NORMALIZATION_MAX_PEAK_AMPLITUDE: must be <= 1"
             )
         return value
 
@@ -348,9 +396,7 @@ class PropertyHandlers:
             return timeout
         except ValueError as e:
             _logger.error(f"Invalid STREAMING_COMPLETION_TIMEOUT_SECS: {e}")
-            raise PropertyHandlerError(
-                f"Invalid STREAMING_COMPLETION_TIMEOUT_SECS: {e}"
-            ) from e
+            raise PropertyHandlerError(f"Invalid STREAMING_COMPLETION_TIMEOUT_SECS: {e}") from e
 
     def get_streaming_delta_idle_timeout_secs(self) -> float:
         """Get seconds to wait after the last realtime partial transcript.
@@ -365,9 +411,7 @@ class PropertyHandlers:
             return timeout
         except ValueError as e:
             _logger.error(f"Invalid STREAMING_DELTA_IDLE_TIMEOUT_SECS: {e}")
-            raise PropertyHandlerError(
-                f"Invalid STREAMING_DELTA_IDLE_TIMEOUT_SECS: {e}"
-            ) from e
+            raise PropertyHandlerError(f"Invalid STREAMING_DELTA_IDLE_TIMEOUT_SECS: {e}") from e
 
     def get_streaming_turn_detection_enabled(self) -> bool:
         """Get whether server-side VAD should commit chunks on speech pauses."""
@@ -383,9 +427,7 @@ class PropertyHandlers:
             return duration
         except ValueError as e:
             _logger.error(f"Invalid STREAMING_VAD_SILENCE_DURATION_MS: {e}")
-            raise PropertyHandlerError(
-                f"Invalid STREAMING_VAD_SILENCE_DURATION_MS: {e}"
-            ) from e
+            raise PropertyHandlerError(f"Invalid STREAMING_VAD_SILENCE_DURATION_MS: {e}") from e
 
     # Text Insertion Configuration
     def get_text_insertion_delay(self) -> float:
@@ -458,8 +500,7 @@ class PropertyHandlers:
         valid_modes = ["raw", "clean", "snappy", "caveman", "extract"]
         if mode not in valid_modes:
             _logger.warning(
-                f"Invalid TEXT_POST_PROCESS_MODE '{mode}', using raw. "
-                f"Valid modes: {valid_modes}"
+                f"Invalid TEXT_POST_PROCESS_MODE '{mode}', using raw. Valid modes: {valid_modes}"
             )
             return "raw"
         return mode
@@ -480,9 +521,7 @@ class PropertyHandlers:
         """Get ordered transcript rewrite provider names."""
         raw_providers = os.getenv("TEXT_POST_PROCESS_PROVIDERS", "openai,local")
         providers = [
-            provider.strip().lower()
-            for provider in raw_providers.split(",")
-            if provider.strip()
+            provider.strip().lower() for provider in raw_providers.split(",") if provider.strip()
         ]
         return providers or ["local", "openai"]
 

@@ -69,9 +69,7 @@ class TestHotkeyHandler:
         transcription_processor = unittest.mock.Mock()
         transcription_processor.streaming_enabled = True
         transcription_processor.start_streaming.return_value = True
-        handler = application.HotkeyHandler(
-            audio_recorder, transcription_processor, mode="toggle"
-        )
+        handler = application.HotkeyHandler(audio_recorder, transcription_processor, mode="toggle")
 
         with unittest.mock.patch("whisper_wayland.application.hotkey_handler.threading.Thread"):
             handler._on_hotkey_press()
@@ -103,6 +101,24 @@ class TestHotkeyHandler:
         transcription_processor.start_streaming.assert_called_once()
         audio_recorder.start_recording.assert_called_once()
         status_indicator.recording.assert_called_once()
+
+    def test_batch_recording_starts_live_pretranscription_when_enabled(self) -> None:
+        """Enabled live chunking receives a non-destructive recorder snapshot callback."""
+        audio_recorder = unittest.mock.Mock()
+        transcription_processor = unittest.mock.Mock()
+        transcription_processor.streaming_enabled = False
+        transcription_processor.pretranscription_enabled = True
+        handler = application.HotkeyHandler(
+            audio_recorder,
+            transcription_processor,
+            mode="push_to_talk",
+        )
+
+        handler._on_hotkey_press()
+
+        transcription_processor.start_pretranscription.assert_called_once_with(
+            audio_recorder.snapshot_recording_audio
+        )
 
     def test_hotkey_press_ignored_while_transcribing(self) -> None:
         """Test a new recording cannot start while prior transcription is running."""
